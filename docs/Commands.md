@@ -33,3 +33,6 @@ Here are the valid application commands that you can use with the bot:
 !!! warning 
     You are allowed to use application command on files as well but there is a maximum file size limit of 30 kb.
     Exceeding this limit will fail to compile.
+
+!!! warning 
+    Native code generation is currently not supported.
