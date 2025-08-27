@@ -3,7 +3,7 @@ theme:
   name: material
   favicon: images/favicon.png
   logo: images/favicon.png
-  
+  custom_dir: overrides
   palette:
     scheme: slate
     # Default: dark mode (no media, always applies first)
@@ -31,7 +31,9 @@ theme:
 extra:
   generator: false
 
+
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  
