@@ -12,6 +12,7 @@ To use the bot, simply type one of the following commands in your Discord server
 - `/compile`: Executes the given Luau code in the Roblox environment.
 
 You could also right click or hold a code block and click on `Apps` and select a command to execute the action.
+
 <a href="https://ibb.co/PvNDtVTj"><img src="https://i.ibb.co/DHtrLjGW/image.png" alt="image" border="0"></a>
 ---
 

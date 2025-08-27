@@ -5,7 +5,6 @@ theme:
   logo: images/favicon.png
   
   palette:
-    primary: cyan
     scheme: slate
     # Default: dark mode (no media, always applies first)
     # - scheme: slate
