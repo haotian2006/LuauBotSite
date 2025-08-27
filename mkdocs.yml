@@ -1,0 +1,38 @@
+site_name: Luau Runner
+theme:
+  name: material
+  favicon: images/favicon.png
+  logo: images/favicon.png
+  
+  palette:
+    primary: cyan
+    scheme: slate
+    # Default: dark mode (no media, always applies first)
+    # - scheme: slate
+    #   toggle:
+    #     icon: material/brightness-4
+    #     name: Switch to light mode
+
+    # # Light mode (optional)
+    # - media: "(prefers-color-scheme: light)"
+    #   scheme: default
+    #   toggle:
+    #     icon: material/brightness-7
+    #     name: Switch to dark mode
+
+    # # System preference (optional)
+    # - media: "(prefers-color-scheme)"
+    #   toggle:
+    #     icon: material/brightness-auto
+    #     name: Switch to dark mode
+
+    # System preference (auto)
+
+
+extra:
+  generator: false
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
