@@ -22,6 +22,14 @@ Valid colors are (casing does not matter):
 ### `TIMEOUT: number`
 The maximum time (in seconds) that a code execution is allowed to run before terminated. Defaults to 15 seconds. 
 
+```lua
+TIMEOUT = 3 -- make sure it's not a local
+while task.wait(.5) do
+       print('hello') -- will stop after 3 seconds
+end 
+```
+
+```
 ???+ info
     The maximum time a session can run for is 5 minutes before it shuts down.
 
