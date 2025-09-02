@@ -19,7 +19,7 @@ You could also right click or hold a code block and click on `Apps` and select a
 ## Security
 
 This bot will not read private messages. In servers, the bot doesn't need any permissions since all it does is read and send messages, which only requires the user to have those permissions.
-This bot will also log the user (name/userid) who used the bot, BUT it will not log the actual message, only the message length. The raw data will not be public.
+This bot will also log the user (name/userid) who used the bot (server not logged), BUT it will not log the actual message, only the message length. The raw data will not be public.
 
 ---
 
