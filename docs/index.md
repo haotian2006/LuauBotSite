@@ -16,6 +16,13 @@ You could also right click or hold a code block and click on `Apps` and select a
 <a href="https://ibb.co/PvNDtVTj"><img src="https://i.ibb.co/DHtrLjGW/image.png" alt="image" border="0"></a>
 ---
 
+## Security
+
+This bot will not read private messages. In servers, the bot doesn't need any permissions since all it does is read and send messages, which only requires the user to have those permissions.
+This bot will also log the user (name/userid) who used the bot, BUT it will not log the actual message, only the message length. The raw data will not be public.
+
+---
+
 <div align="center">
 
 <a href="https://discord.com/oauth2/authorize?client_id=1271610114062811176" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 24px;background:#2196F3;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;box-shadow:0 2px 4px rgba(33, 150, 243, 0.1);">
