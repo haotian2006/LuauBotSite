@@ -16,6 +16,9 @@ Here are the valid application commands that you can use with the bot:
 
 ---
 
+!!! info 
+    `compile` will also truncate the output to reduce spam.
+
 ???+ info "Flags"
     Commands executed using `bytecode` check for flags in the text that determine how the code is compiled. Here are the available flags:
     ```
