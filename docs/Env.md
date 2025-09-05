@@ -5,11 +5,11 @@
 
 Luau Runner has a few custom globals that you can use.
 
-### `log(text:string,color:string,newLine:boolean?)`
-Logs text to the console with a specified color. If newLine is true, it will add a new line after the text.
-
 ### `write(...string)`
 Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then do not create a new line.
+
+### `log(text:string,color:string,newLine:boolean?)`
+Logs text to the console with a specified color. If newLine is true, it will add a new line after the text.
 
 Valid colors are (casing does not matter):
 
