@@ -33,8 +33,8 @@ end
 ```
 
 
-### `OUTPUT_LOGS: boolean`
-Should a file be attached once the code execution finishes, containing all the outputs, defaults to false.
+### `OUTPUT_LOGS: boolean|"LOG"`
+Should a file be attached once the code execution finishes, containing all the outputs, defaults to false. If set to "LOG" then headers will not be included.
 
 ### `TIMESTAMP: boolean`
 Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to true. 
