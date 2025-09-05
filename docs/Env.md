@@ -37,7 +37,7 @@ end
 Should a file be attached once the code execution finishes, containing all the outputs, defaults to false.
 
 ### `TIMESTAMP: boolean`
-Should the time stamp be included when logging. Does not apply to errors. Defaults to true.
+Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to true. 
 
 
 ???+ info
