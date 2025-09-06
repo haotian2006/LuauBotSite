@@ -5,7 +5,7 @@
 
 Luau Runner has a few custom globals that you can use.
 
-### `write(...string)`
+### `write(...any)`
 Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then do not create a new line.
 
 ### `log(text:string,color:string,newLine:boolean?)`
@@ -32,6 +32,9 @@ while task.wait(.5) do
 end 
 ```
 
+???+ info
+    The maximum time a session can run for is 5 minutes before it shuts down.
+
 
 ### `OUTPUT_LOGS: boolean|"LOG"`
 Should a file be attached once the code execution finishes, containing all the outputs, defaults to false. If set to "LOG" then headers will not be included.
@@ -40,8 +43,6 @@ Should a file be attached once the code execution finishes, containing all the o
 Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to true. 
 
 
-???+ info
-    The maximum time a session can run for is 5 minutes before it shuts down.
 
 ### `table: table`
 
