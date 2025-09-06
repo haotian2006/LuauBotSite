@@ -48,7 +48,7 @@ Here are the valid application commands that you can use with the bot:
     ```
 
     Result:
-    
+
     ```lua
     print('before')
     print('hi')
@@ -56,23 +56,23 @@ Here are the valid application commands that you can use with the bot:
     ```
 
 !!! info
-`compile` will also truncate the output to reduce spam.
+    `compile` will also truncate the output to reduce spam.
 
 ???+ info "Flags"
-Commands executed using `bytecode` check for flags in the text that determine how the code is compiled. Here are the available flags:
-``--!optimize <level 0-2> --!debug <level 0-2> --!remarks``
+    Commands executed using `bytecode` check for flags in the text that determine how the code is compiled. Here are the available flags:
+    ``--!optimize <level 0-2> --!debug <level 0-2> --!remarks``
 
-```
-Example:
-```lua
---!optimize 2
-print(1+1) -- would optimize to print(2)
-```
-```
-
-!!! warning
-You are allowed to use application command on files as well but there is a maximum file size limit of 30 kb.
-Exceeding this limit will fail to compile.
+    ```
+    Example:
+    ```lua
+    --!optimize 2
+    print(1+1) -- would optimize to print(2)
+    ```
+    ```
 
 !!! warning
-Native code generation is currently not supported.
+    You are allowed to use application command on files as well but there is a maximum file size limit of 30 kb.
+    Exceeding this limit will fail to compile.
+
+!!! warning
+    Native code generation is currently not supported.
