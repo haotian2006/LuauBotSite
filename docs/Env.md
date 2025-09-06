@@ -5,9 +5,6 @@
 
 Luau Runner has a few custom globals that you can use.
 
-### `write(...any)`
-Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then do not create a new line.
-
 ### `log(text:string,color:string,newLine:boolean?)`
 Logs text to the console with a specified color. If newLine is true, it will add a new line after the text.
 
@@ -42,7 +39,14 @@ Should a file be attached once the code execution finishes, containing all the o
 ### `TIMESTAMP: boolean`
 Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to true. 
 
+### `io.write(...any)`
+Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then do not create a new line.
 
+### `io.read():string`
+yields the thread until `/input` is given. Unlike lua this does not have any args.
+
+???+ warning
+    `/input` will only send it for the latest session started by the user. It will not process inputs from other users.
 
 ### `table: table`
 
