@@ -5,19 +5,6 @@
 
 Luau Runner has a few custom globals that you can use.
 
-### `log(text:string,color:string,newLine:boolean?)`
-Logs text to the console with a specified color. If newLine is true, it will add a new line after the text.
-
-Valid colors are (casing does not matter):
-
-- `black`
-- `red`
-- `green`
-- `yellow`
-- `blue`
-- `purple`
-- `white`
-- `cyan`
 
 ### `TIMEOUT: number`
 The maximum time (in seconds) that a code execution is allowed to run before terminated. Defaults to 15 seconds. 
@@ -37,7 +24,7 @@ end
 Should a file be attached once the code execution finishes, containing all the outputs, defaults to false. If set to "LOG" then headers will not be included.
 
 ### `TIMESTAMP: boolean`
-Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to true. 
+Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to false. 
 
 ### `io.write(...any)`
 Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then do not create a new line.
@@ -47,6 +34,20 @@ yields the thread until `/input` is given. Unlike lua this does not have any arg
 
 ???+ warning
     `/input` will only send it for the latest session started by the user. It will not process inputs from other users.
+
+### `log(text:string,color:string,newLine:boolean?)`
+Logs text to the console with a specified color. If newLine is true, it will add a new line after the text.
+
+Valid colors are (casing does not matter):
+
+- `black`
+- `red`
+- `green`
+- `yellow`
+- `blue`
+- `purple`
+- `white`
+- `cyan`
 
 ### `table: table`
 
