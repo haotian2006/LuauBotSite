@@ -1,7 +1,7 @@
 # Executing code
 
 ???+ warning
-    Because Luau Runner uses the execute code cloud api to run code, this means physics will not be simulated. Also do not trust benches ran from this bot as this is using `loadstring` which may not accurately represent the final execution environment.
+    Because Luau Runner uses the execute code cloud api to run code, this means physics will not be simulated. 
 
 Luau Runner has a few custom globals that you can use.
 
@@ -32,8 +32,62 @@ Does not add spaces between args and does not output tables expanded.If `TIMESTA
 ### `io.read():string`
 yields the thread until `/input` is given. Unlike lua this does not have any args.
 
-???+ warning
-    `/input` will only send it for the latest session started by the user. It will not process inputs from other users.
+You can also provide inputs in the code using `--@<input>` comments.
+```lua
+--@Hello, World!
+local input = io.read()
+print(input) --> Hello, World!
+```
+
+### `bench(funcs:{},printMode:number?,iterations:number?,delayEveryXIter:number?): results`
+
+Runs benchmarks on the provided functions.
+- `funcs`: A dictionary of functions to benchmark. The key is the name of the function, and the value is the function itself. This also supports BoatBomber's format of a ParameterGenerator and Functions table.
+    - If using the ParameterGenerator format, the `ParameterGenerator` function will be called once to generate parameters, which will then be passed to each function in the `Functions` table.
+- `printMode`: (optional) Determines how results are printed. 
+    - `0` = No output
+    - `1` = table format (default)
+    - `2` = compact format
+- `iterations`: (optional) The number of iterations to run for each function. Defaults to 1000.
+- `delayEveryXIter`: (optional) Introduces a small delay every X iterations to prevent timeouts. Defaults to 20.
+
+Returns a table containing the results of the benchmarks.
+
+Examples:
+```lua
+local results = bench({
+    ["sum"] = function()
+        local s = 0
+        for i = 1, 100 do
+            s = s + i
+        end
+        return s
+    end,
+})
+
+local results = bench({
+    ParameterGenerator = function()
+        local t = {}
+        for i = 1, 100 do
+            t[i] = math.random()
+        end
+        return t
+    end,
+    Functions = {
+        ["sum"] = function(profile,t)
+            local s = 0
+            for i = 1, #t do
+                s = s + t[i]
+            end
+        return s
+    end,
+    }
+})
+
+```
+
+### `println(text:string,line:number?):number`
+returns the line the number is printed on
 
 ### `log(text:string,color:string,newLine:boolean?)`
 Logs text to the console with a specified color. If newLine is true, it will add a new line after the text.

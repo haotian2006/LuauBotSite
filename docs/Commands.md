@@ -24,7 +24,7 @@ Here are the valid application commands that you can use with the bot:
 ???+ info 
     `compileWOption`'s options will also not work if the globals for the options were already defined in the code.
 
-???+ info 
+???+ info
     `compileWOption`'s `Additional Code` Option by default will append the code to the end of the original code.
     Example:
     Original Code: `print('hi')`
@@ -53,6 +53,31 @@ Here are the valid application commands that you can use with the bot:
     print('before')
     print('hi')
     print('after')
+    ```
+
+???+ info
+    `bytecodeWOption`'s `Additional Code` Option now also works with normal code blocks. You can chain blocks of code together.
+
+    ```lua
+    print('first block')
+    ```
+
+    ```lua
+    print('second block')
+    ```
+
+    ```lua
+    {CODE}
+    {CODE}
+    ```
+
+    Result:
+
+    ```lua
+    print('first block')
+    print('second block')
+    print('first block')
+    print('second block')
     ```
 
 !!! info
