@@ -56,7 +56,7 @@ Here are the valid application commands that you can use with the bot:
     ```
 
 ???+ info
-    `bytecodeWOption`'s `Additional Code` Option now also works with normal code blocks. You can chain blocks of code together.
+    `compileWOption`'s `Additional Code` Option now also works with normal code blocks. You can chain blocks of code together.
 
     ```lua
     print('first block')
@@ -85,7 +85,7 @@ Here are the valid application commands that you can use with the bot:
 
 ???+ info "Flags"
     Commands executed using `bytecode` check for flags in the text that determine how the code is compiled. Here are the available flags:
-    ``--!optimize <level 0-2> --!debug <level 0-2> --!remarks``
+    ``--!optimize <level 0-2> --!debug <level 0-2> --!remarks --!native``
 
     ```
     Example:
@@ -95,9 +95,6 @@ Here are the valid application commands that you can use with the bot:
     ```
     ```
 
-!!! warning
-    You are allowed to use application command on files as well but there is a maximum file size limit of 30 kb.
-    Exceeding this limit will fail to compile.
 
 !!! warning
-    Native code generation is currently not supported.
+    Native code generation is currently not supported. (It is now supported)
