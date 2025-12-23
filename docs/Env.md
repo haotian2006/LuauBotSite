@@ -104,7 +104,7 @@ Valid colors are (casing does not matter):
 - `white`
 - `cyan`
 
-### `table: table`
+### `etable: table`
 
 The default table library has extended functions provided by Akari <3. 
 These just provide a few gimmicky functions on top of the default table library.
