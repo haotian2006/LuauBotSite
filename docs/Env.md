@@ -42,6 +42,7 @@ print(input) --> Hello, World!
 ### `bench(funcs:{},printMode:number?,iterations:number?,delayEveryXIter:number?): results`
 
 Runs benchmarks on the provided functions.
+
 - `funcs`: A dictionary of functions to benchmark. The key is the name of the function, and the value is the function itself. This also supports BoatBomber's format of a ParameterGenerator and Functions table.
     - If using the ParameterGenerator format, the `ParameterGenerator` function will be called once to generate parameters, which will then be passed to each function in the `Functions` table.
 - `printMode`: (optional) Determines how results are printed. 
