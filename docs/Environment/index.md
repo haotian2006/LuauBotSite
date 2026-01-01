@@ -1,7 +1,7 @@
 # Executing code
 
 ???+ warning
-    Because Luau Runner uses the execute code cloud api to run code, this means physics will not be simulated. 
+    Because Luau Runner uses the execute code cloud api to run code, this means physics will not be simulated. And some RunService events will not fire. These may be emulated in the future.
 
 Luau Runner has a few custom globals that you can use.
 
