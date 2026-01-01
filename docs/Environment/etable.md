@@ -5,11 +5,11 @@ These just provide a few gimmicky functions on top of the default table library.
 
 ```lua
 local t = {1,2,3,4,5,6,7,8,9}
-print(table.getAllocatedArraySize(t)) --> 9
+print(etable.getAllocatedArraySize(t)) --> 9
 t[10] = 10
-print(table.getAllocatedArraySize(t)) --> 16
+print(etable.getAllocatedArraySize(t)) --> 16
 
-print(table.concat(t, ", ")) --> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 
+print(etable.concat(t, ", ")) --> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 
 ```
 
 This extends the default table library in Luau with additional utility functions.

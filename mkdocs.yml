@@ -35,7 +35,7 @@ nav:
   - Commands: Commands.md
   - Environment:
     - Overview: Environment/index.md
-    - eTable: Environment/etable.md
+    - etable: Environment/etable.md
     - io: Environment/io.md
     - misc: Environment/misc.md
   - Tos: Tos.md
