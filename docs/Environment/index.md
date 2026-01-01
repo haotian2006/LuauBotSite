@@ -20,24 +20,12 @@ end
     The maximum time a session can run for is 5 minutes before it shuts down.
 
 
+
 ### `OUTPUT_LOGS: boolean|"LOG"`
 Should a file be attached once the code execution finishes, containing all the outputs, defaults to false. If set to "LOG" then headers will not be included.
 
 ### `TIMESTAMP: boolean`
 Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to false. 
-
-### `io.write(...any)`
-Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then do not create a new line.
-
-### `io.read():string`
-yields the thread until `/input` is given. Unlike lua this does not have any args.
-
-You can also provide inputs in the code using `--@<input>` comments.
-```lua
---@Hello, World!
-local input = io.read()
-print(input) --> Hello, World!
-```
 
 ### `bench(funcs:{},printMode:number?,iterations:number?,delayEveryXIter:number?): results`
 
@@ -104,17 +92,20 @@ Valid colors are (casing does not matter):
 - `white`
 - `cyan`
 
-### `etable: table`
 
-The default table library has extended functions provided by Akari <3. 
-These just provide a few gimmicky functions on top of the default table library.
-Check [ExtendedTableLibrary](./ExtendedTableLibrary.md) for more information.
+### `native: boolean`
+Is native code generation enabled. Should not be modified at runtime. Does not effect running code.
 
-```lua
-local t = {1,2,3,4,5,6,7,8,9}
-print(table.getAllocatedArraySize(t)) --> 9
-t[10] = 10
-print(table.getAllocatedArraySize(t)) --> 16
+### `optimize: number`
+The optimization level that the script is running in. Should not be modified at runtime. Does not effect running code.
 
-print(table.concat(t, ", ")) --> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 
-```
+### `runpy(code:string): pyruntime`
+Executes the given Python code and returns the runtime. This is missing a lot of features and is very basic currently.
+Check out the module [here](https://devforum.roblox.com/t/pylua-python-interpreter-in-luau/3672669).
+
+### `newpy(): pyruntime`
+Creates a new Python environment. `input` links to `io.read()` and any prints or errors gets logged to the output.
+
+
+??? warning
+    These were added for gimmicky purposes and are just here for fun.

@@ -30,6 +30,17 @@ theme:
 
 extra:
   generator: false
+nav:
+  - Home: index.md
+  - Commands: Commands.md
+  - Environment:
+    - Overview: Environment/index.md
+    - eTable: Environment/etable.md
+    - io: Environment/io.md
+    - misc: Environment/misc.md
+  - Tos: Tos.md
+  - Privacy Policy: PrivacyPolicy.md
+  - Changes: Changes.md
 
 
 markdown_extensions:

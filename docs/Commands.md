@@ -18,7 +18,7 @@ Here are the valid application commands that you can use with the bot:
 - `compile`: Executes the given Luau code in the Roblox environment.
 - `bytecodeWOption`: Compiles the given Luau code into bytecode with additional options and in a form.
 - `compileWOption`: Executes the given Luau code in the Roblox environment with additional options and in a form.
-
+- `input` : sends inputs to io.read() 
 ---
 
 ???+ info 
@@ -95,6 +95,3 @@ Here are the valid application commands that you can use with the bot:
     ```
     ```
 
-
-!!! warning
-    Native code generation is currently not supported. (It is now supported)
