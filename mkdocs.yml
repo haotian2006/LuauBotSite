@@ -1,4 +1,5 @@
 site_name: Luau Runner
+site_url: https://haotian2006.github.io/LuauBotSite/
 theme:
   name: material
   favicon: images/favicon.png
