@@ -1,4 +1,14 @@
 
+
+### `followupnext()`
+Marks the next output as a followup message. This message will also have `ephemeral` marked as true.
+
+```lua
+print("This is the first message.")
+io.followupnext()
+print("This is a followup message.") -- this will be sent as a followup and the original compiler embed will also be updated
+```
+
 ### `write(...any)`
 Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then it will not create a new line.
 
@@ -12,8 +22,8 @@ local input = io.read()
 print(input) --> Hello, World!
 ```
 
-### `writeFile(content: string, fileType: string): boolean`
-This function makes it so the log file will output the content instead of the log history along with the file type specified. If file type is not supported then it will default to `ansi`.
+### `writefile(content: string, filename: string): boolean`
+This function makes it so the log file will output the content instead of the log history along with the file type specified. If file type is not supported then it will default to `ansi`. This will also trigger the file to be sent.
 
 Supported file types:
 ```js
@@ -43,17 +53,17 @@ Supported file types:
   "webm"
 ```
 
-### `readFile(): (string,string)`
+### `readfile(): (string,string)`
 returns the currently loaded file's content and file type
 
-### `getOutput(): string`
+### `getoutput(): string`
 returns the current output log as a string
 
 ```lua
 print("Hello, World!")
-local output = io.getOutput()
+local output = io.getoutput()
 print(output) --> "Hello, World!\n"
 ```
 
-### `clear()`
+### `clearoutput()`
 Clears the output.

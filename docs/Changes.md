@@ -1,5 +1,12 @@
 # Updates
 
+## 1/2/26 
+
+- Bot can now upload files as outputs during runtime instead of after execution finishes.
+- added `Image` library to creates images and encode them as png or gifs.
+- Made `io.writefile` lowercase and also made it so it outputs files during runtime, and allowed it to give a name to the file.
+- Added `io.followupnext` to allow sending followup files for the output.
+
 ## 1/1/26
 
 - io.writeFile for allowing the users to output files like png instead of plain txts.

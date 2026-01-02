@@ -38,6 +38,7 @@ nav:
     - etable: Environment/etable.md
     - io: Environment/io.md
     - misc: Environment/misc.md
+    - Image: Environment/Image.md
   - Tos: Tos.md
   - Privacy Policy: PrivacyPolicy.md
   - Changes: Changes.md
