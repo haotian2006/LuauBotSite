@@ -30,7 +30,7 @@ local pngData = Image.toPng(img, true)
 io.writefile(pngData, "example.png")
 ```
 
-![Example Image](example.png)
+![Example Image](https://haotian2006.github.io/LuauBotSite/Environment/Image/example.png)
 
 ### `toGif(frames:{Image},frameDelays:{number},options: {},outputLogs:boolean?): string`
 Encodes multiple Image objects as a raw string encoded as a gif. `frameDelays` is an array of numbers representing the delay for each frame in seconds. `options` is a table that can contain the following optional fields:
@@ -63,7 +63,7 @@ local gifData = Image.toGif(frames_ball, durations_ball, nil, true)
 io.writefile(gifData, "ball.gif")
 ```
 
-![Example Image](ball.gif)
+![Example Image](https://haotian2006.github.io/LuauBotSite/Environment/Image/ball.gif)
 
 ## Properties
 
