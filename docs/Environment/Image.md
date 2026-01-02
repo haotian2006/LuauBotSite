@@ -30,6 +30,8 @@ local pngData = Image.toPng(img, true)
 io.writefile(pngData, "example.png")
 ```
 
+![Example Image](/images/example.png)
+
 ### `toGif(frames:{Image},frameDelays:{number},options: {},outputLogs:boolean?): string`
 Encodes multiple Image objects as a raw string encoded as a gif. `frameDelays` is an array of numbers representing the delay for each frame in seconds. `options` is a table that can contain the following optional fields:
 - `loop`: number of times to loop the gif (0 for infinite)
@@ -60,6 +62,8 @@ end
 local gifData = Image.toGif(frames_ball, durations_ball, nil, true)
 io.writefile(gifData, "ball.gif")
 ```
+
+![Example Image](/images/ball.gif)
 
 ## Properties
 
