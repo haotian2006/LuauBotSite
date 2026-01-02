@@ -116,7 +116,7 @@ Draws another image onto this image at the specified position, with scaling and 
 
 - `CombineType`: [Enum.ImageCombineType](https://create.roblox.com/docs/reference/engine/enums/ImageCombineType) - Determines how the source image is combined with the destination image. Default is `Enum.ImageCombineType.AlphaBlend`.
 - `ResamplerMode`: [Enum.ResamplerMode](https://create.roblox.com/docs/reference/engine/enums/ResamplerMode) - Specifies the resampling mode to use when scaling the source image. Default is `Enum.ImageResamplerMode.Bilinear`.
-- `PivotPoint`: Vector2 - The pivot point for rotation, specified as a fraction of the image size (0 to 1). Default is (0.5, 0.5) which represents the center of the image.
+- `PivotPoint`: Vector2 - The pivot point for rotation in pixels, default is size/2 of the source image.
 
 ### `ReadPixelsBuffer(position: Vector2, size: Vector2): buffer`
 Returns a buffer containing the raw pixel data of the image.
