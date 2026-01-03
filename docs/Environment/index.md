@@ -5,6 +5,7 @@
 
 Luau Runner has a few custom globals that you can use.
 
+You can get a typefile contianing all the types [here](https://gist.github.com/haotian2006/8b0f32a26f3661969836ef7915ca682b).
 
 ### `TIMEOUT: number`
 The maximum time (in seconds) that a code execution is allowed to run before terminated. Defaults to 15 seconds. 
