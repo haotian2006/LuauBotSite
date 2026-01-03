@@ -5,7 +5,7 @@
 
 Luau Runner has a few custom globals that you can use.
 
-You can get a typefile containing all the types [here](https://gist.github.com/haotian2006/8b0f32a26f3661969836ef7915ca682b).
+You can get a typefile containing all the types [here](https://github.com/haotian2006/LuauBotSite/blob/main/types.luau).
 
 ### `TIMEOUT: number`
 The maximum time (in seconds) that a code execution is allowed to run before terminated. Defaults to 15 seconds. 
@@ -27,6 +27,9 @@ Should a file be attached once the code execution finishes, containing all the o
 
 ### `TIMESTAMP: boolean`
 Should the time stamp be included when logging. If false it will not give a timeout warning and does not apply to errors. Defaults to false. 
+
+### `user:{Name:string,UserId:number}`
+A table containing information about the user who sent the code to be executed.
 
 ### `bench(funcs:{},printMode:number?,iterations:number?,delayEveryXIter:number?): results`
 
@@ -81,6 +84,9 @@ returns the line the number is printed on
 
 ### `log(text:string,color:string,newLine:boolean?)`
 Logs text to the console with a specified color. If newLine is true, it will add a new line after the text.
+
+### `colorstring(text:string,color:string):string`
+Returns a string that will be colored when outputted in ansi.
 
 Valid colors are (casing does not matter):
 

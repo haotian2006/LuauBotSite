@@ -1,6 +1,6 @@
---[[DO NOT COMPILE THIS PART]]
+--[==[IGNORE START]==]
 local TIMEOUT, OUTPUT_LOGS, TIMESTAMP, native, optimize
-local bench, println, log
+local bench, println, log, user, colorstring
 local etable, io, misc, Image
 --Collapse this block to help with readability
 do
@@ -10,7 +10,20 @@ do
 	type TIMESTAMP = boolean
 	type native = boolean
 	type optimize = number
+	type user = {
+		Name: string,
+		UserId: number,
+	}
 
+	type colorstring = typeof( --[[
+			Returns the input string wrapped in color tags for console output.
+			
+			@param text string - The text to color.
+			@param color string - The color to apply (black, red, green, yellow, blue, purple, white, cyan).
+			@return string - The colored text string.
+		]]function(text: string, color: string): string
+		return text
+	end)
 	-- Benchmark types
 	export type BenchFuncs = { [string]: () -> any }
 	export type BenchResults = {
@@ -178,15 +191,14 @@ do
 	}
 
 	-- IO Library type
-	type io = typeof(setmetatable(
-		{} :: {
-			followupnext: typeof( --[[
+	type io = {
+		followupnext: typeof( --[[
 				Marks the next output as a followup message with ephemeral set to true.
 				
 				This message will be sent as a followup and the original compiler embed will be updated.
 			]]function() end),
 
-			write: typeof( --[[
+		write: typeof( --[[
 				Writes output without adding spaces between arguments and without expanding tables.
 				
 				If TIMESTAMP is false, it will not create a new line.
@@ -194,17 +206,17 @@ do
 				@param ...any - Values to write to output.
 			]]function(...: any) end),
 
-			read: typeof( --[[
+		read: typeof( --[[
 				Yields the thread until `/input` is given.
 				
 				You can provide inputs in the code using `--@<input>` comments.
 				
 				@return string - The input provided by the user.
 			]]function(): string
-				return ""
-			end),
+			return ""
+		end),
 
-			writefile: typeof( --[[
+		writefile: typeof( --[[
 				Makes the log file output the content instead of log history with the specified file type.
 				
 				Supported file types: png, jpg, jpeg, gif, webp, svg, txt, ansi, lua, luau, json, xml, html, css, js, md, csv, mp3, wav, ogg, mp4, webm.
@@ -214,32 +226,30 @@ do
 				@param filename string - The filename with extension.
 				@return boolean - Whether the operation was successful.
 			]]function(content: string, filename: string): boolean
-				return true
-			end),
+			return true
+		end),
 
-			readfile: typeof( --[[
+		readfile: typeof( --[[
 				Returns the currently loaded file's content and file type.
 				
 				@return string - The file content.
 				@return string - The file type/extension.
 			]]function(): (string, string)
-				return "", ""
-			end),
+			return "", ""
+		end),
 
-			getoutput: typeof( --[[
+		getoutput: typeof( --[[
 				Returns the current output log as a string.
 				
 				@return string - The current output log.
 			]]function(): string
-				return ""
-			end),
+			return ""
+		end),
 
-			clearoutput: typeof( --[[
+		clearoutput: typeof( --[[
 				Clears the output.
 			]]function() end),
-		},
-		{} :: any
-	))
+	}
 
 	-- Misc Library type
 	type misc = {
@@ -442,12 +452,17 @@ do
 	bench = bench :: bench
 	println = println :: println
 	log = log :: log
+	user = user :: user
+	colorstring = colorstring :: colorstring
 
 	etable = etable :: etable
 	io = io :: io
 	misc = misc :: misc
 	Image = Image :: ImageLib
 end
---[[REMOVE WHEN COMPILING]]
+--[==[IGNORE END]==]
+--The code above will be ignored during compilation.
+--Put your code below this line
 --    CODE HERE
 ------------------------
+print("Hello World!")

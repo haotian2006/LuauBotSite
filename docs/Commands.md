@@ -7,7 +7,7 @@ Here are the valid slash commands that you can use with the bot:
 - `/help`: Brings them here
 - `/input`: sends inputs to io.read() when compiling code
 - `/hiddeninput`: sends inputs to io.read() without notifying the channel
-
+- `/stopall`: Stops all currently running code executions that were started by you.
 ---
 
 # Application Commands
