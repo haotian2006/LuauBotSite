@@ -1,5 +1,11 @@
 # Updates
 
+## 1/19/26
+
+- You can send up to 2 MB of input data to the bot for code execution.
+- Added a footer to show if code execution finished and the total execution time. Color is also light blue for running and dark blue for finished.
+- Added a check for `Connect` or `Once` in the code to prevent the task from ending early if those functions were used as they run asynchronously.
+
 ## 1/2/26 
 
 - Bot can now upload files as outputs during runtime instead of after execution finishes.
