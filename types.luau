@@ -222,7 +222,7 @@ do
 				Supported file types: png, jpg, jpeg, gif, webp, svg, txt, ansi, lua, luau, json, xml, html, css, js, md, csv, mp3, wav, ogg, mp4, webm.
 				If file type is not supported, defaults to ansi. This will also trigger the file to be sent.
 				
-				@param content string - The content to write to the file.
+				@param content string|buffer - The content to write to the file.
 				@param filename string - The filename with extension.
 				@return boolean - Whether the operation was successful.
 			]]function(content: string, filename: string): boolean

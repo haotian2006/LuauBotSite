@@ -22,7 +22,7 @@ local input = io.read()
 print(input) --> Hello, World!
 ```
 
-### `writefile(content: string, filename: string): boolean`
+### `writefile(content: string|buffer, filename: string): boolean`
 This function makes it so the log file will output the content instead of the log history along with the file type specified. If file type is not supported then it will default to `ansi`. This will also trigger the file to be sent.
 
 Supported file types:
