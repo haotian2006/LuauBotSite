@@ -132,11 +132,13 @@ Creates and returns a copy of the Image object.
 
 ### `plotFunction(func: (x:number) -> (...number), options:{}?) -> Image`
 **Params**:
+
 - function:
   
     - If isParametric: takes t and returns x, y pairs (can return multiple pairs)
     - If isXFunction: takes y and returns one or more x values
     - Otherwise: takes x and returns one or more y values
+  - 
 - options - Configuration table with:
   
     - offset: Vector2 - The origin point offset (default: center of image)
