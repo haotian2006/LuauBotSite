@@ -142,8 +142,9 @@ Creates and returns a copy of the Image object.
 - options - Configuration table with:
   
     - offset: Vector2 - The origin point offset (default: center of image)
-    - size: Vector2 - The image size in pixels (default: Vector2.new(800, 600))
-    - scale: number - Pixels per unit (default: 50)
+    - size: Vector2 - The axis ranges in units (x,y) - image will be auto-sized to fit within maxPixelSize 
+    - scale: number - Pixels per unit (auto-calculated to fit within maxPixelSize, but can be overridden)
+    - maxPixelSize: number - Maximum pixel size for either axis (default: 1024)
     - isXFunction: boolean - If true, function returns x from y input (default: false)
     - isParametric: boolean - If true, function takes t and returns x, y pairs (default: false)
     - tRange: {number} - Range for parametric t parameter (default: {0, 2*pi})

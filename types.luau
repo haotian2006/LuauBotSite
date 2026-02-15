@@ -437,6 +437,7 @@ do
 		offset: Vector2?,
 		size: Vector2?,
 		scale: number?,
+		maxPixelSize: number?,
 		isXFunction: boolean?,
 		isParametric: boolean?,
 		tRange: {number}?,
