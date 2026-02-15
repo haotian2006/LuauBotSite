@@ -135,7 +135,7 @@ Creates and returns a copy of the Image object.
 
 - function:
   
-    - If isParametric: takes t and returns x, y pairs (can return multiple pairs)
+    - If isParametric: takes t and returns x, y pairs or {x, y} tables
     - If isXFunction: takes y and returns one or more x values
     - Otherwise: takes x and returns one or more y values
   
