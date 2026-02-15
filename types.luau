@@ -434,22 +434,24 @@ do
 	}
 
 	export type PlotOptions = {
-		size: Vector2?,
-		color: Color3?,
-		thickness: number?,
-		scale: number?,
 		offset: Vector2?,
+		size: Vector2?,
+		scale: number?,
+		isXFunction: boolean?,
+		isParametric: boolean?,
+		tRange: {number}?,
+		color: {Color3} | Color3?,
+		backgroundColor: Color3?,
 		showAxes: boolean?,
-		showGrid: boolean?,
-		showLabels: boolean?,
 		axesColor: Color3?,
+		showGrid: boolean?,
 		gridColor: Color3?,
-		labelColor: Color3?,
 		gridSpacing: number?,
+		showLabels: boolean?,
+		labelColor: Color3?,
 		labelSpacing: number?,
 		labelSize: number?,
-		isXFunction: boolean?,
-		backgroundColor: Color3?,
+		thickness: number?,
 		filename: string?,
 	}
 

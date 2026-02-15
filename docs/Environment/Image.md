@@ -130,23 +130,30 @@ Returns the entire image's pixel data buffer
 ### `Clone(): Image`
 Creates and returns a copy of the Image object.
 
-### `plotFunction(func: (x:number) -> number, options:{}?) -> Image`
-Plots a mathematical function on the image. The `options` table can contain the following optional fields:
-- `scale`: number - The scale of the plot. Default is 50.
-- `offset`: Vector2 - The offset of the plot. Default is `Vector2.new(size.X / 2, size.Y / 2)`.
-- `size`: Vector2 - The size of the image. Default is `Vector2.new(800, 600)`.
-- `thickness`: number - The thickness of the plot line. Default is 1.
-- `showAxes`: boolean - Whether to show axes. Default is true.
-- `showGrid`: boolean - Whether to show grid. Default is false.
-- `showLabels`: boolean - Whether to show labels. Default is true.
-- `color`: Color3 - The color of the plot line. Default is `Color3.new(0, 0, 0)`.
-- `axesColor`: Color3 - The color of the axes. Default is `Color3.new(0.3, 0.3, 0.3)`.
-- `gridColor`: Color3 - The color of the grid. Default is `Color3.new(0.8, 0.8, 0.8)`.
-- `labelColor`: Color3 - The color of the labels. Default is `Color3.new(0, 0.788235, 0.458824)`.
-- `gridSpacing`: number - The spacing of the grid. Default is 1.
-- `labelSpacing`: number - The spacing of the labels. Default is 1.
-- `labelSize`: number - The size of the labels. Default is 1.
-- `isXFunction`: boolean - Whether the function is in terms of x. Default is false.
-- `backgroundColor`: Color3 - The background color. Default is `Color3.new(1, 1, 1)`.
-- `filename`: string - The filename for saving. Default is "graph.png".
+### `plotFunction(func: (x:number) -> (...number), options:{}?) -> Image`
+**Params**:
+- function:
+    - If isParametric: takes t and returns x, y pairs (can return multiple pairs)
+    - If isXFunction: takes y and returns one or more x values
+    - Otherwise: takes x and returns one or more y values
+- options table - Configuration table with:
+    - offset: Vector2 - The origin point offset (default: center of image)
+    - size: Vector2 - The image size in pixels (default: Vector2.new(800, 600))
+    - scale: number - Pixels per unit (default: 50)
+    - isXFunction: boolean - If true, function returns x from y input (default: false)
+    - isParametric: boolean - If true, function takes t and returns x, y pairs (default: false)
+    - tRange: {number} - Range for parametric t parameter (default: {0, 2*pi})
+    - color: {Color3} | Color3 - List of colors for each curve, or single color (default: list of red, green, blue, etc.)
+    - backgroundColor: Color3 - Background color (default: black)
+    - showAxes: boolean - Whether to draw axes (default: true)
+    - axesColor: Color3 - Color of the axes (default: gray)
+    - showGrid: boolean - Whether to draw grid lines (default: false)
+    - gridColor: Color3 - Color of the grid (default: dark gray)
+    - gridSpacing: number - Units between grid lines (default: 1)
+    - showLabels: boolean - Whether to show axis labels (default: true)
+    - labelColor: Color3 - Color of the labels (default: white)
+    - labelSpacing: number - Units between labels (default: 1)
+    - labelSize: number - Text scale for labels (default: 1)
+    - thickness: number - Line thickness in pixels (default: 1)
+    - filename: string - Output filename (default: "graph.png")
 
