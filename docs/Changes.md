@@ -1,5 +1,9 @@
 # Updates
 
+## 2/14/26
+
+- Added `Image.plotFunction`.
+
 ## 1/19/26
 
 - You can send up to 2 MB of input data to the bot for code execution.

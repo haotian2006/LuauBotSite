@@ -433,6 +433,26 @@ do
 		end),
 	}
 
+	export type PlotOptions = {
+		size: Vector2?,
+		color: Color3?,
+		thickness: number?,
+		scale: number?,
+		offset: Vector2?,
+		showAxes: boolean?,
+		showGrid: boolean?,
+		showLabels: boolean?,
+		axesColor: Color3?,
+		gridColor: Color3?,
+		labelColor: Color3?,
+		gridSpacing: number?,
+		labelSpacing: number?,
+		labelSize: number?,
+		isXFunction: boolean?,
+		backgroundColor: Color3?,
+		filename: string?,
+	}
+
 	export type GifOptions = {
 		loop: number?,
 	}
@@ -441,24 +461,25 @@ do
 		new: (size: Vector2) -> Image,
 		toPng: (image: Image, outputLogs: boolean?) -> string,
 		toGif: (frames: { Image }, frameDelays: { number }, options: GifOptions?, outputLogs: boolean?) -> string,
+		plotFunction: (func: (number) -> number, options: PlotOptions?) -> Image,
 	}
 
-	TIMEOUT = TIMEOUT :: TIMEOUT
-	OUTPUT_LOGS = OUTPUT_LOGS :: OUTPUT_LOGS
-	TIMESTAMP = TIMESTAMP :: TIMESTAMP
-	native = native :: native
-	optimize = optimize :: optimize
+	TIMEOUT = (TIMEOUT::any) :: TIMEOUT
+	OUTPUT_LOGS = (OUTPUT_LOGS::any) :: OUTPUT_LOGS
+	TIMESTAMP = (TIMESTAMP::any) :: TIMESTAMP
+	native = (native::any) :: native
+	optimize = (optimize::any) :: optimize
 
-	bench = bench :: bench
-	println = println :: println
-	log = log :: log
-	user = user :: user
-	colorstring = colorstring :: colorstring
+	bench = (bench::any) :: bench
+	println = (println::any) :: println
+	log = (log::any) :: log
+	user = (user::any) :: user
+	colorstring = (colorstring::any) :: colorstring
 
-	etable = etable :: etable
-	io = io :: io
-	misc = misc :: misc
-	Image = Image :: ImageLib
+	etable = (etable::any) :: etable
+	io = (io::any) :: io
+	misc = (misc::any) :: misc
+	Image = (Image::any) :: ImageLib
 end
 --[==[IGNORE END]==]
 --The code above will be ignored during compilation.
