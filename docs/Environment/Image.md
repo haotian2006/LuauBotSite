@@ -136,9 +136,10 @@ Creates and returns a copy of the Image object.
 - function:
   
     - If isParametric: takes t and returns x, y pairs or {x, y} tables
-    - If isXFunction: takes y and returns one or more x values
+    - If isXFunction: takes y and returns one or more x value
+    - If it returns Boolean then x and y will be passed through the parameter and true will draw a pixel at the point
     - Otherwise: takes x and returns one or more y values
-  
+   
 - options - Configuration table with:
   
     - offset: Vector2 - The origin point offset (default: center of image)
