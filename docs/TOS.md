@@ -4,7 +4,7 @@ By using this bot, you agree to the following terms:
 
 1. **Usage**  
     - Don't use this to spam servers ex: spamming chat with commands.
-    - Don't use this to bypass filters.
+    - Don't use this to bypass filters. The bot has a basic filter built into it.
      - Follow Discord's Terms of Service and Community Rules.
 
 2. **Data Collection**  
