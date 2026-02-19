@@ -40,6 +40,7 @@ Supported file types:
   "luau",
   "json",
   "xml",
+  "rbxm",
   "html",
   "css",
   "js",
