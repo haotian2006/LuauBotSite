@@ -1,0 +1,2200 @@
+<html data-lt-installed="true">
+    <head>
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="Luau Runner Bot">
+        <meta property="og:description" content="A Discord Bot that can compile and execute Luau code in Roblox's environment.">
+        <meta property="og:url" content="https://haotian2006.github.io/LuauBotSite/">
+        <meta property="og:image" content="https://i.ibb.co/PdY386r/a97b72c4ebfc2b9445bb1504463d7c48.png">
+    </head>
+    <body>
+    </body>
+</html>
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../io/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+    
+    
+      
+        <title>etable - Luau Runner</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#getallocatedarraysizetbl-table" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Luau Runner" class="md-header__button md-logo" aria-label="Luau Runner" data-md-component="logo">
+      
+  <img src="../../images/favicon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Luau Runner
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              etable
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Luau Runner" class="md-nav__button md-logo" aria-label="Luau Runner" data-md-component="logo">
+      
+  <img src="../../images/favicon.png" alt="logo">
+
+    </a>
+    Luau Runner
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Environment
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    etable
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    etable
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getallocatedarraysizetbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getAllocatedArraySize(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getallocatedhashsizetbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getAllocatedHashSize(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gettablememorysizetbl-table-includecontents-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getTableMemorySize(tbl: table, includeContents: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gettablesizetbl-table-iscontiguous-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getTableSize(tbl: table, isContiguous: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mergetablesinplace-boolean-depth-number-tables-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mergeTables(inPlace: boolean?, depth: number?, ...tables: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mergetableswithinplace-boolean-depth-number-resolver-function-tables-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mergeTablesWith(inPlace: boolean?, depth: number?, resolver: function, ...tables: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accumulatetablesinplace-boolean-tables-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        accumulateTables(inPlace: boolean?, ...tables: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#difftablesold-table-new-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        diffTables(old: table, new: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#synctablesrc-table-target-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        syncTable(src: table, target: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maptabletbl-table-callback-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mapTable(tbl: table, callback: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filtertabletbl-table-predicate-function-preallocate-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        filterTable(tbl: table, predicate: function, preAllocate: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reducetabletbl-table-reducer-function-initial-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reduceTable(tbl: table, reducer: function, initial: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grouptablebytbl-table-callback-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        groupTableBy(tbl: table, callback: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabletopairstbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tableToPairs(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inverttabletbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        invertTable(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tableintersectiontbl1-table-tbl2-table-matchvalue-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tableIntersection(tbl1: table, tbl2: table, matchValue: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabledifferencetbl1-table-tbl2-table-matchvalue-boolean-symmetric-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tableDifference(tbl1: table, tbl2: table, matchValue: boolean?, symmetric: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#removealltbl-table-value-any-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        removeAll(tbl: table, value: any | array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extendarraysizetbl-table-expandsize-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extendArraySize(tbl: table, expandSize: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setarraysizetbl-table-newsize-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setArraySize(tbl: table, newSize: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#truncatearrayarray-array-newsize-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        truncateArray(array: array, newSize: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concatarraysinplace-boolean-arrays-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        concatArrays(inPlace: boolean?, ...arrays: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unionarraysarrays-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unionArrays(...arrays: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flattenarraysrc-array-depth-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        flattenArray(src: array, depth: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compactarrayarray-array-allocateexactsize-boolean-isarray-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        compactArray(array: array, allocateExactSize: boolean?, isArray: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fillwithvaluearray-array-value-any-startindex-number-endindex-number-sourcearray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fillWithValue(array: array, value: any, startIndex: number?, endIndex: number?, sourceArray: array?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fillwithpatternarray-array-pattern-array-startindex-number-endindex-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fillWithPattern(array: array, pattern: array, startIndex: number?, endIndex: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reversearrayarray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reverseArray(array: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotatearrayarray-array-shift-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rotateArray(array: array, shift: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slicearrayarray-array-startindex-number-endindex-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sliceArray(array: array, startIndex: number?, endIndex: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shufflearrayarray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shuffleArray(array: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samplearrayarray-array-samplesize-number-allowduplicates-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sampleArray(array: array, sampleSize: number, allowDuplicates: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samplevaluearray-array-startindex-number-endindex-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sampleValue(array: array, startIndex: number?, endIndex: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#removeduplicatearray-array-by-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        removeDuplicate(array: array, by: function?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#swapremovearray-array-index-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        swapRemove(array: array, index: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getandremovearray-array-index-number-swap-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getAndRemove(array: array, index: number, swap: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#findandremovearray-array-value-any-swap-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        findAndRemove(array: array, value: any, swap: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ziparrayarrays-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zipArray(...arrays: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unziparrayzippedarray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unzipArray(zippedArray: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#partitionarrayarray-array-size-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        partitionArray(array: array, size: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#partitionarraybyarray-array-predicate-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        partitionArrayBy(array: array, predicate: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binarysearcharray-array-value-any-comparator-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        binarySearch(array: array, value: any, comparator: function?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getkeystbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getKeys(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getvaluestbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getValues(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iscontiguousarraytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isContiguousArray(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#issparsearraytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isSparseArray(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#isarraytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isArray(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#isemptytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isEmpty(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#haskeytbl-table-key-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hasKey(tbl: table, key: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hasvaluetbl-table-value-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hasValue(tbl: table, value: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#countoccurencestbl-table-value-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        countOccurences(tbl: table, value: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#countkeysbytypetbl-table-keytype-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        countKeysByType(tbl: table, keyType: string)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#countvaluesbytypetbl-table-valuetype-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        countValuesByType(tbl: table, valueType: string)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keysofvaluetbl-table-targetvalue-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        keysOfValue(tbl: table, targetValue: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deepcopytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deepCopy(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deepequala-any-b-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deepEqual(a: any, b: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deepfreezetbl-table-layers-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deepFreeze(tbl: table, layers: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#findmatchtbl-table-filter-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        findMatch(tbl: table, filter: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#everytbl-table-filter-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        every(tbl: table, filter: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sometbl-table-filter-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        some(tbl: table, filter: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tosettbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        toSet(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prettyprinttbl-table-indent-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prettyPrint(tbl: table, indent: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tocsvrows-array-delimiter-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        toCSV(rows: array, delimiter: string?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    io
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../misc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    misc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Image/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Image
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../TOS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../PrivacyPolicy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Privacy Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Changes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getallocatedarraysizetbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getAllocatedArraySize(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getallocatedhashsizetbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getAllocatedHashSize(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gettablememorysizetbl-table-includecontents-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getTableMemorySize(tbl: table, includeContents: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gettablesizetbl-table-iscontiguous-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getTableSize(tbl: table, isContiguous: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mergetablesinplace-boolean-depth-number-tables-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mergeTables(inPlace: boolean?, depth: number?, ...tables: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mergetableswithinplace-boolean-depth-number-resolver-function-tables-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mergeTablesWith(inPlace: boolean?, depth: number?, resolver: function, ...tables: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accumulatetablesinplace-boolean-tables-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        accumulateTables(inPlace: boolean?, ...tables: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#difftablesold-table-new-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        diffTables(old: table, new: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#synctablesrc-table-target-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        syncTable(src: table, target: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maptabletbl-table-callback-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mapTable(tbl: table, callback: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filtertabletbl-table-predicate-function-preallocate-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        filterTable(tbl: table, predicate: function, preAllocate: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reducetabletbl-table-reducer-function-initial-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reduceTable(tbl: table, reducer: function, initial: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grouptablebytbl-table-callback-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        groupTableBy(tbl: table, callback: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabletopairstbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tableToPairs(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inverttabletbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        invertTable(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tableintersectiontbl1-table-tbl2-table-matchvalue-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tableIntersection(tbl1: table, tbl2: table, matchValue: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabledifferencetbl1-table-tbl2-table-matchvalue-boolean-symmetric-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tableDifference(tbl1: table, tbl2: table, matchValue: boolean?, symmetric: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#removealltbl-table-value-any-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        removeAll(tbl: table, value: any | array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extendarraysizetbl-table-expandsize-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extendArraySize(tbl: table, expandSize: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setarraysizetbl-table-newsize-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setArraySize(tbl: table, newSize: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#truncatearrayarray-array-newsize-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        truncateArray(array: array, newSize: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concatarraysinplace-boolean-arrays-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        concatArrays(inPlace: boolean?, ...arrays: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unionarraysarrays-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unionArrays(...arrays: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flattenarraysrc-array-depth-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        flattenArray(src: array, depth: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compactarrayarray-array-allocateexactsize-boolean-isarray-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        compactArray(array: array, allocateExactSize: boolean?, isArray: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fillwithvaluearray-array-value-any-startindex-number-endindex-number-sourcearray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fillWithValue(array: array, value: any, startIndex: number?, endIndex: number?, sourceArray: array?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fillwithpatternarray-array-pattern-array-startindex-number-endindex-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fillWithPattern(array: array, pattern: array, startIndex: number?, endIndex: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reversearrayarray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reverseArray(array: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotatearrayarray-array-shift-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rotateArray(array: array, shift: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slicearrayarray-array-startindex-number-endindex-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sliceArray(array: array, startIndex: number?, endIndex: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shufflearrayarray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shuffleArray(array: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samplearrayarray-array-samplesize-number-allowduplicates-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sampleArray(array: array, sampleSize: number, allowDuplicates: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samplevaluearray-array-startindex-number-endindex-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sampleValue(array: array, startIndex: number?, endIndex: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#removeduplicatearray-array-by-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        removeDuplicate(array: array, by: function?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#swapremovearray-array-index-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        swapRemove(array: array, index: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getandremovearray-array-index-number-swap-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getAndRemove(array: array, index: number, swap: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#findandremovearray-array-value-any-swap-boolean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        findAndRemove(array: array, value: any, swap: boolean?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ziparrayarrays-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        zipArray(...arrays: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unziparrayzippedarray-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unzipArray(zippedArray: array)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#partitionarrayarray-array-size-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        partitionArray(array: array, size: number)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#partitionarraybyarray-array-predicate-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        partitionArrayBy(array: array, predicate: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binarysearcharray-array-value-any-comparator-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        binarySearch(array: array, value: any, comparator: function?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getkeystbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getKeys(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getvaluestbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getValues(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iscontiguousarraytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isContiguousArray(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#issparsearraytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isSparseArray(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#isarraytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isArray(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#isemptytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isEmpty(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#haskeytbl-table-key-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hasKey(tbl: table, key: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hasvaluetbl-table-value-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hasValue(tbl: table, value: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#countoccurencestbl-table-value-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        countOccurences(tbl: table, value: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#countkeysbytypetbl-table-keytype-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        countKeysByType(tbl: table, keyType: string)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#countvaluesbytypetbl-table-valuetype-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        countValuesByType(tbl: table, valueType: string)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keysofvaluetbl-table-targetvalue-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        keysOfValue(tbl: table, targetValue: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deepcopytbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deepCopy(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deepequala-any-b-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deepEqual(a: any, b: any)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deepfreezetbl-table-layers-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deepFreeze(tbl: table, layers: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#findmatchtbl-table-filter-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        findMatch(tbl: table, filter: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#everytbl-table-filter-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        every(tbl: table, filter: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sometbl-table-filter-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        some(tbl: table, filter: function)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tosettbl-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        toSet(tbl: table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prettyprinttbl-table-indent-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prettyPrint(tbl: table, indent: number?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tocsvrows-array-delimiter-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        toCSV(rows: array, delimiter: string?)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+  <h1>etable</h1>
+
+<p>The default table library has extended functions provided by Akari &lt;3. 
+These just provide a few gimmicky functions on top of the default table library.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">local</span><span class="w"> </span><span class="nv">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">}</span>
+<span class="nb">print</span><span class="p">(</span><span class="nv">etable</span><span class="p">.</span><span class="nf">getAllocatedArraySize</span><span class="p">(</span><span class="nv">t</span><span class="p">))</span><span class="w"> </span><span class="c1">--&gt; 9</span>
+<span class="nv">t</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
+<span class="nb">print</span><span class="p">(</span><span class="nv">etable</span><span class="p">.</span><span class="nf">getAllocatedArraySize</span><span class="p">(</span><span class="nv">t</span><span class="p">))</span><span class="w"> </span><span class="c1">--&gt; 16</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="nv">etable</span><span class="p">.</span><span class="nf">concat</span><span class="p">(</span><span class="nv">t</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;, &quot;</span><span class="p">))</span><span class="w"> </span><span class="c1">--&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 </span>
+</code></pre></div>
+<p>This extends the default table library in Luau with additional utility functions.
+<span style="font-size: 70%;"><a href="https://github.com/Akari-yn/ExtendedTableLibrary/tree/main">source</a></span></p>
+<h3 id="getallocatedarraysizetbl-table"><code>getAllocatedArraySize(tbl: table)</code></h3>
+<p>Returns the allocated size of a Luau table's array part.</p>
+<h3 id="getallocatedhashsizetbl-table"><code>getAllocatedHashSize(tbl: table)</code></h3>
+<p>Returns the allocated size of a Luau table's hash part.</p>
+<h3 id="gettablememorysizetbl-table-includecontents-boolean"><code>getTableMemorySize(tbl: table, includeContents: boolean?)</code></h3>
+<p>Returns the total memory used by a table, optionally including contents.</p>
+<h3 id="gettablesizetbl-table-iscontiguous-boolean"><code>getTableSize(tbl: table, isContiguous: boolean?)</code></h3>
+<p>Counts the number of elements in a table. Optimized for contiguous arrays.</p>
+<h3 id="mergetablesinplace-boolean-depth-number-tables-table"><code>mergeTables(inPlace: boolean?, depth: number?, ...tables: table)</code></h3>
+<p>Recursively merges tables, combining their keys and values.</p>
+<h3 id="mergetableswithinplace-boolean-depth-number-resolver-function-tables-table"><code>mergeTablesWith(inPlace: boolean?, depth: number?, resolver: function, ...tables: table)</code></h3>
+<p>Recursively merges tables with a custom resolver for conflicts.</p>
+<h3 id="accumulatetablesinplace-boolean-tables-table"><code>accumulateTables(inPlace: boolean?, ...tables: table)</code></h3>
+<p>Recursively combines tables by summing matching numeric values and merging nested tables.</p>
+<h3 id="difftablesold-table-new-table"><code>diffTables(old: table, new: table)</code></h3>
+<p>Compares two tables and returns a breakdown of differences.</p>
+<h3 id="synctablesrc-table-target-table"><code>syncTable(src: table, target: table)</code></h3>
+<p>Synchronizes the keys and values of a source table with a target table.</p>
+<h3 id="maptabletbl-table-callback-function"><code>mapTable(tbl: table, callback: function)</code></h3>
+<p>Creates a new table by applying a callback to each key-value pair.</p>
+<h3 id="filtertabletbl-table-predicate-function-preallocate-boolean"><code>filterTable(tbl: table, predicate: function, preAllocate: boolean?)</code></h3>
+<p>Creates a new table containing only key-value pairs that satisfy the predicate.</p>
+<h3 id="reducetabletbl-table-reducer-function-initial-any"><code>reduceTable(tbl: table, reducer: function, initial: any)</code></h3>
+<p>Reduces a table to a single value by applying a reducer function.</p>
+<h3 id="grouptablebytbl-table-callback-function"><code>groupTableBy(tbl: table, callback: function)</code></h3>
+<p>Groups the elements of a table by a specified key or property.</p>
+<h3 id="tabletopairstbl-table"><code>tableToPairs(tbl: table)</code></h3>
+<p>Converts a table into an array of key-value pairs.</p>
+<h3 id="inverttabletbl-table"><code>invertTable(tbl: table)</code></h3>
+<p>Inverts a table, swapping its keys and values.</p>
+<h3 id="tableintersectiontbl1-table-tbl2-table-matchvalue-boolean"><code>tableIntersection(tbl1: table, tbl2: table, matchValue: boolean?)</code></h3>
+<p>Finds the intersection of two tables.</p>
+<h3 id="tabledifferencetbl1-table-tbl2-table-matchvalue-boolean-symmetric-boolean"><code>tableDifference(tbl1: table, tbl2: table, matchValue: boolean?, symmetric: boolean?)</code></h3>
+<p>Finds the difference between two tables.</p>
+<h3 id="removealltbl-table-value-any-array"><code>removeAll(tbl: table, value: any | array)</code></h3>
+<p>Removes all occurrences of a specified value from a table.</p>
+<h3 id="extendarraysizetbl-table-expandsize-number"><code>extendArraySize(tbl: table, expandSize: number)</code></h3>
+<p>Extends an array by a given size.</p>
+<h3 id="setarraysizetbl-table-newsize-number"><code>setArraySize(tbl: table, newSize: number)</code></h3>
+<p>Sets the length of an array to a new size (only expands).</p>
+<h3 id="truncatearrayarray-array-newsize-number"><code>truncateArray(array: array, newSize: number)</code></h3>
+<p>Truncates an array to a specified size.</p>
+<h3 id="concatarraysinplace-boolean-arrays-array"><code>concatArrays(inPlace: boolean?, ...arrays: array)</code></h3>
+<p>Concatenates multiple arrays into a single array.</p>
+<h3 id="unionarraysarrays-array"><code>unionArrays(...arrays: array)</code></h3>
+<p>Creates a new array with all unique elements from the input arrays.</p>
+<h3 id="flattenarraysrc-array-depth-number"><code>flattenArray(src: array, depth: number?)</code></h3>
+<p>Recursively flattens a nested array up to a given depth.</p>
+<h3 id="compactarrayarray-array-allocateexactsize-boolean-isarray-boolean"><code>compactArray(array: array, allocateExactSize: boolean?, isArray: boolean?)</code></h3>
+<p>Compacts a sparse array into a contiguous array.</p>
+<h3 id="fillwithvaluearray-array-value-any-startindex-number-endindex-number-sourcearray-array"><code>fillWithValue(array: array, value: any, startIndex: number?, endIndex: number?, sourceArray: array?)</code></h3>
+<p>Fills an array with a specified value from start to end index.</p>
+<h3 id="fillwithpatternarray-array-pattern-array-startindex-number-endindex-number"><code>fillWithPattern(array: array, pattern: array, startIndex: number?, endIndex: number?)</code></h3>
+<p>Fills an array with values from a source array, repeating the pattern as needed.</p>
+<h3 id="reversearrayarray-array"><code>reverseArray(array: array)</code></h3>
+<p>Reverses the order of elements in an array in place.</p>
+<h3 id="rotatearrayarray-array-shift-number"><code>rotateArray(array: array, shift: number)</code></h3>
+<p>Rotates the elements of an array by a specified number of positions.</p>
+<h3 id="slicearrayarray-array-startindex-number-endindex-number"><code>sliceArray(array: array, startIndex: number?, endIndex: number?)</code></h3>
+<p>Creates a new array containing a portion of the original array.</p>
+<h3 id="shufflearrayarray-array"><code>shuffleArray(array: array)</code></h3>
+<p>Randomly shuffles the elements of an array in place.</p>
+<h3 id="samplearrayarray-array-samplesize-number-allowduplicates-boolean"><code>sampleArray(array: array, sampleSize: number, allowDuplicates: boolean?)</code></h3>
+<p>Randomly selects a specified number of elements from an array.</p>
+<h3 id="samplevaluearray-array-startindex-number-endindex-number"><code>sampleValue(array: array, startIndex: number?, endIndex: number?)</code></h3>
+<p>Randomly selects a single value from an array.</p>
+<h3 id="removeduplicatearray-array-by-function"><code>removeDuplicate(array: array, by: function?)</code></h3>
+<p>Removes duplicate values from an array, preserving order.</p>
+<h3 id="swapremovearray-array-index-number"><code>swapRemove(array: array, index: number)</code></h3>
+<p>Removes an element from an array at a specified index using swap-remove.</p>
+<h3 id="getandremovearray-array-index-number-swap-boolean"><code>getAndRemove(array: array, index: number, swap: boolean?)</code></h3>
+<p>Retrieves and removes an element from an array at a specified index.</p>
+<h3 id="findandremovearray-array-value-any-swap-boolean"><code>findAndRemove(array: array, value: any, swap: boolean?)</code></h3>
+<p>Finds the first occurrence of a value in an array and removes it.</p>
+<h3 id="ziparrayarrays-array"><code>zipArray(...arrays: array)</code></h3>
+<p>Combines multiple arrays into a single array of tuples.</p>
+<h3 id="unziparrayzippedarray-array"><code>unzipArray(zippedArray: array)</code></h3>
+<p>Reverses the operation of <code>zipArray</code>.</p>
+<h3 id="partitionarrayarray-array-size-number"><code>partitionArray(array: array, size: number)</code></h3>
+<p>Splits an array into smaller arrays of a specified size.</p>
+<h3 id="partitionarraybyarray-array-predicate-function"><code>partitionArrayBy(array: array, predicate: function)</code></h3>
+<p>Splits an array into two arrays based on a predicate function.</p>
+<h3 id="binarysearcharray-array-value-any-comparator-function"><code>binarySearch(array: array, value: any, comparator: function?)</code></h3>
+<p>Performs a binary search on a sorted array.</p>
+<h3 id="getkeystbl-table"><code>getKeys(tbl: table)</code></h3>
+<p>Retrieves the keys of a table as an array.</p>
+<h3 id="getvaluestbl-table"><code>getValues(tbl: table)</code></h3>
+<p>Retrieves the values of a table as an array.</p>
+<h3 id="iscontiguousarraytbl-table"><code>isContiguousArray(tbl: table)</code></h3>
+<p>Checks if a table is a contiguous array.</p>
+<h3 id="issparsearraytbl-table"><code>isSparseArray(tbl: table)</code></h3>
+<p>Checks if a table is a sparse array.</p>
+<h3 id="isarraytbl-table"><code>isArray(tbl: table)</code></h3>
+<p>Checks if a table is an array (only positive integer keys).</p>
+<h3 id="isemptytbl-table"><code>isEmpty(tbl: table)</code></h3>
+<p>Checks if a table is empty.</p>
+<h3 id="haskeytbl-table-key-any"><code>hasKey(tbl: table, key: any)</code></h3>
+<p>Checks if a table contains a specific key.</p>
+<h3 id="hasvaluetbl-table-value-any"><code>hasValue(tbl: table, value: any)</code></h3>
+<p>Checks if a table contains a specific value.</p>
+<h3 id="countoccurencestbl-table-value-any"><code>countOccurences(tbl: table, value: any)</code></h3>
+<p>Counts the number of occurrences of a specific value in a table.</p>
+<h3 id="countkeysbytypetbl-table-keytype-string"><code>countKeysByType(tbl: table, keyType: string)</code></h3>
+<p>Counts the number of keys in a table that match a specific type.</p>
+<h3 id="countvaluesbytypetbl-table-valuetype-string"><code>countValuesByType(tbl: table, valueType: string)</code></h3>
+<p>Counts the number of values in a table that match a specific type.</p>
+<h3 id="keysofvaluetbl-table-targetvalue-any"><code>keysOfValue(tbl: table, targetValue: any)</code></h3>
+<p>Retrieves all keys in a table that map to a specific value.</p>
+<h3 id="deepcopytbl-table"><code>deepCopy(tbl: table)</code></h3>
+<p>Creates a recursive, deep copy of a table.</p>
+<h3 id="deepequala-any-b-any"><code>deepEqual(a: any, b: any)</code></h3>
+<p>Recursively compares two values for equality, handling nested tables.</p>
+<h3 id="deepfreezetbl-table-layers-number"><code>deepFreeze(tbl: table, layers: number?)</code></h3>
+<p>Recursively freezes a table and its nested tables.</p>
+<h3 id="findmatchtbl-table-filter-function"><code>findMatch(tbl: table, filter: function)</code></h3>
+<p>Finds the first key in a table that satisfies the given filter function.</p>
+<h3 id="everytbl-table-filter-function"><code>every(tbl: table, filter: function)</code></h3>
+<p>Checks if every key-value pair in a table satisfies the filter function.</p>
+<h3 id="sometbl-table-filter-function"><code>some(tbl: table, filter: function)</code></h3>
+<p>Checks if at least one key-value pair in a table satisfies the filter function.</p>
+<h3 id="tosettbl-table"><code>toSet(tbl: table)</code></h3>
+<p>Converts a table into a set (all keys map to true).</p>
+<h3 id="prettyprinttbl-table-indent-number"><code>prettyPrint(tbl: table, indent: number?)</code></h3>
+<p>Converts a table into a human-readable string format.</p>
+<h3 id="tocsvrows-array-delimiter-string"><code>toCSV(rows: array, delimiter: string?)</code></h3>
+<p>Converts a 2D array into a CSV string format.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
