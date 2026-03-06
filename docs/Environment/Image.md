@@ -7,6 +7,9 @@ A library to create images similar to the [EditableImage](https://create.roblox.
 ### `new(size:Vector2): Image`
 Creates a new Image object with the specified size.
 
+### `fromPng(pngData:string): Image`
+Creates a new Image object by decoding the provided PNG data string.
+
 ### `toPng(image:Image,outputLogs:boolean?): string`
 Encodes the Image object as a raw string encoded as a png. If `outputLogs` is true, logs will be printed during the encoding process.
 
