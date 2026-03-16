@@ -15,6 +15,13 @@ print(etable.concat(t, ", ")) --> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 This extends the default table library in Luau with additional utility functions.
 <span style="font-size: 70%;">[source](https://github.com/Akari-yn/ExtendedTableLibrary/tree/main)</span>
 
+### `etable.stats(tbl: table)`
+returns a dictionary containing
+- `arrayS`: Allocated array size  
+- `hashS`: Allocated hash size  
+- `estSize`: Estimated total memory size  
+- `#`: Number of elements  
+
 ### `getAllocatedArraySize(tbl: table)`
 Returns the allocated size of a Luau table's array part.
 

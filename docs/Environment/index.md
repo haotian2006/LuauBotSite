@@ -31,6 +31,11 @@ Should the time stamp be included when logging. If false it will not give a time
 ### `user:{Name:string,UserId:number}`
 A table containing information about the user who sent the code to be executed.
 
+### `ask(prompt:string,context: any):  context`
+
+Uses `TextGenerator` to answer a question. `context` can be used to provide previous conversation history.
+
+
 ### `bench(funcs:{},printMode:number?,iterations:number?,delayEveryXIter:number?): results`
 
 Runs benchmarks on the provided functions.
