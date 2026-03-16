@@ -68,6 +68,41 @@ io.writefile(gifData, "ball.gif")
 
 ![Example Image](https://haotian2006.github.io/LuauBotSite/Environment/Image/ball.gif)
 
+### `plotFunction(function: (x:number) -> (...number), options:{}?) -> Image`
+**Params**:
+
+- function:
+  
+    - If isParametric: takes t and returns x, y pairs or {x, y} tables
+    - If isXFunction: takes y and returns one or more x value
+    - If it returns Boolean then x and y will be passed through the parameter and true will draw a color at the pixel
+    - Otherwise: takes x and returns one or more y values
+   
+- options - Configuration table with:
+  
+    - offset: Vector2 - The origin point offset (default: center of image)
+    - size: Vector2 - The axis ranges in units (x,y) - image will be auto-sized to fit within maxPixelSize 
+    - scale: number - Pixels per unit (auto-calculated to fit within maxPixelSize, but can be overridden)
+    - maxPixelSize: number - Maximum pixel size for either axis (default: 1024)
+    - isXFunction: boolean - If true, function returns x from y input (default: false)
+    - isParametric: boolean - If true, function takes t and returns x, y pairs (default: false)
+    - tRange: {number} - Range for parametric t parameter (default: {0, 2*pi})
+    - color: {Color3} | Color3 - List of colors for each curve, or single color (default: list of red, green, blue, etc.)
+    - backgroundColor: Color3 - Background color (default: black)
+    - showAxes: boolean - Whether to draw axes (default: true)
+    - axesColor: Color3 - Color of the axes (default: gray)
+    - showGrid: boolean - Whether to draw grid lines (default: false)
+    - gridColor: Color3 - Color of the grid (default: dark gray)
+    - gridSpacing: number - Units between grid lines (default: 1)
+    - showLabels: boolean - Whether to show axis labels (default: true)
+    - labelColor: Color3 - Color of the labels (default: white)
+    - labelSpacing: number - Units between labels (default: 1)
+    - labelSize: number - Text scale for labels (default: 1)
+    - thickness: number - Line thickness in pixels (default: 1)
+    - filename: string - Output filename (default: "graph.png")
+
+
+
 ## Properties
 
 ### `Size: Vector2`
@@ -132,37 +167,4 @@ Returns the entire image's pixel data buffer
 
 ### `Clone(): Image`
 Creates and returns a copy of the Image object.
-
-### `plotFunction(function: (x:number) -> (...number), options:{}?) -> Image`
-**Params**:
-
-- function:
-  
-    - If isParametric: takes t and returns x, y pairs or {x, y} tables
-    - If isXFunction: takes y and returns one or more x value
-    - If it returns Boolean then x and y will be passed through the parameter and true will draw a color at the pixel
-    - Otherwise: takes x and returns one or more y values
-   
-- options - Configuration table with:
-  
-    - offset: Vector2 - The origin point offset (default: center of image)
-    - size: Vector2 - The axis ranges in units (x,y) - image will be auto-sized to fit within maxPixelSize 
-    - scale: number - Pixels per unit (auto-calculated to fit within maxPixelSize, but can be overridden)
-    - maxPixelSize: number - Maximum pixel size for either axis (default: 1024)
-    - isXFunction: boolean - If true, function returns x from y input (default: false)
-    - isParametric: boolean - If true, function takes t and returns x, y pairs (default: false)
-    - tRange: {number} - Range for parametric t parameter (default: {0, 2*pi})
-    - color: {Color3} | Color3 - List of colors for each curve, or single color (default: list of red, green, blue, etc.)
-    - backgroundColor: Color3 - Background color (default: black)
-    - showAxes: boolean - Whether to draw axes (default: true)
-    - axesColor: Color3 - Color of the axes (default: gray)
-    - showGrid: boolean - Whether to draw grid lines (default: false)
-    - gridColor: Color3 - Color of the grid (default: dark gray)
-    - gridSpacing: number - Units between grid lines (default: 1)
-    - showLabels: boolean - Whether to show axis labels (default: true)
-    - labelColor: Color3 - Color of the labels (default: white)
-    - labelSpacing: number - Units between labels (default: 1)
-    - labelSize: number - Text scale for labels (default: 1)
-    - thickness: number - Line thickness in pixels (default: 1)
-    - filename: string - Output filename (default: "graph.png")
 
