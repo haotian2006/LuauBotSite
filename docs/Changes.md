@@ -1,5 +1,9 @@
 # Updates
 
+## 4/1/26
+
+- Added analyze and ast
+
 ## 2/14/26
 
 - Added `Image.plotFunction`.
