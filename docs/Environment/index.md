@@ -31,10 +31,9 @@ Should the time stamp be included when logging. If false it will not give a time
 ### `user:{Name:string,UserId:number}`
 A table containing information about the user who sent the code to be executed.
 
-### `ask(prompt:string,context: any):  context`
+### `ask(prompt:string,contextId:string?): string`
 
-Uses `TextGenerator` to answer a question. `context` can be used to provide previous conversation history.
-
+Uses `TextGenerator` to answer a question. Context will be preserved on each server and can be cleared by passing true to the second argument. Returns the contextId. FYI this is not reliable and just a gimmick.
 
 ### `bench(funcs:{},printMode:number?,iterations:number?,delayEveryXIter:number?): results`
 
