@@ -1,5 +1,9 @@
 # Updates
 
+## 4/3/26
+
+- Added multi-file support
+
 ## 4/1/26
 
 - Added analyze and ast
