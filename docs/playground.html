@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Luau Runner</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/lua/lua.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/overlay.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #161b22;
+      border-bottom: 1px solid #21262d;
+      flex-shrink: 0;
+    }
+    .toolbar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #8b949e;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      transition: background .15s, opacity .15s;
+    }
+    button:active { opacity: .8; }
+
+    #runBtn  { background: #238636; color: #fff; }
+    #runBtn:hover  { background: #2ea043; }
+    #stopBtn { background: #b91c1c; color: #fff; display: none; }
+    #stopBtn:hover { background: #dc2626; }
+    #sendBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+    #sendBtn:hover { background: #30363d; }
+
+    #status {
+      margin-left: auto;
+      font-size: 12px;
+      color: #6e7681;
+      font-family: monospace;
+    }
+
+    /* ── Layout ── */
+    .main {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── CodeMirror 5 editor ── */
+    #editor-wrapper {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #21262d;
+    }
+    #editor-wrapper .CodeMirror {
+      flex: 1;
+      height: 100%;
+      background: #282a36;
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    #editor-wrapper .CodeMirror-scroll { height: 100%; }
+    /* Luau-only keywords (type, export, continue) */
+    .cm-luau-kw { color: #ff79c6 !important; font-weight: 600; }
+
+    /* ── Stdin row ── */
+    .input-row {
+      display: flex;
+      gap: 6px;
+      padding: 8px 10px;
+      background: #161b22;
+      border-bottom: 1px solid #21262d;
+      flex-shrink: 0;
+    }
+    #inputBox {
+      flex: 1;
+      background: #0d1117;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font: 13px monospace;
+      outline: none;
+      transition: border-color .15s;
+    }
+    #inputBox:focus { border-color: #388bfd; }
+    #inputBox::placeholder { color: #3d444d; }
+
+    /* ── Output ── */
+    #output {
+      flex: 1;
+      background: #0d1117;
+      padding: 14px 16px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font: 13px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      color: #c9d1d9;
+    }
+    #output::-webkit-scrollbar { width: 6px; }
+    #output::-webkit-scrollbar-track { background: transparent; }
+    #output::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+    /* ── Files ── */
+    #files {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #161b22;
+      border-top: 1px solid #21262d;
+      flex-shrink: 0;
+    }
+    #files:empty { display: none; }
+
+    .file-item { display: flex; flex-direction: column; gap: 4px; max-width: 220px; }
+    .file-item img {
+      max-width: 220px; max-height: 160px; border-radius: 6px;
+      border: 1px solid #30363d; cursor: pointer; object-fit: contain;
+      background: #0d1117; transition: border-color .15s;
+    }
+    .file-item img:hover { border-color: #388bfd; }
+    a.file-link {
+      background: #21262d; color: #58a6ff; padding: 4px 10px;
+      border-radius: 6px; text-decoration: none; font-size: 12px;
+      border: 1px solid #30363d; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; transition: background .15s;
+    }
+    a.file-link:hover { background: #30363d; }
+
+    /* ── Lightbox ── */
+    #lightbox {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.85); align-items: center;
+      justify-content: center; z-index: 100; cursor: zoom-out;
+      backdrop-filter: blur(4px);
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img {
+      max-width: 90vw; max-height: 90vh; object-fit: contain;
+      border-radius: 8px; box-shadow: 0 24px 64px rgba(0,0,0,.6);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <span class="toolbar-title">Playground</span>
+    <button id="runBtn">&#9654; Run</button>
+    <button id="stopBtn">&#9632; Stop</button>
+    <span id="status"></span>
+  </div>
+
+  <div class="main">
+    <div id="editor-wrapper"><textarea id="code"></textarea></div>
+    <div class="input-row">
+      <input id="inputBox" type="text" placeholder="stdin input..." autocomplete="off" spellcheck="false" />
+      <button id="sendBtn">Send</button>
+    </div>
+    <div id="files"></div>
+    <div id="output"></div>
+  </div>
+
+  <div id="lightbox"><img id="lightboxImg" /></div>
+
+  <script>
+    // ── Luau = Lua + extra keywords overlay ──
+    CodeMirror.defineMode("luau", function(config) {
+      const lua = CodeMirror.getMode(config, "lua");
+      const luauRe = /^(?:type|export|continue)\b/;
+      return CodeMirror.overlayMode(lua, {
+        token(stream) {
+          if (stream.match(luauRe)) return "luau-kw";
+          while (stream.next() != null && !stream.match(luauRe, false)) {}
+          return null;
+        }
+      });
+    });
+
+    const editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+      mode: "luau",
+      theme: "dracula",
+      lineNumbers: true,
+      indentUnit: 2,
+      tabSize: 2,
+      indentWithTabs: false,
+      smartIndent: true,
+      autofocus: true,
+      extraKeys: { Tab: cm => cm.execCommand("insertSoftTab") },
+    });
+
+    // ── App ──
+    const SERVER   = "http://rluau.my.pebble.host:8041";
+    const runBtn   = document.getElementById("runBtn");
+    const stopBtn  = document.getElementById("stopBtn");
+    const inputBox = document.getElementById("inputBox");
+    const sendBtn  = document.getElementById("sendBtn");
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+    const filesEl  = document.getElementById("files");
+    const lightbox    = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+
+    let currentToken = null;
+    let es = null;
+
+    lightbox.addEventListener("click", () => lightbox.classList.remove("open"));
+
+    const ANSI_COLORS = {
+      '30':'#555',  '31':'#e06c75','32':'#98c379','33':'#e5c07b',
+      '34':'#61afef','35':'#c678dd','36':'#56b6c2','37':'#abb2bf',
+    };
+
+    function ansiToHtml(raw) {
+      function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      let out = '', open = false;
+      const parts = raw.split(/(\x1b?\[[\d;]*m|\n)/);
+      for (const part of parts) {
+        if (part === '\n') {
+          if (open) { out += '</span>'; open = false; }
+          out += '\n';
+          continue;
+        }
+        const m = part.match(/^\x1b?\[([\d;]*)m$/);
+        if (!m) { out += esc(part); continue; }
+        const codes = m[1].split(';').filter(Boolean);
+        const isReset = codes.length === 0 || codes[0] === '0';
+        if (isReset && open) { out += '</span>'; open = false; }
+        const colorCode = isReset ? codes[1] : codes[codes.length - 1];
+        const color = colorCode && ANSI_COLORS[colorCode];
+        if (color) {
+          if (open) out += '</span>';
+          const dim = codes.includes('2');
+          out += `<span style="color:${color}${dim?';opacity:.65':''}">`;
+          open = true;
+        }
+      }
+      if (open) out += '</span>';
+      return out;
+    }
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+    function setOutput(text) {
+      outputEl.innerHTML = ansiToHtml(text);
+      outputEl.scrollTop = outputEl.scrollHeight;
+    }
+    function setRunning(running) {
+      runBtn.style.display  = running ? "none" : "inline-flex";
+      stopBtn.style.display = running ? "inline-flex" : "none";
+    }
+
+    const IMAGE_TYPES = new Set(['png','jpg','jpeg','gif','webp','svg']);
+    const TEXT_TYPES  = new Set(['txt','lua','luau','json','xml','html','css','js','md','csv','ansi']);
+    const MIME = {
+      png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', gif:'image/gif',
+      webp:'image/webp', svg:'image/svg+xml',
+      txt:'text/plain', lua:'text/plain', luau:'text/plain', ansi:'text/plain',
+      json:'application/json', xml:'text/xml', html:'text/html',
+      css:'text/css', js:'text/javascript', md:'text/plain', csv:'text/csv',
+    };
+
+    function addFileLink(name, type, base64) {
+      const t     = type.toLowerCase();
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const blob  = new Blob([bytes], { type: MIME[t] || 'application/octet-stream' });
+      const url   = URL.createObjectURL(blob);
+
+      const container = document.createElement("div");
+      container.className = "file-item";
+      const a = document.createElement("a");
+      a.href = url; a.className = "file-link"; a.textContent = "⬇ " + name;
+
+      if (IMAGE_TYPES.has(t)) {
+        a.target = "_blank";
+        const img = document.createElement("img");
+        img.src = url; img.title = "Click to enlarge";
+        img.addEventListener("click", e => {
+          e.preventDefault();
+          lightboxImg.src = url;
+          lightbox.classList.add("open");
+        });
+        container.appendChild(a);
+        container.appendChild(img);
+      } else if (TEXT_TYPES.has(t)) {
+        a.target = "_blank";
+        container.appendChild(a);
+      } else {
+        a.download = name;
+        container.appendChild(a);
+      }
+      filesEl.appendChild(container);
+    }
+
+    runBtn.addEventListener("click", async () => {
+      const code = editor.getValue().trim();
+      if (!code) return;
+
+      outputEl.innerHTML = "";
+      filesEl.innerHTML  = "";
+      setStatus("Starting...");
+      setRunning(true);
+
+      const res = await fetch(`${SERVER}/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!res.ok) {
+        setStatus("Error: " + (await res.text()));
+        setRunning(false);
+        return;
+      }
+
+      const { token } = await res.json();
+      currentToken = token;
+
+      if (es) es.close();
+      es = new EventSource(`${SERVER}/stream/${token}`);
+
+      es.addEventListener("output", e => {
+        const { content, serverNum } = JSON.parse(e.data);
+        setStatus(`Server #${serverNum}`);
+        setOutput(content);
+        filesEl.innerHTML = "";
+      });
+      es.addEventListener("file", e => {
+        const { name, type, content } = JSON.parse(e.data);
+        addFileLink(name, type, content);
+      });
+      es.addEventListener("done", e => {
+        const { runtime } = JSON.parse(e.data);
+        setStatus(`Done (${runtime}s)`);
+        setRunning(false);
+        es.close();
+        currentToken = null;
+      });
+      es.addEventListener("error", e => {
+        try { setStatus("Error: " + JSON.parse(e.data).message); }
+        catch { setStatus("Connection lost"); }
+        setRunning(false);
+        es.close();
+        currentToken = null;
+      });
+    });
+
+    stopBtn.addEventListener("click", async () => {
+      if (!currentToken) return;
+      await fetch(`${SERVER}/stop/${currentToken}`, { method: "POST" });
+      setStatus("Stopped");
+      setRunning(false);
+      if (es) { es.close(); es = null; }
+      currentToken = null;
+    });
+
+    sendBtn.addEventListener("click", sendInput);
+    inputBox.addEventListener("keydown", e => { if (e.key === "Enter") sendInput(); });
+
+    async function sendInput() {
+      if (!currentToken || !inputBox.value) return;
+      await fetch(`${SERVER}/input/${currentToken}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: inputBox.value }),
+      });
+      inputBox.value = "";
+    }
+  </script>
+</body>
+</html>
