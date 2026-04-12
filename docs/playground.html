@@ -90,11 +90,18 @@
     .toolbar {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
+      flex-wrap: wrap;
+      gap: 6px 8px;
+      padding: 6px 10px;
       background: #161b22;
       border-bottom: 1px solid #21262d;
       flex-shrink: 0;
+    }
+    .toolbar-opts {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 8px;
     }
     .toolbar-title {
       font-size: 13px;
@@ -148,11 +155,182 @@
     }
 
     /* ── Layout ── */
+    .body-row {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      width: 100%;
+    }
     .main {
       display: flex;
       flex-direction: column;
       flex: 1;
       overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── History button (desktop) ── */
+    #hist-popover-btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 3px 10px; }
+    #hist-popover-btn:hover { background: #30363d; }
+
+    /* ── History floating popover ── */
+    #hist-popover {
+      display: none;
+      position: fixed;
+      z-index: 300;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      width: 240px;
+      max-height: 60vh;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #hist-popover.open { display: flex; }
+    #hist-popover-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px 6px;
+      border-bottom: 1px solid #21262d;
+      flex-shrink: 0;
+    }
+    #hist-popover-header span {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #8b949e;
+    }
+    #history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .hist-item {
+      display: flex;
+      align-items: stretch;
+      cursor: pointer;
+      border-bottom: 1px solid #21262d;
+    }
+    .hist-item:hover .hist-body { background: #1c2128; }
+    .hist-body {
+      flex: 1;
+      padding: 6px 8px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .hist-label {
+      font-size: 11px;
+      font-family: monospace;
+      color: #c9d1d9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hist-time {
+      font-size: 10px;
+      color: #6e7681;
+      margin-top: 2px;
+    }
+    .hist-del {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: #6e7681;
+      padding: 0 8px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      border-radius: 0;
+    }
+    .hist-del:hover { color: #f85149; background: none; }
+    #history-empty {
+      padding: 12px 10px;
+      font-size: 11px;
+      color: #6e7681;
+      text-align: center;
+    }
+    /* ── Mobile history bottom sheet ── */
+    #hist-sheet-btn { display: none; }
+    #hist-sheet-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 200;
+    }
+    #hist-sheet-backdrop.open { display: block; }
+    #hist-sheet {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      border-radius: 12px 12px 0 0;
+      z-index: 201;
+      max-height: 60vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform .25s ease;
+    }
+    #hist-sheet.open { transform: translateY(0); }
+    #hist-sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid #21262d;
+      flex-shrink: 0;
+    }
+    #hist-sheet-header span {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #8b949e;
+    }
+    #hist-sheet-close {
+      background: none; border: none;
+      color: #6e7681; font-size: 18px;
+      padding: 0 4px; cursor: pointer;
+      line-height: 1;
+    }
+    #hist-sheet-close:hover { color: #c9d1d9; background: none; }
+    #hist-sheet-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+    #hist-sheet-btn { display: none; }
+
+    /* ── Mobile bottom history tab ── */
+    #hist-bottom-tab {
+      display: none;
+    }
+    @media (max-width: 600px) {
+      #hist-popover-btn { display: none; }
+      .toolbar-opts { flex-wrap: nowrap; overflow-x: auto; flex: 1; min-width: 0; }
+      .toolbar { flex-wrap: nowrap; }
+      #hist-bottom-tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        z-index: 150;
+        background: #161b22;
+        border-top: 1px solid #30363d;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+        font-size: 12px;
+        color: #8b949e;
+        cursor: pointer;
+        user-select: none;
+        transition: color .15s;
+      }
+      #hist-bottom-tab:hover { color: #c9d1d9; }
+      #hist-bottom-tab svg { flex-shrink: 0; }
+      /* push output area up so tab doesn't overlap content */
+      .body-row { padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px)); }
     }
 
     /* ── CodeMirror 5 editor ── */
@@ -329,6 +507,15 @@
       max-width: 90vw; max-height: 90vh; object-fit: contain;
       border-radius: 8px; box-shadow: 0 24px 64px rgba(0,0,0,.6);
     }
+
+    @media (max-width: 540px) {
+      .toolbar-title { display: none; }
+      .toolbar { gap: 4px 6px; padding: 5px 8px; }
+      button { padding: 4px 10px; font-size: 12px; }
+      .lint-toggle { font-size: 11px; }
+      #shareBtn { padding: 3px 8px; font-size: 11px; }
+      #status { font-size: 11px; }
+    }
   </style>
 </head>
 <body>
@@ -337,22 +524,27 @@
     <span class="toolbar-title">Playground</span>
     <button id="runBtn">&#9654; Run</button>
     <button id="stopBtn">&#9632; Stop</button>
-    <label class="lint-toggle" title="Toggle type linter">
-      <input type="checkbox" id="lintCheck" />
-      <span>Linter</span>
-    </label>
-    <label class="lint-toggle" title="Use new type solver (more accurate but experimental)">
-      <input type="checkbox" id="solverCheck" />
-      <span>New Solver</span>
-    </label>
-    <label class="lint-toggle" title="Append TIMESTAMP flag">
-      <input type="checkbox" id="timestampCheck" />
-      <span>Timestamp</span>
-    </label>
-    <button id="shareBtn" title="Copy shareable link">&#128279; Share</button>
+    <div class="toolbar-opts">
+      <label class="lint-toggle" title="Toggle type linter">
+        <input type="checkbox" id="lintCheck" />
+        <span>Linter</span>
+      </label>
+      <label class="lint-toggle" title="Use new type solver (more accurate but experimental)">
+        <input type="checkbox" id="solverCheck" />
+        <span>New Solver</span>
+      </label>
+      <label class="lint-toggle" title="Append TIMESTAMP flag">
+        <input type="checkbox" id="timestampCheck" />
+        <span>Timestamp</span>
+      </label>
+      <button id="shareBtn" title="Copy shareable link">&#128279; Share</button>
+      <button id="hist-popover-btn" title="Show history">&#128336; History</button>
+    </div>
+    <button id="hist-sheet-btn" title="Show history">&#128336;</button>
     <span id="status"></span>
   </div>
 
+  <div class="body-row">
   <div class="main">
     <div id="editor-wrapper"><textarea id="code"></textarea></div>
     <div class="input-row">
@@ -367,8 +559,44 @@
     <div id="files"></div>
     <div id="output"></div>
   </div>
+  </div><!-- /.body-row -->
+
+  <!-- Desktop history popover -->
+  <div id="hist-popover">
+    <div id="hist-popover-header">
+      <span>History</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <label class="lint-toggle" id="hist-record-label" title="Record runs to history" style="font-size:10px;color:#6e7681">
+          <input type="checkbox" id="histRecordCheck" />
+          <span>Record</span>
+        </label>
+        <button id="hist-clear-btn" title="Clear all history" style="background:none;border:none;color:#6e7681;font-size:11px;padding:0;cursor:pointer;line-height:1">Clear</button>
+      </div>
+    </div>
+    <div id="history-list"><div id="history-empty">No runs yet</div></div>
+  </div>
 
   <div id="lightbox"><img id="lightboxImg" /></div>
+
+  <!-- Mobile history bottom sheet -->
+  <div id="hist-sheet-backdrop"></div>
+  <div id="hist-sheet">
+    <div id="hist-sheet-header">
+      <span>History</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="hist-sheet-clear" style="background:none;border:none;color:#6e7681;font-size:12px;padding:0;cursor:pointer;line-height:1">Clear all</button>
+        <button id="hist-sheet-close">&#215;</button>
+      </div>
+    </div>
+    <div id="hist-sheet-list"></div>
+  </div>
+  <!-- Mobile bottom history tab -->
+  <div id="hist-bottom-tab">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    History
+  </div>
   <div id="sig-help"></div>
   <div id="hover-tip"></div>
 
@@ -401,6 +629,7 @@
     let allGlobals        = []; // all known Roblox global names (for top-level completion)
     let sigsOf            = {}; // typeName    → { memberName → raw declaration string }
     let globalTypeOf      = {}; // globalName  → class/table typeName (for sig lookup)
+    let funcSigs          = {}; // funcName    → declaration string (for hover on globals)
     let creatableInstances = []; // from --#METADATA# CREATABLE_INSTANCES
     let serviceNames       = []; // from --#METADATA# SERVICES
 
@@ -456,7 +685,11 @@
         }
 
         const funcM = line.match(/^declare function (\w+)/);
-        if (funcM) { funcGlobals.push(funcM[1]); continue; }
+        if (funcM) {
+          funcGlobals.push(funcM[1]);
+          funcSigs[funcM[1]] = trimmed.replace(/^declare /, "");
+          continue;
+        }
 
         const cgM = line.match(/^declare (\w+)\s*:\s*([A-Z]\w*)\s*$/);
         if (cgM) { classTypedGlobals[cgM[1]] = cgM[2]; continue; }
@@ -1156,6 +1389,7 @@
           lintCheck.dispatchEvent(new Event("change"));
         }
         if (state.s !== undefined) localStorage.setItem("luau_solver", state.s ? "1" : "0");
+        if (state.t !== undefined) { timestampCheck.checked = !!state.t; localStorage.setItem("luau_timestamp", state.t ? "1" : "0"); }
         try {
           const target = (window.parent !== window) ? window.parent.history : history;
           target.replaceState(null, "", location.pathname.replace(/playground\.html$/, "playground/"));
@@ -1174,6 +1408,7 @@
         c: editor.getValue(),
         l: lintCheck.checked ? 1 : 0,
         s: document.getElementById("solverCheck")?.checked ? 1 : 0,
+        t: timestampCheck.checked ? 1 : 0,
       };
       const encoded = await compressToB64(state);
       // If loaded inside an iframe, build URL from the parent page instead
@@ -1360,6 +1595,7 @@
       // Check static maps first (instant, no WASM round-trip)
       if (globalMembers[tokenStr]) return globalTypeOf[tokenStr] || tokenStr;
       if (classMembers[tokenStr]) return tokenStr;
+      if (funcSigs[tokenStr]) return funcSigs[tokenStr];
       // Resolve locals via same 5-case chain
       const newRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
       for (const m of code.matchAll(newRe)) {
@@ -1453,8 +1689,9 @@
           const r   = data.result;
           const raw = (r?.contents?.value ?? r?.content ?? r?.markdown ?? r?.type ?? "")
             .replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
-          if (raw) showTip(token.string + ": " + raw);
-          else if (!staticType) hoverTip.style.display = "none";
+          if (raw && !raw.includes("*error-type*")) showTip(token.string + ": " + raw);
+          else if (staticType) showTip(staticType);
+          else hoverTip.style.display = "none";
         } catch { /* silent */ }
       }, 300);
     });
@@ -1648,6 +1885,7 @@
       const raw = editor.getValue();
       if (!raw.trim()) return;
       const code = injectFlags(raw);
+      _pendingCode = raw; // save original (pre-inject) code for history
 
       outputEl.innerHTML = "";
       filesEl.innerHTML  = "";
@@ -1697,6 +1935,8 @@
         setRunning(false);
         es.close();
         currentToken = null;
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML); }
+        _pendingCode = null;
       });
       es.addEventListener("error", e => {
         try { setStatus("Error: " + JSON.parse(e.data).message); }
@@ -1704,8 +1944,160 @@
         setRunning(false);
         es.close();
         currentToken = null;
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML); }
+        _pendingCode = null;
       });
     });
+
+    // ── Run History ──
+    const HISTORY_KEY = "luau_history";
+    const HISTORY_MAX = 10;
+    const historyList = document.getElementById("history-list");
+    const historyEmpty = document.getElementById("history-empty");
+
+    function loadHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+    }
+    function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
+
+    function histLabel(code) {
+      const line = code.split("\n").find(l => l.trim() && !/^\s*--/.test(l)) || code.split("\n")[0];
+      return line.trim().slice(0, 40) || "(empty)";
+    }
+    function histTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " +
+             d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function renderHistory() {
+      const h = loadHistory();
+      historyList.innerHTML = "";
+      if (h.length === 0) { historyList.appendChild(historyEmpty); return; }
+      for (let i = 0; i < h.length; i++) {
+        const entry = h[i];
+        const item = document.createElement("div");
+        item.className = "hist-item";
+
+        const body = document.createElement("div");
+        body.className = "hist-body";
+        body.innerHTML = `<div class="hist-label">${entry.label}</div><div class="hist-time">${histTime(entry.ts)}</div>`;
+        body.addEventListener("click", () => loadHistoryEntry(entry));
+
+        const del = document.createElement("button");
+        del.className = "hist-del";
+        del.title = "Remove";
+        del.textContent = "×";
+        del.addEventListener("click", e => {
+          e.stopPropagation();
+          const h2 = loadHistory();
+          h2.splice(i, 1);
+          saveHistory(h2);
+          renderHistory();
+        });
+
+        item.appendChild(body);
+        item.appendChild(del);
+        historyList.appendChild(item);
+      }
+    }
+
+    function loadHistoryEntry(entry) {
+      // Stop any running session
+      if (currentToken) {
+        fetch(`${SERVER}/stop/${currentToken}`, { method: "POST" }).catch(() => {});
+        if (es) { es.close(); es = null; }
+        currentToken = null;
+        setRunning(false);
+      }
+      editor.setValue(entry.code);
+      outputEl.innerHTML = entry.output || "";
+      filesEl.innerHTML = entry.files || "";
+      setStatus("Loaded from history");
+    }
+
+    function pushHistory(code, output, files) {
+      const h = loadHistory();
+      h.unshift({ ts: Date.now(), label: histLabel(code), code, output, files });
+      if (h.length > HISTORY_MAX) h.length = HISTORY_MAX;
+      saveHistory(h);
+      renderHistory();
+    }
+
+    // ── Mobile bottom sheet ──
+    const histSheet         = document.getElementById("hist-sheet");
+    const histSheetBackdrop = document.getElementById("hist-sheet-backdrop");
+    const histSheetList     = document.getElementById("hist-sheet-list");
+    const histSheetBtn      = document.getElementById("hist-sheet-btn");
+    const histSheetClose    = document.getElementById("hist-sheet-close");
+
+    function openHistSheet() {
+      histSheetList.innerHTML = historyList.innerHTML;
+      histSheetList.querySelectorAll(".hist-body").forEach((body, i) => {
+        body.addEventListener("click", () => { closeHistSheet(); loadHistoryEntry(loadHistory()[i]); });
+      });
+      histSheetList.querySelectorAll(".hist-del").forEach((del, i) => {
+        del.addEventListener("click", e => {
+          e.stopPropagation();
+          const h = loadHistory(); h.splice(i, 1); saveHistory(h);
+          renderHistory(); openHistSheet();
+        });
+      });
+      histSheetBackdrop.classList.add("open");
+      requestAnimationFrame(() => histSheet.classList.add("open"));
+    }
+    function closeHistSheet() {
+      histSheet.classList.remove("open");
+      histSheetBackdrop.classList.remove("open");
+    }
+    histSheetBtn.addEventListener("click", openHistSheet);
+    document.getElementById("hist-bottom-tab").addEventListener("click", openHistSheet);
+    histSheetClose.addEventListener("click", closeHistSheet);
+    histSheetBackdrop.addEventListener("click", closeHistSheet);
+
+    renderHistory();
+
+    // Record toggle
+    const histRecordCheck = document.getElementById("histRecordCheck");
+    histRecordCheck.checked = localStorage.getItem("luau_hist_record") !== "0"; // default on
+    histRecordCheck.addEventListener("change", () =>
+      localStorage.setItem("luau_hist_record", histRecordCheck.checked ? "1" : "0"));
+
+    function clearHistory() {
+      saveHistory([]);
+      renderHistory();
+    }
+    document.getElementById("hist-clear-btn").addEventListener("click", clearHistory);
+    document.getElementById("hist-sheet-clear").addEventListener("click", () => {
+      clearHistory();
+      openHistSheet(); // re-render the sheet list
+    });
+
+    // ── Desktop history popover ──
+    const histPopover    = document.getElementById("hist-popover");
+    const histPopoverBtn = document.getElementById("hist-popover-btn");
+
+    function openHistPopover() {
+      const rect = histPopoverBtn.getBoundingClientRect();
+      histPopover.style.top  = (rect.bottom + 6) + "px";
+      histPopover.style.right = (window.innerWidth - rect.right) + "px";
+      histPopover.classList.add("open");
+    }
+    function closeHistPopover() { histPopover.classList.remove("open"); }
+
+    histPopoverBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      if (histPopover.classList.contains("open")) closeHistPopover();
+      else { renderHistory(); openHistPopover(); }
+    });
+
+    document.addEventListener("click", e => {
+      if (histPopover.classList.contains("open") && !histPopover.contains(e.target))
+        closeHistPopover();
+    });
+
+    // Save to history when a run completes or errors
+    let _pendingCode = null;
 
     stopBtn.addEventListener("click", async () => {
       if (!currentToken) return;
