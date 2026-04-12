@@ -168,3 +168,101 @@ Returns the entire image's pixel data buffer
 ### `Clone(): Image`
 Creates and returns a copy of the Image object.
 
+### `Crop(position: Vector2, size: Vector2): Image`
+Crops a rectangular region from the image and returns it as a new Image. The region is clamped to the image bounds.
+
+### `Resize(newSize: Vector2): Image`
+Returns a new Image resized to `newSize` using bilinear interpolation.
+
+---
+
+## Color Adjustments
+
+These methods modify the image in-place.
+
+### `Grayscale()`
+Converts the image to grayscale using luminance weighting (0.299 R + 0.587 G + 0.114 B). Preserves alpha.
+
+### `Invert()`
+Inverts each RGB channel (255 - value). Preserves alpha.
+
+### `AdjustBrightness(amount: number)`
+Adds `amount` (range –255 to 255) to every RGB channel. Clamps to [0, 255].
+
+### `AdjustContrast(factor: number)`
+Scales contrast around the midpoint 128. Values > 1 increase contrast; 0 < value < 1 decreases it.
+
+### `AdjustSaturation(factor: number)`
+Adjusts color saturation. `0` → grayscale, `1` → unchanged, `> 1` → more vivid.
+
+### `Tint(color: Color3, strength: number)`
+Blends the image toward `color` by `strength` (0–1).
+
+### `Threshold(cutoff: number?)`
+Converts to black-and-white by luminance threshold. Pixels with luminance ≥ `cutoff` become white; others become black. Default `cutoff` is 128.
+
+---
+
+## Filters
+
+These methods apply visual effects in-place.
+
+### `Blur(radius: number)`
+Applies a box blur with the given radius. Fast separable implementation (O(n) per axis).
+
+### `GaussianBlur(sigma: number)`
+Applies a Gaussian blur with the given sigma value.
+
+### `Sharpen()`
+Applies a 3×3 sharpening kernel.
+
+### `EdgeDetect()`
+Applies edge detection using a Laplacian-based kernel.
+
+### `Emboss()`
+Applies an emboss (relief) effect.
+
+### `Pixelate(blockSize: number)`
+Pixelates the image by averaging each `blockSize × blockSize` block of pixels.
+
+### `Dither(levels: number?)`
+Applies ordered (Bayer) dithering to reduce color depth. Default `levels` is 4.
+
+### `Posterize(levels: number)`
+Reduces the number of distinct tonal levels per channel.
+
+### `ChromaticAberration(offset: number)`
+Shifts the red channel left and the blue channel right by `offset` pixels, simulating lens chromatic aberration.
+
+### `Vignette(strength: number)`
+Darkens the edges of the image. `strength` (0–1) controls how dark the corners become.
+
+---
+
+## Geometry
+
+### `FlipHorizontal()`
+Mirrors the image left-to-right in-place.
+
+### `FlipVertical()`
+Mirrors the image top-to-bottom in-place.
+
+### `Rotate90(times: number)`
+Rotates the image 90° clockwise `times` times in-place.
+
+---
+
+## Analysis & Utility
+
+### `GetHistogram(): { r: {number}, g: {number}, b: {number} }`
+Returns three 256-entry tables counting how many pixels have each intensity value for R, G, and B channels respectively. Indices are 0–255.
+
+### `AutoLevels()`
+Stretches each color channel to use the full 0–255 range
+
+### `Compare(otherImage: Image): Image`
+Returns a new Image showing the absolute per-channel difference between this image and `otherImage`. Bright pixels indicate large differences; black pixels are identical. The output size is the minimum of both images' dimensions.
+
+### `AlphaErode(threshold: number?)`
+Sets pixels with an alpha value below `threshold` fully transparent. Useful for removing semi-transparent fringe pixels. Default `threshold` is 10.
+

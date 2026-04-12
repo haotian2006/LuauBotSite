@@ -8,6 +8,40 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/lua/lua.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/overlay.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+  <style>
+    .CodeMirror-hints {
+      background: #161b22 !important;
+      border: 1px solid #30363d !important;
+      border-radius: 6px !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5) !important;
+      font-family: "JetBrains Mono", "Fira Code", Consolas, monospace !important;
+      font-size: 12.5px !important;
+      padding: 4px 0 !important;
+      max-height: 220px !important;
+    }
+    .CodeMirror-hint {
+      color: #c9d1d9 !important;
+      padding: 3px 12px !important;
+      border-radius: 0 !important;
+    }
+    .CodeMirror-hint-active {
+      background: #21262d !important;
+      color: #58a6ff !important;
+    }
+    .CodeMirror-hint-active .cm-hint-detail { color: #6e7681 !important; }
+    .cm-hint-detail {
+      color: #484f58;
+      font-size: 11px;
+      margin-left: 8px;
+      float: right;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -99,11 +133,17 @@
     /* ── Stdin row ── */
     .input-row {
       display: flex;
-      gap: 6px;
-      padding: 8px 10px;
+      flex-direction: column;
+      gap: 0;
       background: #161b22;
       border-bottom: 1px solid #21262d;
       flex-shrink: 0;
+    }
+    .input-controls {
+      display: flex;
+      gap: 6px;
+      padding: 8px 10px;
+      align-items: center;
     }
     #inputBox {
       flex: 1;
@@ -118,6 +158,42 @@
     }
     #inputBox:focus { border-color: #388bfd; }
     #inputBox::placeholder { color: #3d444d; }
+    #attachBtn {
+      background: #21262d; color: #8b949e;
+      border: 1px solid #30363d; border-radius: 6px;
+      padding: 5px 9px; cursor: pointer; font-size: 15px;
+      line-height: 1; transition: background .15s, color .15s;
+      flex-shrink: 0;
+    }
+    #attachBtn:hover { background: #30363d; color: #c9d1d9; }
+    #fileQueue {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0 10px 8px;
+    }
+    #fileQueue:empty { display: none; }
+    .file-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      color: #c9d1d9;
+      max-width: 220px;
+    }
+    .file-chip span {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .file-chip-remove {
+      background: none; border: none; color: #8b949e;
+      cursor: pointer; padding: 0 0 0 2px; font-size: 14px; line-height: 1;
+      flex-shrink: 0;
+    }
+    .file-chip-remove:hover { color: #f85149; }
 
     /* ── Output ── */
     #output {
@@ -160,6 +236,25 @@
     }
     a.file-link:hover { background: #30363d; }
 
+    /* ── Signature help tooltip ── */
+    #sig-help {
+      display: none;
+      position: absolute;
+      z-index: 50;
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font: 12.5px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      color: #c9d1d9;
+      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+      max-width: 480px;
+      white-space: pre;
+      pointer-events: none;
+    }
+    #sig-help .sig-type { color: #79c0ff; }
+    #sig-help .sig-detail { color: #8b949e; font-size: 11.5px; }
+
     /* ── Lightbox ── */
     #lightbox {
       display: none; position: fixed; inset: 0;
@@ -186,16 +281,469 @@
   <div class="main">
     <div id="editor-wrapper"><textarea id="code"></textarea></div>
     <div class="input-row">
-      <input id="inputBox" type="text" placeholder="stdin input..." autocomplete="off" spellcheck="false" />
-      <button id="sendBtn">Send</button>
+      <div class="input-controls">
+        <input id="inputBox" type="text" placeholder="stdin input..." autocomplete="off" spellcheck="false" />
+        <button id="attachBtn" title="Attach file">📎</button>
+        <button id="sendBtn">Send</button>
+      </div>
+      <div id="fileQueue"></div>
+      <input id="fileInput" type="file" style="display:none" multiple />
     </div>
     <div id="files"></div>
     <div id="output"></div>
   </div>
 
   <div id="lightbox"><img id="lightboxImg" /></div>
+  <div id="sig-help"></div>
 
   <script>
+    // ── Luau WASM Worker ──
+    let luauWorker = null;
+    let staticReady = false; // static maps parsed — enables Roblox/bot/stdlib completions
+    let workerReady = false; // WASM worker ready — enables user-code type inference
+    let pendingRequests = new Map();
+    let reqId = 0;
+
+    function workerRequest(msg) {
+      return new Promise((resolve, reject) => {
+        const id = ++reqId;
+        pendingRequests.set(id, resolve);
+        luauWorker.postMessage({ ...msg, requestId: id });
+        setTimeout(() => {
+          if (pendingRequests.has(id)) {
+            pendingRequests.delete(id);
+            reject(new Error("timeout"));
+          }
+        }, 15000);
+      });
+    }
+
+    // ── Roblox static type maps (parsed from globalTypes.d.luau) ──
+    let classMembers = {};  // className   → sorted string[]
+    let globalMembers = {}; // globalName  → sorted string[] (for "x." completions)
+    let allGlobals    = []; // all known Roblox global names (for top-level completion)
+    let sigsOf        = {}; // typeName    → { memberName → raw declaration string }
+    let globalTypeOf  = {}; // globalName  → class/table typeName (for sig lookup)
+
+    function parseGlobalTypes(src) {
+      const rawClasses = {};        // className → { parent, members[], sigs{} }
+      const tableGlobals = {};      // varName → string[]
+      const tableGlobalSigs = {};   // varName → { memberName → sigLine }
+      const classTypedGlobals = {}; // varName → className
+      const funcGlobals = [];
+
+      let curClass = null;
+      let curTable = null;
+
+      for (const line of src.split('\n')) {
+        const trimmed = line.trim();
+
+        // ── Inside class body ──
+        if (curClass) {
+          if (trimmed === 'end') { curClass = null; continue; }
+          const func = line.match(/^\s+function\s+(\w+)\s*\(/);
+          const prop = line.match(/^\s+(\w+)\s*:/);
+          if (func) {
+            rawClasses[curClass].members.push(func[1]);
+            rawClasses[curClass].sigs[func[1]] = trimmed;
+          } else if (prop && prop[1] !== 'function') {
+            rawClasses[curClass].members.push(prop[1]);
+            rawClasses[curClass].sigs[prop[1]] = trimmed;
+          }
+          continue;
+        }
+
+        // ── Inside table global body ──
+        if (curTable) {
+          if (trimmed === '}') { curTable = null; continue; }
+          const key = line.match(/^\s+(\w+)\s*:/);
+          if (key) {
+            tableGlobals[curTable].push(key[1]);
+            if (!tableGlobalSigs[curTable]) tableGlobalSigs[curTable] = {};
+            tableGlobalSigs[curTable][key[1]] = trimmed.replace(/,$/, '');
+          }
+          continue;
+        }
+
+        // ── Top-level ──
+        const classM = line.match(/^declare class (\w+)(?:\s+extends\s+(\w+))?/);
+        if (classM) {
+          curClass = classM[1];
+          rawClasses[curClass] = { parent: classM[2] || null, members: [], sigs: {} };
+          continue;
+        }
+
+        const funcM = line.match(/^declare function (\w+)/);
+        if (funcM) { funcGlobals.push(funcM[1]); continue; }
+
+        const cgM = line.match(/^declare (\w+)\s*:\s*([A-Z]\w*)\s*$/);
+        if (cgM) { classTypedGlobals[cgM[1]] = cgM[2]; continue; }
+
+        // Simple value globals: declare x: number / boolean / string / etc.
+        const svM = line.match(/^declare (\w+)\s*:\s*\w/);
+        if (svM && !line.includes('{')) { funcGlobals.push(svM[1]); continue; }
+
+        const tgM = line.match(/^declare (\w+)\s*:\s*\{/);
+        if (tgM) {
+          curTable = tgM[1];
+          tableGlobals[curTable] = [];
+          if (/\}/.test(line.slice(line.indexOf('{') + 1))) curTable = null;
+          continue;
+        }
+      }
+
+      // Build class member lists + sig maps with inheritance
+      const memoM = {}, memoS = {};
+      function build(name, seen = new Set()) {
+        if (name in memoM) return;
+        if (seen.has(name) || !rawClasses[name]) {
+          memoM[name] = []; memoS[name] = {}; return;
+        }
+        seen.add(name);
+        const { parent, members, sigs } = rawClasses[name];
+        if (parent) build(parent, new Set(seen));
+        const inh  = memoM[parent] || [];
+        const inhS = memoS[parent] || {};
+        memoM[name] = [...new Set([...inh, ...members])].sort();
+        memoS[name] = { ...inhS, ...sigs };
+      }
+      for (const n of Object.keys(rawClasses)) {
+        build(n);
+        classMembers[n] = memoM[n];
+        sigsOf[n]       = memoS[n];
+      }
+
+      // Table globals
+      for (const [name, members] of Object.entries(tableGlobals)) {
+        globalMembers[name] = [...members].sort();
+        sigsOf[name]        = tableGlobalSigs[name] || {};
+      }
+
+      // Class-typed globals
+      for (const [name, typeName] of Object.entries(classTypedGlobals)) {
+        if (classMembers[typeName]) globalMembers[name] = classMembers[typeName];
+        globalTypeOf[name] = typeName;
+      }
+
+      allGlobals = [...new Set([
+        ...allGlobals,
+        ...Object.keys(classTypedGlobals),
+        ...Object.keys(tableGlobals),
+        ...funcGlobals,
+      ])].sort();
+
+      console.log('[luau] classes:', Object.keys(classMembers).length,
+        '| globals:', allGlobals.length,
+        '| with members:', Object.keys(globalMembers).length);
+    }
+
+    // ── Standard Luau built-in library (not in globalTypes.d.luau) ──
+    const LUAU_STDLIB_MEMBERS = {
+      table:     ['clear','clone','concat','create','find','freeze','getn','insert','isfrozen','maxn','move','pack','remove','sort','unpack'],
+      string:    ['byte','char','find','format','gmatch','gsub','len','lower','match','rep','reverse','split','sub','upper'],
+      math:      ['abs','acos','asin','atan','atan2','ceil','clamp','cos','cosh','deg','exp','floor','fmod','frexp','huge','ldexp','log','log10','max','min','modf','noise','pi','pow','rad','random','randomseed','round','sign','sin','sinh','sqrt','tan','tanh','tointeger','type'],
+      coroutine: ['close','create','isyieldable','resume','running','status','wrap','yield'],
+      buffer:    ['copy','create','fill','fromstring','len','readf32','readf64','readi8','readi16','readi32','readu8','readu16','readu32','readstring','tostring','writef32','writef64','writei8','writei16','writei32','writeu8','writeu16','writeu32','writestring'],
+      bit32:     ['arshift','band','bnot','bor','btest','bxor','countlz','countrz','extract','lrotate','lshift','replace','rrotate','rshift'],
+      os:        ['clock','date','difftime','time'],
+    };
+
+    // Signatures for stdlib functions (shown in sig-help tooltip)
+    const LUAU_STDLIB_SIGS = {
+      table: {
+        insert:   '(t: {V}, value: V) | (t: {V}, pos: number, value: V)',
+        remove:   '(t: {V}, pos: number?): V?',
+        concat:   '(t: {V}, sep: string?, i: number?, j: number?): string',
+        sort:     '(t: {V}, comp: ((V, V) -> boolean)?)',
+        find:     '(haystack: {V}, needle: V, init: number?): number?',
+        move:     '(a1: {V}, f: number, e: number, t: number, a2: {V}?): {V}',
+        pack:     '(...any): { n: number, [number]: any }',
+        unpack:   '(list: {V}, i: number?, j: number?): ...V',
+        create:   '(n: number, v: V?): {V}',
+        freeze:   '(value: T): T',  clone:    '(value: T): T',
+        isfrozen: '(value: T): boolean',  clear: '(t: {})',
+      },
+      string: {
+        format:  '(s: string, ...any): string',
+        byte:    '(s: string, i: number?, j: number?): ...number',
+        char:    '(...number): string',
+        sub:     '(s: string, i: number, j: number?): string',
+        len:     '(s: string): number',
+        rep:     '(s: string, n: number, sep: string?): string',
+        lower:   '(s: string): string',  upper:   '(s: string): string',
+        reverse: '(s: string): string',
+        find:    '(s: string, pattern: string, init: number?, plain: boolean?): (number?, number?, ...string)',
+        match:   '(s: string, pattern: string, init: number?): ...string?',
+        gmatch:  '(s: string, pattern: string): () -> ...string',
+        gsub:    '(s: string, pattern: string, repl: string | {} | function, n: number?): (string, number)',
+        split:   '(s: string, sep: string?): {string}',
+      },
+      math: {
+        abs:    '(n: number): number',  ceil:   '(n: number): number',
+        floor:  '(n: number): number',  round:  '(n: number): number',
+        sqrt:   '(n: number): number',  sign:   '(n: number): number',
+        max:    '(number, ...number): number',  min: '(number, ...number): number',
+        exp:    '(n: number): number',  log:    '(n: number, base: number?): number',
+        pow:    '(x: number, y: number): number',
+        sin:    '(n: number): number',  cos: '(n: number): number',  tan: '(n: number): number',
+        asin:   '(n: number): number',  acos: '(n: number): number',
+        atan:   '(y: number, x: number?): number',  atan2: '(y: number, x: number): number',
+        deg:    '(n: number): number',  rad: '(n: number): number',
+        fmod:   '(x: number, y: number): number',  modf: '(n: number): (number, number)',
+        frexp:  '(n: number): (number, number)',  ldexp: '(x: number, e: number): number',
+        clamp:  '(n: number, min: number, max: number): number',
+        noise:  '(x: number, y: number?, z: number?): number',
+        random: '(m: number?, n: number?): number',  randomseed: '(x: number)',
+        tointeger: '(n: number): number?',  type: '(n: number): string',
+      },
+      bit32: {
+        band:    '(...number): number',  bor:  '(...number): number',
+        bxor:    '(...number): number',  bnot: '(n: number): number',
+        btest:   '(...number): boolean',
+        lshift:  '(n: number, i: number): number',  rshift:  '(n: number, i: number): number',
+        arshift: '(n: number, i: number): number',
+        lrotate: '(n: number, i: number): number',  rrotate: '(n: number, i: number): number',
+        extract: '(n: number, f: number, w: number?): number',
+        replace: '(n: number, v: number, f: number, w: number?): number',
+        countlz: '(n: number): number',  countrz: '(n: number): number',
+      },
+      coroutine: {
+        create:      '(f: function): thread',  wrap:   '(f: function): function',
+        resume:      '(co: thread, ...any): (boolean, ...any)',
+        yield:       '(...any): ...any',  status: '(co: thread): string',
+        running:     '(): (thread, boolean)',  isyieldable: '(): boolean',
+        close:       '(co: thread): (boolean, any?)',
+      },
+      buffer: {
+        create:     '(size: number): buffer',  fromstring: '(str: string): buffer',
+        tostring:   '(b: buffer): string',     len:        '(b: buffer): number',
+        copy:       '(target: buffer, targetOffset: number, source: buffer, sourceOffset: number?, count: number?)',
+        fill:       '(b: buffer, offset: number, value: number, count: number?)',
+        readu8:     '(b: buffer, offset: number): number',
+        readu16:    '(b: buffer, offset: number): number',
+        readu32:    '(b: buffer, offset: number): number',
+        readi8:     '(b: buffer, offset: number): number',
+        readi16:    '(b: buffer, offset: number): number',
+        readi32:    '(b: buffer, offset: number): number',
+        readf32:    '(b: buffer, offset: number): number',
+        readf64:    '(b: buffer, offset: number): number',
+        readstring: '(b: buffer, offset: number, count: number): string',
+        writeu8:    '(b: buffer, offset: number, value: number)',
+        writeu16:   '(b: buffer, offset: number, value: number)',
+        writeu32:   '(b: buffer, offset: number, value: number)',
+        writei8:    '(b: buffer, offset: number, value: number)',
+        writei16:   '(b: buffer, offset: number, value: number)',
+        writei32:   '(b: buffer, offset: number, value: number)',
+        writef32:   '(b: buffer, offset: number, value: number)',
+        writef64:   '(b: buffer, offset: number, value: number)',
+        writestring:'(b: buffer, offset: number, value: string, count: number?)',
+      },
+      os: {
+        clock: '(): number',  time: '(t: table?): number',
+        date:  '(format: string?, time: number?): string | table',
+        difftime: '(t2: number, t1: number): number',
+      },
+    };
+
+    (async function initWorker() {
+      try {
+        luauWorker = new Worker("playground/luau-lsp.worker.js");
+
+        luauWorker.onmessage = (e) => {
+          const { requestId, ...data } = e.data;
+          if (data.type === "ready") { workerReady = true; return; }
+          const cb = pendingRequests.get(requestId);
+          if (cb) { pendingRequests.delete(requestId); cb(data); }
+        };
+        luauWorker.onerror = (e) => console.warn("Luau worker error:", e);
+
+        const [rawTypes, botDefs] = await Promise.all([
+          fetch("playground/globalTypes.d.luau").then(r => r.text()),
+          fetch("playground/botTypes.d.luau").then(r => r.text()).catch(() => ""),
+        ]);
+
+        // Strip metadata comment, parse static maps (fallback), send as definitions to WASM
+        const stripped = rawTypes.replace(/^--#METADATA#[^\n]*\n?/, "");
+        parseGlobalTypes(stripped);
+        if (botDefs) parseGlobalTypes(botDefs);
+
+        // Add stdlib to static maps (WASM doesn't include these built-ins)
+        for (const [name, members] of Object.entries(LUAU_STDLIB_MEMBERS)) {
+          if (!globalMembers[name]) globalMembers[name] = [...members].sort();
+          if (!allGlobals.includes(name)) allGlobals.push(name);
+        }
+        // Add stdlib signatures into sigsOf for sig-help
+        for (const [name, sigs] of Object.entries(LUAU_STDLIB_SIGS)) {
+          sigsOf[name] = { ...(sigsOf[name] || {}), ...sigs };
+        }
+        allGlobals.sort();
+
+        // Static maps are ready — enable completions immediately, before WASM loads
+        staticReady = true;
+
+        luauWorker.postMessage({ type: "init", definitions: stripped + "\n" + botDefs, requestId: 0 });
+      } catch(e) { console.warn("Luau WASM unavailable:", e); }
+    })();
+
+    // ── CM5 async hint helper ──
+    function luauHint(cm, callback) {
+      if (!staticReady) { callback(null); return; }
+      const cur      = cm.getCursor();
+      const token    = cm.getTokenAt(cur);
+      const line     = cm.getLine(cur.line);
+      const charPrev = line.charAt(cur.ch - 1);
+      const isDot    = charPrev === "." || charPrev === ":";
+      const tokenStr   = token.string.slice(0, cur.ch - token.start);
+      const sepIdx     = Math.max(tokenStr.lastIndexOf("."), tokenStr.lastIndexOf(":"));
+      const hasSepInToken = sepIdx > 0;
+      const word = isDot ? "" : hasSepInToken ? tokenStr.slice(sepIdx + 1) : tokenStr;
+      const from = CodeMirror.Pos(cur.line, isDot ? cur.ch : hasSepInToken ? token.start + sepIdx + 1 : token.start);
+      const to   = CodeMirror.Pos(cur.line, cur.ch);
+
+      // ── Roblox member access: game. / workspace. / game:GetService / etc. ──
+      let robloxTarget = null;
+      if (isDot || hasSepInToken) {
+        // Separator is the char before cursor, or is inside the token (e.g. "game.Get...")
+        const before = isDot ? line.slice(0, cur.ch - 1) : line.slice(token.start, token.start + sepIdx);
+        const m = before.match(/(\w+)\s*$/);
+        robloxTarget = m ? m[1] : null;
+      } else {
+        // CM5 splits "game:method" into separate tokens — look backward from token start
+        const lineBeforeToken = line.slice(0, token.start);
+        const m = lineBeforeToken.match(/(\w+)\s*[.:]\s*$/);
+        robloxTarget = m ? m[1] : null;
+      }
+      if (robloxTarget) {
+        // 1. Known Roblox global (game, workspace, Instance, etc.)
+        let memberList = globalMembers[robloxTarget] || null;
+
+        // 2. Local variable typed via Instance.new("ClassName")
+        if (!memberList) {
+          const code = cm.getValue();
+          const localRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
+          for (const m of code.matchAll(localRe)) {
+            if (m[1] === robloxTarget && classMembers[m[2]]) {
+              memberList = classMembers[m[2]];
+              break;
+            }
+          }
+        }
+
+        // 3. Local variable with type annotation: local x: Ray  or  local x: Ray = ...
+        if (!memberList) {
+          const code = cm.getValue();
+          const annotRe = /\blocal\s+(\w+)\s*:\s*(\w+)/g;
+          for (const m of code.matchAll(annotRe)) {
+            if (m[1] === robloxTarget && classMembers[m[2]]) {
+              memberList = classMembers[m[2]];
+              break;
+            }
+          }
+        }
+
+        // 4. Local variable assigned from a known global: local x = game
+        if (!memberList) {
+          const code = cm.getValue();
+          const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
+          for (const m of code.matchAll(assignRe)) {
+            if (m[1] === robloxTarget && globalMembers[m[2]]) {
+              memberList = globalMembers[m[2]];
+              break;
+            }
+          }
+        }
+
+        // 5. Local variable from ClassName.method(...): local img = Image.new(...) / Image.fromPng(...)
+        if (!memberList) {
+          const code = cm.getValue();
+          const newRe = /\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g;
+          for (const m of code.matchAll(newRe)) {
+            if (m[1] === robloxTarget && classMembers[m[2]]) {
+              memberList = classMembers[m[2]];
+              break;
+            }
+          }
+        }
+
+        if (memberList) {
+          let names = memberList;
+          if (word) names = names.filter(n => n.toLowerCase().startsWith(word.toLowerCase()));
+          if (names.length > 0) { callback({ list: names, from, to }); return; }
+        }
+        // No Roblox match — fall through to WASM
+      }
+
+      // ── WASM completion (user-defined variable type inference) ──
+      // Skip WASM round-trip entirely if worker isn't ready yet — static maps handle everything else
+      if (!workerReady) {
+        // Top-level: serve all known globals from static maps only
+        if (!isDot && !hasSepInToken) {
+          let pairs = allGlobals
+            .filter(g => !word || g.toLowerCase().startsWith(word.toLowerCase()))
+            .map(g => ({ text: g, detail: "" }));
+          if (pairs.length === 0) { callback(null); return; }
+          callback({ list: pairs.map(p => ({ text: p.text })), from, to });
+        } else {
+          callback(null);
+        }
+        return;
+      }
+      workerRequest({ type: "autocomplete", code: cm.getValue(), line: cur.line, col: cur.ch })
+        .then(data => {
+          const raw = data.result;
+          if (!raw) { callback(null); return; }
+
+          // Build { text, detail } pairs preserving WASM detail (type signatures)
+          let pairs = [];
+          if (raw.items) {
+            for (const e of raw.items) {
+              const text = typeof e === "string" ? e : (e.label ?? e.name ?? e.insertText ?? "");
+              const detail = typeof e === "object" ? (e.detail ?? "") : "";
+              if (text) pairs.push({ text, detail });
+            }
+          } else if (Array.isArray(raw)) {
+            pairs = raw.map(e => ({ text: typeof e === "string" ? e : (e.label ?? e.name ?? ""), detail: "" }));
+          } else {
+            pairs = Object.keys(raw.entries ?? raw).map(k => ({ text: k, detail: "" }));
+          }
+
+          // For top-level, merge in all known Roblox globals (no detail for static entries)
+          if (!isDot && !hasSepInToken) {
+            const existing = new Set(pairs.map(p => p.text));
+            for (const g of allGlobals) {
+              if (!existing.has(g)) pairs.push({ text: g, detail: "" });
+            }
+          }
+
+          if (word) pairs = pairs.filter(p => p.text.toLowerCase().startsWith(word.toLowerCase()));
+          pairs.sort((a, b) => a.text.localeCompare(b.text));
+          if (pairs.length === 0) { callback(null); return; }
+
+          // Build CM5 hint objects — use render() to show detail as secondary text
+          const hintList = pairs.map(p => ({
+            text: p.text,
+            render(el) {
+              const name = document.createElement("span");
+              name.textContent = p.text;
+              el.appendChild(name);
+              if (p.detail && !p.detail.includes("*error-type*")) {
+                // Strip "(function) foo: " prefix, keep the signature part
+                const sig = p.detail.replace(/^\(\w+\)\s*[^:]+:\s*/, "").replace(/^\(\w+\)\s*/, "");
+                const det = document.createElement("span");
+                det.className = "cm-hint-detail";
+                det.textContent = sig.length > 48 ? sig.slice(0, 48) + "…" : sig;
+                el.appendChild(det);
+              }
+            }
+          }));
+
+          callback({ list: hintList, from, to });
+        })
+        .catch(e => { console.error("[autocomplete] error:", e); callback(null); });
+    }
+    luauHint.async = true;
+    CodeMirror.registerHelper("hint", "luau", luauHint);
+
     // ── Luau = Lua + extra keywords overlay ──
     CodeMirror.defineMode("luau", function(config) {
       const lua = CodeMirror.getMode(config, "lua");
@@ -218,15 +766,187 @@
       indentWithTabs: false,
       smartIndent: true,
       autofocus: true,
-      extraKeys: { Tab: cm => cm.execCommand("insertSoftTab") },
+      extraKeys: {
+        Tab: cm => cm.execCommand("insertSoftTab"),
+        "Ctrl-Space": cm => CodeMirror.showHint(cm, luauHint, { completeSingle: false }),
+      },
     });
+
+    // Auto-trigger autocomplete while typing
+    editor.on("keyup", function(cm, event) {
+      if (cm.state.completionActive) return;
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      const isDot = event.key === "." || event.key === ":";
+      const isWord = /^[a-zA-Z_]$/.test(event.key);
+      if (!isDot && !isWord) return;
+      if (!staticReady) return;
+      CodeMirror.showHint(cm, luauHint, { completeSingle: false });
+    });
+
+    // ── Signature help ──
+    const sigHelp = document.getElementById("sig-help");
+
+    function hideSig() { sigHelp.style.display = "none"; }
+
+    function showSigAt(content, cm) {
+      const cur    = cm.getCursor();
+      const coords = cm.cursorCoords(true, "page");
+      sigHelp.innerHTML = content;
+      sigHelp.style.display = "block";
+      sigHelp.style.left = coords.left + "px";
+      sigHelp.style.top  = (coords.bottom + 4) + "px";
+    }
+
+    // Find the function being called: returns { pos, name, obj } or null
+    function getFuncInfo(cm) {
+      const cur  = cm.getCursor();
+      const line = cm.getLine(cur.line);
+      let depth = 0, i = cur.ch - 1;
+      while (i >= 0) {
+        const c = line[i];
+        if (c === ")") depth++;
+        else if (c === "(") { if (depth === 0) break; depth--; }
+        i--;
+      }
+      if (i < 0) return null;
+      // i is at "(". Get the token just before it (the function name).
+      const tok = cm.getTokenAt(CodeMirror.Pos(cur.line, i));
+      if (!tok || !tok.string.trim()) return null;
+
+      // CM5 Lua mode may give "table.insert" as one token OR just "insert" as separate.
+      // Split on . or : to get obj and name either way.
+      const parts = tok.string.split(/[.:]/);
+      const name = parts[parts.length - 1];
+      let obj = parts.length > 1 ? parts[0] : null;
+
+      // If tok was a bare identifier (no separator inside), look backward in the line
+      if (!obj) {
+        const lineBeforeTok = line.slice(0, tok.start);
+        const m = lineBeforeTok.match(/(\w+)\s*[.:]\s*$/);
+        obj = m ? m[1] : name;
+      }
+
+      // Hover col: position inside the function-name portion of the token
+      const nameOffset = tok.string.lastIndexOf(name);
+      return { pos: { line: cur.line, ch: tok.start + nameOffset + 1 }, name, obj };
+    }
+
+    editor.on("keyup", function(cm, event) {
+      if (!staticReady) return;
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.key === "Escape") { hideSig(); return; }
+
+      const shouldShowSig = event.key === "(" || event.key === ",";
+      if (!shouldShowSig) {
+        if (!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)) {
+          if (!getFuncInfo(cm)) hideSig();
+        }
+        return;
+      }
+
+      const info = getFuncInfo(cm);
+      if (!info) { hideSig(); return; }
+
+      // ── Static Roblox signature lookup ──
+      // Resolve obj: may be a direct global, or a local assigned from a global
+      let sigObj = info.obj;
+      if (sigObj && !globalMembers[sigObj]) {
+        const code = cm.getValue();
+        const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
+        for (const m of code.matchAll(assignRe)) {
+          if (m[1] === sigObj && globalMembers[m[2]]) { sigObj = m[2]; break; }
+        }
+      }
+      if (sigObj && info.name && globalMembers[sigObj]) {
+        const typeName = globalTypeOf[sigObj] || sigObj;
+        const sig = (sigsOf[typeName] || {})[info.name];
+        if (sig) {
+          showSigAt(`<span class="sig-type">${escHtml(sig)}</span>`, cm);
+          return;
+        }
+      }
+
+      // ── WASM hover fallback (for user-defined types / standard Luau) ──
+      workerRequest({ type: "hover", code: cm.getValue(), line: info.pos.line, col: info.pos.ch })
+        .then(data => {
+          const r   = data.result;
+          const raw = (r?.contents?.value ?? r?.content ?? r?.markdown ?? "")
+            .replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
+          if (!raw || raw.includes("*error-type*")) { hideSig(); return; }
+          let display = raw;
+          if (info.name) {
+            const memberRe = new RegExp(
+              `\\b${info.name}\\s*:\\s*(?:@\\w+\\s+)?(.+?)(?=,\\s*\\w+\\s*:|\\s*\\})`, "s"
+            );
+            const m = raw.match(memberRe);
+            if (m) display = `${info.name}: ${m[1].trim()}`;
+          }
+          const lines  = display.split("\n");
+          const header = `<span class="sig-type">${escHtml(lines[0])}</span>`;
+          const rest   = lines.slice(1).join("\n").trim();
+          showSigAt(header + (rest ? `\n<span class="sig-detail">${escHtml(rest)}</span>` : ""), cm);
+        })
+        .catch(() => hideSig());
+    });
+
+    function escHtml(s) {
+      return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    // Hide sig help when editor loses focus or code runs
+    editor.on("blur", hideSig);
 
     // ── App ──
     const SERVER   = "https://luau.testdemo.win";
     const runBtn   = document.getElementById("runBtn");
     const stopBtn  = document.getElementById("stopBtn");
-    const inputBox = document.getElementById("inputBox");
-    const sendBtn  = document.getElementById("sendBtn");
+    const inputBox   = document.getElementById("inputBox");
+    const sendBtn    = document.getElementById("sendBtn");
+    const attachBtn  = document.getElementById("attachBtn");
+    const fileInput  = document.getElementById("fileInput");
+    const fileQueue  = document.getElementById("fileQueue");
+
+    // ── File queue: [{file, name}] ──
+    let queuedFiles = [];
+
+    function renderFileQueue() {
+      fileQueue.innerHTML = "";
+      for (let i = 0; i < queuedFiles.length; i++) {
+        const { file } = queuedFiles[i];
+        const chip = document.createElement("div");
+        chip.className = "file-chip";
+        const label = document.createElement("span");
+        label.textContent = `📄 ${file.name}`;
+        label.title = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        const rm = document.createElement("button");
+        rm.className = "file-chip-remove";
+        rm.textContent = "×";
+        rm.title = "Remove";
+        rm.addEventListener("click", () => { queuedFiles.splice(i, 1); renderFileQueue(); });
+        chip.appendChild(label);
+        chip.appendChild(rm);
+        fileQueue.appendChild(chip);
+      }
+    }
+
+    attachBtn.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", () => {
+      for (const f of fileInput.files) queuedFiles.push({ file: f });
+      renderFileQueue();
+      fileInput.value = "";
+    });
+
+    // Drag-and-drop onto the input row
+    const inputRow = document.querySelector(".input-row");
+    inputRow.addEventListener("dragover", e => { e.preventDefault(); inputRow.style.outline = "1px solid #388bfd"; });
+    inputRow.addEventListener("dragleave", () => { inputRow.style.outline = ""; });
+    inputRow.addEventListener("drop", e => {
+      e.preventDefault();
+      inputRow.style.outline = "";
+      for (const f of e.dataTransfer.files) queuedFiles.push({ file: f });
+      renderFileQueue();
+    });
     const statusEl = document.getElementById("status");
     const outputEl = document.getElementById("output");
     const filesEl  = document.getElementById("files");
@@ -362,7 +1082,7 @@
       });
       es.addEventListener("done", e => {
         const { runtime } = JSON.parse(e.data);
-        setStatus(`Done (${runtime}s)`);
+        setStatus(`Done (${(+runtime).toFixed(4)}s)`);
         setRunning(false);
         es.close();
         currentToken = null;
@@ -385,17 +1105,46 @@
       currentToken = null;
     });
 
-    sendBtn.addEventListener("click", sendInput);
-    inputBox.addEventListener("keydown", e => { if (e.key === "Enter") sendInput(); });
+    sendBtn.addEventListener("click", e => sendInput(e.shiftKey));
+    inputBox.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); sendInput(e.shiftKey); }
+    });
 
-    async function sendInput() {
-      if (!currentToken || !inputBox.value) return;
-      await fetch(`${SERVER}/input/${currentToken}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: inputBox.value }),
+    async function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
-      inputBox.value = "";
+    }
+
+    // Normal send: text first, then 1 file from the front of the queue
+    // Shift+send: text first, then ALL queued files
+    async function sendInput(all = false) {
+      if (!currentToken) return;
+      if (!inputBox.value && queuedFiles.length === 0) return;
+
+      if (inputBox.value) {
+        await fetch(`${SERVER}/input/${currentToken}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: inputBox.value }),
+        });
+        inputBox.value = "";
+      }
+
+      const batch = all ? queuedFiles.splice(0) : queuedFiles.splice(0, 1);
+      renderFileQueue();
+
+      for (const { file } of batch) {
+        const base64 = await fileToBase64(file);
+        await fetch(`${SERVER}/input/${currentToken}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: base64, isFile: true }),
+        });
+      }
     }
   </script>
 </body>

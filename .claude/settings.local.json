@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s \"https://api.github.com/repos/luau-lang/playground/contents/src/lib/components\")",
+      "WebFetch(domain:play.luau.org)",
+      "Bash(curl -s https://play.luau.org/assets/luau.worker-BXRaYCw6.js)",
+      "Bash(curl -s https://play.luau.org/assets/luau.worker-BXRaYCw6.js.map)",
+      "Bash(curl -s https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.lua)",
+      "Bash(node -e ':*)"
+    ]
+  }
+}
