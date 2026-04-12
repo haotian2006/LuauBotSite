@@ -58,6 +58,18 @@ self.onmessage = async (e) => {
         break;
       }
 
+      case 'set_sourcemap': {
+        if (msg.json) {
+          const ptr = mod.stringToNewUTF8(msg.json);
+          mod._luau_set_sourcemap(ptr);
+          mod._free(ptr);
+        } else {
+          mod._luau_set_sourcemap(0); // null pointer = clear
+        }
+        self.postMessage({ requestId, type: 'set_sourcemap' });
+        break;
+      }
+
       case 'diagnostics': {
         const raw = mod.ccall('luau_get_diagnostics', 'string', ['string'], [msg.code]);
         self.postMessage({ requestId, type: 'diagnostics', result: raw ? JSON.parse(raw) : [] });

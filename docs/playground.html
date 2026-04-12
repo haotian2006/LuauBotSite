@@ -146,6 +146,131 @@
     .lint-toggle:hover { color: #c9d1d9; }
     #shareBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 3px 10px; }
     #shareBtn:hover { background: #30363d; }
+    #settingsBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 3px 10px; }
+    #settingsBtn:hover { background: #30363d; }
+
+    /* ── Settings popover ── */
+    #settings-popover {
+      display: none;
+      position: fixed;
+      z-index: 300;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      width: 200px;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #settings-popover.open { display: flex; }
+    #settings-popover-header {
+      padding: 8px 12px 6px;
+      border-bottom: 1px solid #21262d;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #8b949e;
+      flex-shrink: 0;
+    }
+    #settings-popover-body {
+      display: flex;
+      flex-direction: column;
+      padding: 6px 0;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      padding: 5px 12px;
+      font-size: 13px;
+      color: #c9d1d9;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .settings-row:hover { background: #1c2128; }
+    .settings-divider {
+      height: 1px;
+      background: #21262d;
+      margin: 4px 0;
+    }
+    .settings-sourcemap {
+      justify-content: space-between;
+      cursor: pointer;
+    }
+    #smLabel { font-size: 13px; color: #c9d1d9; }
+    #smLabel.loaded { color: #58a6ff; }
+    #smStatus { font-size: 11px; color: #6e7681; }
+    #smStatus.loaded { color: #58a6ff; }
+
+    /* ── Sourcemap modal ── */
+    #sm-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 400;
+      backdrop-filter: blur(2px);
+    }
+    #sm-backdrop.open { display: block; }
+    #sm-modal {
+      display: none;
+      position: fixed;
+      z-index: 401;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(640px, 92vw);
+      height: min(480px, 80vh);
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.7);
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #sm-modal.open { display: flex; }
+    #sm-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid #21262d;
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #8b949e;
+    }
+    #smModalClose {
+      background: none; border: none;
+      color: #6e7681; font-size: 18px;
+      padding: 0 4px; cursor: pointer; line-height: 1;
+    }
+    #smModalClose:hover { color: #c9d1d9; background: none; }
+    #sm-editor {
+      flex: 1;
+      background: #0d1117;
+      color: #c9d1d9;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 12px 14px;
+      font: 12.5px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      tab-size: 2;
+    }
+    #sm-modal-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-top: 1px solid #21262d;
+      flex-shrink: 0;
+    }
+    #smSaveBtn  { background: #238636; color: #fff; font-size: 12px; padding: 4px 14px; }
+    #smSaveBtn:hover { background: #2ea043; }
+    #smResetBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 4px 14px; }
+    #smResetBtn:hover { background: #30363d; }
+    #sm-error { font-size: 11px; color: #f85149; margin-left: 4px; }
 
     #status {
       font-size: 12px;
@@ -308,7 +433,6 @@
     }
     @media (max-width: 600px) {
       #hist-popover-btn { display: none; }
-      .toolbar-opts { flex-wrap: nowrap; overflow-x: auto; flex: 1; min-width: 0; }
       .toolbar { flex-wrap: wrap; }
       #status { width: 100%; padding: 1px 10px 3px; font-size: 11px; }
       #hist-bottom-tab {
@@ -526,18 +650,7 @@
     <button id="runBtn">&#9654; Run</button>
     <button id="stopBtn">&#9632; Stop</button>
     <div class="toolbar-opts" style="margin-left:auto">
-      <label class="lint-toggle" title="Toggle type linter">
-        <input type="checkbox" id="lintCheck" />
-        <span>Linter</span>
-      </label>
-      <label class="lint-toggle" title="Use new type solver (more accurate but experimental)">
-        <input type="checkbox" id="solverCheck" />
-        <span>New Solver</span>
-      </label>
-      <label class="lint-toggle" title="Append TIMESTAMP flag">
-        <input type="checkbox" id="timestampCheck" />
-        <span>Timestamp</span>
-      </label>
+      <button id="settingsBtn" title="Settings">&#9881; Settings</button>
       <button id="shareBtn" title="Copy shareable link">&#128279; Share</button>
       <button id="hist-popover-btn" title="Show history">&#128336; History</button>
     </div>
@@ -561,6 +674,45 @@
     <div id="output"></div>
   </div>
   </div><!-- /.body-row -->
+
+  <!-- Settings popover -->
+  <div id="settings-popover">
+    <div id="settings-popover-header"><span>Settings</span></div>
+    <div id="settings-popover-body">
+      <label class="lint-toggle settings-row" title="Toggle type linter">
+        <input type="checkbox" id="lintCheck" />
+        <span>Linter</span>
+      </label>
+      <label class="lint-toggle settings-row" title="Use new type solver (more accurate but experimental)">
+        <input type="checkbox" id="solverCheck" />
+        <span>New Solver</span>
+      </label>
+      <label class="lint-toggle settings-row" title="Append TIMESTAMP flag">
+        <input type="checkbox" id="timestampCheck" />
+        <span>Timestamp</span>
+      </label>
+      <div class="settings-divider" id="smDivider" style="display:none"></div>
+      <div class="settings-row settings-sourcemap" id="smRow" style="display:none">
+        <span id="smLabel">Sourcemap</span>
+        <span id="smStatus">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sourcemap modal -->
+  <div id="sm-backdrop"></div>
+  <div id="sm-modal">
+    <div id="sm-modal-header">
+      <span>Sourcemap JSON</span>
+      <button id="smModalClose">&#215;</button>
+    </div>
+    <textarea id="sm-editor" spellcheck="false" placeholder='{"name":"Game","className":"DataModel","children":[]}'></textarea>
+    <div id="sm-modal-footer">
+      <button id="smSaveBtn">Save</button>
+      <button id="smResetBtn">Reset</button>
+      <span id="sm-error"></span>
+    </div>
+  </div>
 
   <!-- Desktop history popover -->
   <div id="hist-popover">
@@ -607,7 +759,35 @@
     let staticReady = false; // static maps parsed — enables Roblox/bot/stdlib completions
     let workerReady = false; // WASM worker ready — enables user-code type inference
     let defsReady   = false; // WASM definitions loaded — enables Roblox diagnostics
+    let smActive    = false; // sourcemap disabled (hidden until WASM support is stable)
+    let smTree      = {}; // name → [childName, ...] built from sourcemap JSON for JS-side completions
+    let smClassOf   = {}; // name → className from sourcemap (e.g. "ReplicatedStorage" → "ReplicatedStorage")
     let pendingRequests = new Map();
+
+    // Build flat name→children and name→className maps from the sourcemap JSON tree so JS can
+    // complete game.Foo, game.Foo.Bar, and resolve local x = game.Foo to its Roblox class.
+    function buildSmTree(json) {
+      smTree = {}; smClassOf = {};
+      if (!json) return;
+      try {
+        const root = JSON.parse(json);
+        function walk(node) {
+          // Record className for every named node
+          if (node.name && node.className) smClassOf[node.name] = node.className;
+          if (!node.children || !node.children.length) return;
+          const childNames = node.children.map(c => c.name);
+          smTree[node.name] = smTree[node.name]
+            ? [...new Set([...smTree[node.name], ...childNames])]
+            : childNames;
+          for (const child of node.children) walk(child);
+        }
+        if (root.className === "DataModel") {
+          smTree["game"] = (root.children || []).map(c => c.name);
+          for (const child of root.children || []) walk(child);
+        }
+      } catch(e) { console.warn("[sm] failed to parse sourcemap:", e); }
+    }
+    // buildSmTree(localStorage.getItem("luau_sourcemap")); // disabled until WASM support is stable
     let reqId = 0;
 
     function workerRequest(msg) {
@@ -884,6 +1064,9 @@
             // Definitions loaded — enable Roblox diagnostics and re-lint
             defsReady = true;
             if (typeof editor !== "undefined") editor.performLint();
+            // Sourcemap disabled until WASM support is stable
+            // const storedSm = localStorage.getItem("luau_sourcemap");
+            // if (storedSm) workerRequest({ type: "set_sourcemap", json: storedSm }).catch(() => {});
             return;
           }
           const cb = pendingRequests.get(requestId);
@@ -1050,10 +1233,27 @@
         let memberList       = null;
         let resolvedTypeName = null;
 
-        // 1. Known Roblox global (game, workspace, Instance, etc.)
+        // 1. Known Roblox global (game, workspace, Instance, etc.) + JS-side sourcemap children
         if (globalMembers[robloxTarget]) {
-          memberList       = globalMembers[robloxTarget];
+          memberList       = [...globalMembers[robloxTarget]];
           resolvedTypeName = globalTypeOf[robloxTarget] || robloxTarget;
+        }
+        // Merge sourcemap children from the JS-parsed smTree (handles game.Foo and Foo.Bar).
+        // Also merge the Roblox class members for the node's className so colon access and FFC work.
+        if (smTree[robloxTarget]) {
+          if (!memberList) {
+            const nodeClass = smClassOf[robloxTarget];
+            if (nodeClass && classMembers[nodeClass]) {
+              memberList = [...classMembers[nodeClass]];
+              resolvedTypeName = nodeClass;
+            } else {
+              memberList = [];
+            }
+          }
+          const existing = new Set(memberList);
+          for (const n of smTree[robloxTarget]) {
+            if (!existing.has(n)) memberList.push(n);
+          }
         }
 
         const code = cm.getValue();
@@ -1104,6 +1304,31 @@
           for (const m of code.matchAll(svcRe)) {
             if (m[1] === robloxTarget && classMembers[m[2]]) {
               memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
+            }
+          }
+        }
+
+        // 7. local x = obj.Member — resolve via sourcemap className or Roblox class name
+        if (!memberList) {
+          const propRe = /\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm;
+          for (const m of code.matchAll(propRe)) {
+            if (m[1] === robloxTarget) {
+              const propName  = m[2];
+              const className = smClassOf[propName] || propName;
+              // Start with Roblox class members (enables colon filter + FFC for methods)
+              if (classMembers[className]) {
+                memberList = [...classMembers[className]];
+                resolvedTypeName = className;
+              }
+              // Merge sourcemap children (e.g. ClientRuntime, tests, ...)
+              if (smTree[propName]) {
+                if (!memberList) memberList = [];
+                const existing = new Set(memberList);
+                for (const n of smTree[propName]) {
+                  if (!existing.has(n)) memberList.push(n);
+                }
+              }
+              if (memberList) break;
             }
           }
         }
@@ -1169,7 +1394,16 @@
           if (raw.items) {
             for (const e of raw.items) {
               const text = typeof e === "string" ? e : (e.label ?? e.name ?? e.insertText ?? "");
-              const detail = typeof e === "object" ? (e.detail ?? "") : "";
+              // Combine labelDetails (params) + detail (return type) if available
+              let detail = "";
+              if (typeof e === "object") {
+                const ld = e.labelDetails;
+                if (ld?.detail || ld?.description) {
+                  detail = [ld.detail, ld.description].filter(Boolean).join(" ");
+                } else {
+                  detail = e.detail ?? "";
+                }
+              }
               if (text) pairs.push({ text, detail });
             }
           } else if (Array.isArray(raw)) {
@@ -1199,6 +1433,11 @@
               [/\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g, (m) => classMembers[m[2]] ? m[2] : null],
               // Colon call with string arg: local x = game:GetService("Svc")
               [/\blocal\s+(\w+)\s*=\s*\w+:\w+\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
+              // Property access: local x = obj.Member — resolve via sourcemap or class name
+              [/\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm, (m) => {
+                const className = smClassOf[m[2]] || m[2];
+                return classMembers[className] ? className : null;
+              }],
             ];
             for (const [re, resolve] of patterns) {
               for (const m of code.matchAll(re)) {
@@ -1219,6 +1458,7 @@
 
           if (word) pairs = pairs.filter(p => p.text.toLowerCase().startsWith(word.toLowerCase()));
           pairs.sort((a, b) => a.text.localeCompare(b.text));
+
           if (pairs.length === 0) { callback(null); return; }
 
           // Build CM5 hint objects — use render() to show detail as secondary text
@@ -1229,8 +1469,10 @@
               name.textContent = p.text;
               el.appendChild(name);
               if (p.detail && !p.detail.includes("*error-type*")) {
-                // Strip "(function) foo: " prefix, keep the signature part
-                const sig = p.detail.replace(/^\(\w+\)\s*[^:]+:\s*/, "").replace(/^\(\w+\)\s*/, "");
+                // Strip "(function) foo: " / "(method) foo: " LSP kind prefix if present
+                const sig = p.detail
+                  .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*[^:]+:\s*/, "")
+                  .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*/, "");
                 const det = document.createElement("span");
                 det.className = "cm-hint-detail";
                 det.textContent = sig.length > 48 ? sig.slice(0, 48) + "…" : sig;
@@ -1403,6 +1645,99 @@
       saveTimer = setTimeout(() => localStorage.setItem("luau_code", editor.getValue()), 1000);
     });
 
+    // ── Settings popover ──
+    const settingsBtn     = document.getElementById("settingsBtn");
+    const settingsPopover = document.getElementById("settings-popover");
+
+    function openSettingsPopover() {
+      const rect = settingsBtn.getBoundingClientRect();
+      settingsPopover.style.top   = (rect.bottom + 6) + "px";
+      settingsPopover.style.right = (window.innerWidth - rect.right) + "px";
+      settingsPopover.classList.add("open");
+    }
+    function closeSettingsPopover() { settingsPopover.classList.remove("open"); }
+
+    settingsBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      if (settingsPopover.classList.contains("open")) closeSettingsPopover();
+      else openSettingsPopover();
+    });
+    document.addEventListener("click", e => {
+      if (settingsPopover.classList.contains("open") && !settingsPopover.contains(e.target))
+        closeSettingsPopover();
+    });
+
+    // ── Sourcemap modal ──
+    const smRow        = document.getElementById("smRow");
+    const smLabel      = document.getElementById("smLabel");
+    const smStatusEl   = document.getElementById("smStatus");
+    const smBackdrop   = document.getElementById("sm-backdrop");
+    const smModal      = document.getElementById("sm-modal");
+    const smEditor     = document.getElementById("sm-editor");
+    const smSaveBtn    = document.getElementById("smSaveBtn");
+    const smResetBtn   = document.getElementById("smResetBtn");
+    const smModalClose = document.getElementById("smModalClose");
+    const smErrorEl    = document.getElementById("sm-error");
+
+    function applySmLoaded(loaded) {
+      smLabel.classList.toggle("loaded", loaded);
+      smStatusEl.classList.toggle("loaded", loaded);
+      smStatusEl.textContent = loaded ? "Loaded" : "—";
+    }
+    applySmLoaded(!!localStorage.getItem("luau_sourcemap"));
+
+    function openSmModal() {
+      smEditor.value = localStorage.getItem("luau_sourcemap") || "";
+      smErrorEl.textContent = "";
+      smBackdrop.classList.add("open");
+      smModal.classList.add("open");
+      smEditor.focus();
+      closeSettingsPopover();
+    }
+    function closeSmModal() {
+      smBackdrop.classList.remove("open");
+      smModal.classList.remove("open");
+    }
+
+    smRow.addEventListener("click", openSmModal);
+    smModalClose.addEventListener("click", closeSmModal);
+    smBackdrop.addEventListener("click", closeSmModal);
+
+    smSaveBtn.addEventListener("click", () => {
+      const json = smEditor.value.trim();
+      if (!json) {
+        // Empty = clear
+        localStorage.removeItem("luau_sourcemap");
+        applySmLoaded(false);
+        closeSmModal();
+        return;
+      }
+      try { JSON.parse(json); } catch(err) {
+        smErrorEl.textContent = "Invalid JSON: " + err.message;
+        return;
+      }
+      localStorage.setItem("luau_sourcemap", json);
+      smActive = true;
+      buildSmTree(json);
+      applySmLoaded(true);
+      if (workerReady) workerRequest({ type: "set_sourcemap", json }).catch(() => {});
+      closeSmModal();
+    });
+
+    smResetBtn.addEventListener("click", () => {
+      smEditor.value = "";
+      smErrorEl.textContent = "";
+      localStorage.removeItem("luau_sourcemap");
+      smActive = false;
+      buildSmTree(null);
+      applySmLoaded(false);
+      if (workerReady) workerRequest({ type: "set_sourcemap", json: null }).catch(() => {});
+    });
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && smModal.classList.contains("open")) closeSmModal();
+    });
+
     // ── Share button ──
     document.getElementById("shareBtn").addEventListener("click", async function() {
       const state = {
@@ -1478,9 +1813,11 @@
         obj = m ? m[1] : name;
       }
 
-      // Hover col: position inside the function-name portion of the token
+      // Hover col: position inside the function-name portion of the token.
+      // Clamp to tok.end-1 so single-char names like "x" don't land past the token.
       const nameOffset = tok.string.lastIndexOf(name);
-      return { pos: { line: cur.line, ch: tok.start + nameOffset + 1 }, name, obj };
+      const hoverCh = Math.min(tok.start + nameOffset + 1, tok.end - 1);
+      return { pos: { line: cur.line, ch: hoverCh }, name, obj };
     }
 
     editor.on("keyup", function(cm, event) {
@@ -2065,7 +2402,7 @@
 
     // Record toggle
     const histRecordCheck = document.getElementById("histRecordCheck");
-    histRecordCheck.checked = localStorage.getItem("luau_hist_record") !== "0"; // default on
+    histRecordCheck.checked = localStorage.getItem("luau_hist_record") !== "1"; // default off
     histRecordCheck.addEventListener("change", () =>
       localStorage.setItem("luau_hist_record", histRecordCheck.checked ? "1" : "0"));
 
