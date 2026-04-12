@@ -409,6 +409,7 @@
       const tableGlobals = {};      // varName → string[]
       const tableGlobalSigs = {};   // varName → { memberName → sigLine }
       const classTypedGlobals = {}; // varName → className
+      const typeAliases = new Set(); // type aliases (not real globals)
       const funcGlobals = [];
 
       let curClass = null;
@@ -476,6 +477,7 @@
         const typeAliasM = line.match(/^type (\w+)\s*=\s*\{/);
         if (typeAliasM) {
           curTable = typeAliasM[1];
+          typeAliases.add(curTable);
           if (!tableGlobals[curTable]) tableGlobals[curTable] = [];
           if (/\}/.test(line.slice(line.indexOf('{') + 1))) curTable = null;
           continue;
@@ -503,8 +505,9 @@
         sigsOf[n]       = memoS[n];
       }
 
-      // Table globals
+      // Table globals (skip pure type aliases — they're not real globals)
       for (const [name, members] of Object.entries(tableGlobals)) {
+        if (typeAliases.has(name)) continue;
         globalMembers[name] = [...members].sort();
         sigsOf[name]        = tableGlobalSigs[name] || {};
       }
@@ -519,7 +522,7 @@
       allGlobals = [...new Set([
         ...allGlobals,
         ...Object.keys(classTypedGlobals),
-        ...Object.keys(tableGlobals),
+        ...Object.keys(tableGlobals).filter(n => !typeAliases.has(n)),
         ...funcGlobals,
       ])].sort();
 
