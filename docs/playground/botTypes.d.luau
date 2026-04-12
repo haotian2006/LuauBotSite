@@ -188,3 +188,17 @@ type ImageLib = {
     plotFunction: (func: (number) -> number, options: PlotOptions?) -> Image,
 }
 declare Image: ImageLib
+
+-- PacketSizeCounter library
+declare PacketSizeCounter: {
+    BaseRemoteOverhead: number,
+    RemoteFunctionOverhead: number,
+    ClientToServerOverhead: number,
+    TypeOverhead: number,
+    GetPacketSize: (counterData: {
+        RunContext: "Server" | "Client",
+        RemoteType: "RemoteEvent" | "RemoteFunction",
+        PacketData: { any },
+    }) -> number,
+    GetDataByteSize: (data: any) -> number,
+}

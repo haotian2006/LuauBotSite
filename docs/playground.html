@@ -148,10 +148,10 @@
     #shareBtn:hover { background: #30363d; }
 
     #status {
-      margin-left: auto;
       font-size: 12px;
       color: #6e7681;
       font-family: monospace;
+      white-space: nowrap;
     }
 
     /* ── Layout ── */
@@ -309,7 +309,8 @@
     @media (max-width: 600px) {
       #hist-popover-btn { display: none; }
       .toolbar-opts { flex-wrap: nowrap; overflow-x: auto; flex: 1; min-width: 0; }
-      .toolbar { flex-wrap: nowrap; }
+      .toolbar { flex-wrap: wrap; }
+      #status { width: 100%; padding: 1px 10px 3px; font-size: 11px; }
       #hist-bottom-tab {
         display: flex;
         align-items: center;
@@ -524,7 +525,7 @@
     <span class="toolbar-title">Playground</span>
     <button id="runBtn">&#9654; Run</button>
     <button id="stopBtn">&#9632; Stop</button>
-    <div class="toolbar-opts">
+    <div class="toolbar-opts" style="margin-left:auto">
       <label class="lint-toggle" title="Toggle type linter">
         <input type="checkbox" id="lintCheck" />
         <span>Linter</span>
@@ -1919,8 +1920,10 @@
       if (es) es.close();
       es = new EventSource(`${SERVER}/stream/${token}`);
 
+      let _serverNum = null;
       es.addEventListener("output", e => {
         const { content, serverNum } = JSON.parse(e.data);
+        _serverNum = serverNum;
         setStatus(`Server #${serverNum}`);
         setOutput(content);
         filesEl.innerHTML = "";
@@ -1931,11 +1934,12 @@
       });
       es.addEventListener("done", e => {
         const { runtime } = JSON.parse(e.data);
-        setStatus(`Done (${(+runtime).toFixed(4)}s)`);
+        const serverPart = _serverNum != null ? `Server #${_serverNum} · ` : "";
+        setStatus(`${serverPart}Done (${(+runtime).toFixed(4)}s)`);
         setRunning(false);
         es.close();
         currentToken = null;
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML); }
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML, _serverNum, +runtime); }
         _pendingCode = null;
       });
       es.addEventListener("error", e => {
@@ -1944,7 +1948,7 @@
         setRunning(false);
         es.close();
         currentToken = null;
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML); }
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML, _serverNum, null); }
         _pendingCode = null;
       });
     });
@@ -1981,7 +1985,9 @@
 
         const body = document.createElement("div");
         body.className = "hist-body";
-        body.innerHTML = `<div class="hist-label">${entry.label}</div><div class="hist-time">${histTime(entry.ts)}</div>`;
+        const serverTag = entry.serverNum != null ? ` · #${entry.serverNum}` : "";
+        const runtimeTag = entry.runtime != null ? ` · ${entry.runtime.toFixed(2)}s` : "";
+        body.innerHTML = `<div class="hist-label">${entry.label}</div><div class="hist-time">${histTime(entry.ts)}${serverTag}${runtimeTag}</div>`;
         body.addEventListener("click", () => loadHistoryEntry(entry));
 
         const del = document.createElement("button");
@@ -2016,9 +2022,9 @@
       setStatus("Loaded from history");
     }
 
-    function pushHistory(code, output, files) {
+    function pushHistory(code, output, files, serverNum, runtime) {
       const h = loadHistory();
-      h.unshift({ ts: Date.now(), label: histLabel(code), code, output, files });
+      h.unshift({ ts: Date.now(), label: histLabel(code), code, output, files, serverNum, runtime });
       if (h.length > HISTORY_MAX) h.length = HISTORY_MAX;
       saveHistory(h);
       renderHistory();
