@@ -1385,11 +1385,17 @@
     const badTokenTypes = new Set(["keyword", "operator", "punctuation", "bracket", "comment", "number"]);
 
     function getHoverToken(x, y) {
-      const pos   = editor.coordsChar({ left: x, top: y }, "window");
-      const token = editor.getTokenAt(pos);
-      if (!token || !token.string.trim() || !/^\w/.test(token.string)) return null;
-      if (token.type && badTokenTypes.has(token.type)) return null;
-      return { token, pos };
+      const pos = editor.coordsChar({ left: x, top: y }, "window");
+      // Try pos and pos+1 — coordsChar snaps to character boundaries so the
+      // left half of a token resolves to the position before it
+      for (const ch of [pos.ch, pos.ch + 1]) {
+        const p = { line: pos.line, ch };
+        const token = editor.getTokenAt(p);
+        if (!token || !token.string.trim() || !/^\w/.test(token.string)) continue;
+        if (token.type && badTokenTypes.has(token.type)) continue;
+        return { token, pos: p };
+      }
+      return null;
     }
 
     document.addEventListener("mousemove", e => {
@@ -1414,8 +1420,8 @@
       const { token, pos } = hit;
       const tokenKey = token.string + ":" + pos.line + ":" + token.start;
 
-      // Same token — keep current tip, don't restart WASM timer
-      if (hoverToken === tokenKey) return;
+      // Same token and tip already visible — nothing to do
+      if (hoverToken === tokenKey && hoverTip.style.display === "block") return;
       hoverToken = tokenKey;
       clearTimeout(hoverTimer);
 
@@ -1451,6 +1457,13 @@
     });
 
     document.addEventListener("mouseleave", () => {
+      clearTimeout(hoverTimer);
+      hoverToken = null;
+      hoverTip.style.display = "none";
+    });
+
+    // Reset hover state when window loses focus so re-entering always re-fires
+    window.addEventListener("blur", () => {
       clearTimeout(hoverTimer);
       hoverToken = null;
       hoverTip.style.display = "none";
