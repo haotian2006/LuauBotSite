@@ -1462,24 +1462,38 @@
           if (pairs.length === 0) { callback(null); return; }
 
           // Build CM5 hint objects — use render() to show detail as secondary text
-          const hintList = pairs.map(p => ({
-            text: p.text,
-            render(el) {
-              const name = document.createElement("span");
-              name.textContent = p.text;
-              el.appendChild(name);
-              if (p.detail && !p.detail.includes("*error-type*")) {
-                // Strip "(function) foo: " / "(method) foo: " LSP kind prefix if present
-                const sig = p.detail
-                  .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*[^:]+:\s*/, "")
-                  .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*/, "");
-                const det = document.createElement("span");
-                det.className = "cm-hint-detail";
-                det.textContent = sig.length > 48 ? sig.slice(0, 48) + "…" : sig;
-                el.appendChild(det);
+          const hintList = pairs.map(p => {
+            // Detect callable: detail contains "->" (function return type)
+            const isFunc = p.detail.includes("->") || p.detail.includes("-> ");
+            const obj = {
+              text: p.text,
+              render(el) {
+                const name = document.createElement("span");
+                name.textContent = p.text;
+                el.appendChild(name);
+                if (p.detail && !p.detail.includes("*error-type*")) {
+                  // Strip "(function) foo: " / "(method) foo: " LSP kind prefix if present
+                  const sig = p.detail
+                    .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*[^:]+:\s*/, "")
+                    .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*/, "");
+                  const det = document.createElement("span");
+                  det.className = "cm-hint-detail";
+                  det.textContent = sig.length > 48 ? sig.slice(0, 48) + "…" : sig;
+                  el.appendChild(det);
+                }
               }
+            };
+            // Auto-insert "()" with cursor placed inside for callable completions
+            if (isFunc) {
+              obj.hint = function(cm, data, completion) {
+                cm.replaceRange(p.text, data.from, data.to);
+                const cur = cm.getCursor();
+                cm.replaceRange("()", cur, cur);
+                cm.setCursor(CodeMirror.Pos(cur.line, cur.ch + 1));
+              };
             }
-          }));
+            return obj;
+          });
 
           callback({ list: hintList, from, to });
         })
@@ -1757,13 +1771,36 @@
       setTimeout(() => { this.innerHTML = "&#128279; Share"; }, 2000);
     });
 
-    // Auto-trigger autocomplete while typing
-    editor.on("keyup", function(cm, event) {
+    // Auto-trigger autocomplete and auto-close brackets/quotes on change.
+    // Using "change" (not "keyup") so mobile virtual keyboards work too.
+    const AUTO_CLOSE_MAP = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+    const CLOSE_BEFORE   = new Set([...')]}\'"`', ',', '.', ';', ':', ' ', '']);
+
+    editor.on("change", function(cm, change) {
+      if (change.origin !== "+input" && change.origin !== "*compose") return;
+      const inserted = change.text ? change.text.join("") : "";
+      if (!inserted) return;
+
+      // ── Auto-close brackets/quotes ──
+      // Only when a single open char was inserted (desktop autoCloseBrackets inserts
+      // the pair as one two-char change, so inserted.length > 1 there → we skip).
+      if (inserted.length === 1 && AUTO_CLOSE_MAP[inserted]) {
+        const closeChar = AUTO_CLOSE_MAP[inserted];
+        const cur       = cm.getCursor();
+        const nextChar  = cm.getLine(cur.line).charAt(cur.ch) || "";
+        // Close only when cursor is at end / before whitespace or punctuation,
+        // and the close char isn't already there (desktop autoClose guard).
+        if (nextChar !== closeChar && CLOSE_BEFORE.has(nextChar)) {
+          cm.replaceRange(closeChar, cur, cur, "+autoclosed");
+          cm.setCursor(cur); // leave cursor between the pair
+        }
+      }
+
+      // ── Auto-trigger autocomplete ──
       if (cm.state.completionActive) return;
-      if (event.ctrlKey || event.altKey || event.metaKey) return;
-      const isDot  = event.key === "." || event.key === ":";
-      const isWord = /^[a-zA-Z_]$/.test(event.key);
-      const isStr  = event.key === '"' || event.key === "'"; // trigger string enum completions
+      const isDot  = inserted === "." || inserted === ":";
+      const isWord = /^[a-zA-Z_]$/.test(inserted);
+      const isStr  = inserted === '"' || inserted === "'";
       if (!isDot && !isWord && !isStr) return;
       if (!staticReady) return;
       CodeMirror.showHint(cm, luauHint, { completeSingle: false });
