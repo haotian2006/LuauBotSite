@@ -24,15 +24,16 @@ self.onmessage = async (e) => {
         // Load definitions in background (synchronous WASM call, takes a few seconds)
         if (msg.definitions) {
           console.log('[lsp-worker] loading definitions (' + msg.definitions.length + ' chars)...');
-          const enc = new TextEncoder().encode(msg.definitions);
-          const ptr = mod._malloc(enc.length + 1);
-          const heap = new Uint8Array(mod.wasmMemory.buffer, ptr, enc.length + 1);
-          heap.set(enc);
-          heap[enc.length] = 0;
+          // stringToNewUTF8 heap-allocates — safe for large strings (avoids emulated stack overflow)
+          const ptr = mod.stringToNewUTF8(msg.definitions);
           mod._luau_set_definitions(ptr);
           mod._free(ptr);
           console.log('[lsp-worker] definitions ready');
           self.postMessage({ requestId: 0, type: 'definitions_ready' });
+        }
+
+        if (msg.solver !== undefined) {
+          mod._luau_set_solver(msg.solver);
         }
         break;
       }
@@ -48,6 +49,18 @@ self.onmessage = async (e) => {
         const raw = mod.ccall('luau_hover', 'string',
           ['string', 'number', 'number'], [msg.code, msg.line, msg.col]);
         self.postMessage({ requestId, type: 'hover', result: raw ? JSON.parse(raw) : null });
+        break;
+      }
+
+      case 'set_solver': {
+        if (mod) mod._luau_set_solver(msg.solver);
+        self.postMessage({ requestId, type: 'set_solver' });
+        break;
+      }
+
+      case 'diagnostics': {
+        const raw = mod.ccall('luau_get_diagnostics', 'string', ['string'], [msg.code]);
+        self.postMessage({ requestId, type: 'diagnostics', result: raw ? JSON.parse(raw) : [] });
         break;
       }
 

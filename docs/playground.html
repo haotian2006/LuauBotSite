@@ -10,6 +10,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/overlay.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
   <style>
     .CodeMirror-hints {
       background: #161b22 !important;
@@ -40,6 +43,34 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+    /* ── Lint gutter + underlines ── */
+    .CodeMirror-lint-markers { width: 16px; }
+    .CodeMirror-lint-marker-error,
+    .CodeMirror-lint-marker-warning {
+      width: 14px; height: 14px;
+      background-size: contain;
+    }
+    .CodeMirror-lint-mark-error {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 3 Q1.5 0 3 3 Q4.5 6 6 3' fill='none' stroke='%23f85149' stroke-width='1'/%3E%3C/svg%3E");
+      background-repeat: repeat-x;
+      background-position: bottom;
+      border-bottom: none;
+    }
+    .CodeMirror-lint-mark-warning {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 3 Q1.5 0 3 3 Q4.5 6 6 3' fill='none' stroke='%23e3b341' stroke-width='1'/%3E%3C/svg%3E");
+      background-repeat: repeat-x;
+      background-position: bottom;
+      border-bottom: none;
+    }
+    .CodeMirror-lint-tooltip {
+      background: #1c2128 !important;
+      border: 1px solid #30363d !important;
+      color: #c9d1d9 !important;
+      border-radius: 6px !important;
+      font: 12px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace !important;
+      padding: 5px 10px !important;
+      max-width: 480px !important;
     }
   </style>
   <style>
@@ -94,6 +125,20 @@
     #stopBtn:hover { background: #dc2626; }
     #sendBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
     #sendBtn:hover { background: #30363d; }
+
+    .lint-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: #8b949e;
+      cursor: pointer;
+      user-select: none;
+    }
+    .lint-toggle input { cursor: pointer; accent-color: #388bfd; }
+    .lint-toggle:hover { color: #c9d1d9; }
+    #shareBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 3px 10px; }
+    #shareBtn:hover { background: #30363d; }
 
     #status {
       margin-left: auto;
@@ -255,6 +300,23 @@
     #sig-help .sig-type { color: #79c0ff; }
     #sig-help .sig-detail { color: #8b949e; font-size: 11.5px; }
 
+    /* ── Hover type tooltip ── */
+    #hover-tip {
+      display: none;
+      position: fixed;
+      z-index: 60;
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font: 12px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      color: #79c0ff;
+      max-width: 480px;
+      white-space: pre-wrap;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+    }
+
     /* ── Lightbox ── */
     #lightbox {
       display: none; position: fixed; inset: 0;
@@ -275,6 +337,19 @@
     <span class="toolbar-title">Playground</span>
     <button id="runBtn">&#9654; Run</button>
     <button id="stopBtn">&#9632; Stop</button>
+    <label class="lint-toggle" title="Toggle type linter">
+      <input type="checkbox" id="lintCheck" />
+      <span>Linter</span>
+    </label>
+    <label class="lint-toggle" title="Use new type solver (more accurate but experimental)">
+      <input type="checkbox" id="solverCheck" />
+      <span>New Solver</span>
+    </label>
+    <label class="lint-toggle" title="Append TIMESTAMP flag">
+      <input type="checkbox" id="timestampCheck" />
+      <span>Timestamp</span>
+    </label>
+    <button id="shareBtn" title="Copy shareable link">&#128279; Share</button>
     <span id="status"></span>
   </div>
 
@@ -295,12 +370,14 @@
 
   <div id="lightbox"><img id="lightboxImg" /></div>
   <div id="sig-help"></div>
+  <div id="hover-tip"></div>
 
   <script>
     // ── Luau WASM Worker ──
     let luauWorker = null;
     let staticReady = false; // static maps parsed — enables Roblox/bot/stdlib completions
     let workerReady = false; // WASM worker ready — enables user-code type inference
+    let defsReady   = false; // WASM definitions loaded — enables Roblox diagnostics
     let pendingRequests = new Map();
     let reqId = 0;
 
@@ -319,11 +396,13 @@
     }
 
     // ── Roblox static type maps (parsed from globalTypes.d.luau) ──
-    let classMembers = {};  // className   → sorted string[]
-    let globalMembers = {}; // globalName  → sorted string[] (for "x." completions)
-    let allGlobals    = []; // all known Roblox global names (for top-level completion)
-    let sigsOf        = {}; // typeName    → { memberName → raw declaration string }
-    let globalTypeOf  = {}; // globalName  → class/table typeName (for sig lookup)
+    let classMembers      = {};  // className   → sorted string[]
+    let globalMembers     = {}; // globalName  → sorted string[] (for "x." completions)
+    let allGlobals        = []; // all known Roblox global names (for top-level completion)
+    let sigsOf            = {}; // typeName    → { memberName → raw declaration string }
+    let globalTypeOf      = {}; // globalName  → class/table typeName (for sig lookup)
+    let creatableInstances = []; // from --#METADATA# CREATABLE_INSTANCES
+    let serviceNames       = []; // from --#METADATA# SERVICES
 
     function parseGlobalTypes(src) {
       const rawClasses = {};        // className → { parent, members[], sigs{} }
@@ -355,7 +434,7 @@
 
         // ── Inside table global body ──
         if (curTable) {
-          if (trimmed === '}') { curTable = null; continue; }
+          if (trimmed.startsWith('}')) { curTable = null; continue; } // handles "} & {..." intersections
           const key = line.match(/^\s+(\w+)\s*:/);
           if (key) {
             tableGlobals[curTable].push(key[1]);
@@ -368,8 +447,10 @@
         // ── Top-level ──
         const classM = line.match(/^declare class (\w+)(?:\s+extends\s+(\w+))?/);
         if (classM) {
-          curClass = classM[1];
-          rawClasses[curClass] = { parent: classM[2] || null, members: [], sigs: {} };
+          const cName = classM[1], cParent = classM[2] || null;
+          rawClasses[cName] = { parent: cParent, members: [], sigs: {} };
+          // Inline single-line class: "declare class Foo extends Bar end" — no body to parse
+          if (!/\bend\s*$/.test(line)) curClass = cName;
           continue;
         }
 
@@ -387,6 +468,15 @@
         if (tgM) {
           curTable = tgM[1];
           tableGlobals[curTable] = [];
+          if (/\}/.test(line.slice(line.indexOf('{') + 1))) curTable = null;
+          continue;
+        }
+
+        // type ALIAS = { ... } — capture for class-typed global resolution (e.g. ENUM_LIST)
+        const typeAliasM = line.match(/^type (\w+)\s*=\s*\{/);
+        if (typeAliasM) {
+          curTable = typeAliasM[1];
+          if (!tableGlobals[curTable]) tableGlobals[curTable] = [];
           if (/\}/.test(line.slice(line.indexOf('{') + 1))) curTable = null;
           continue;
         }
@@ -419,9 +509,10 @@
         sigsOf[name]        = tableGlobalSigs[name] || {};
       }
 
-      // Class-typed globals
+      // Class-typed globals — resolve through classMembers or tableGlobals (e.g. declare Enum: ENUM_LIST)
       for (const [name, typeName] of Object.entries(classTypedGlobals)) {
-        if (classMembers[typeName]) globalMembers[name] = classMembers[typeName];
+        if (classMembers[typeName])       globalMembers[name] = classMembers[typeName];
+        else if (tableGlobals[typeName])  globalMembers[name] = [...new Set(tableGlobals[typeName])].sort();
         globalTypeOf[name] = typeName;
       }
 
@@ -552,6 +643,12 @@
         luauWorker.onmessage = (e) => {
           const { requestId, ...data } = e.data;
           if (data.type === "ready") { workerReady = true; return; }
+          if (data.type === "definitions_ready") {
+            // Definitions loaded — enable Roblox diagnostics and re-lint
+            defsReady = true;
+            if (typeof editor !== "undefined") editor.performLint();
+            return;
+          }
           const cb = pendingRequests.get(requestId);
           if (cb) { pendingRequests.delete(requestId); cb(data); }
         };
@@ -561,6 +658,16 @@
           fetch("playground/globalTypes.d.luau").then(r => r.text()),
           fetch("playground/botTypes.d.luau").then(r => r.text()).catch(() => ""),
         ]);
+
+        // Parse metadata (CREATABLE_INSTANCES, SERVICES) before stripping
+        const metaMatch = rawTypes.match(/^--#METADATA#(.+)/);
+        if (metaMatch) {
+          try {
+            const meta = JSON.parse(metaMatch[1].trim());
+            creatableInstances = (meta.CREATABLE_INSTANCES || []).sort();
+            serviceNames       = (meta.SERVICES || []).sort();
+          } catch {}
+        }
 
         // Strip metadata comment, parse static maps (fallback), send as definitions to WASM
         const stripped = rawTypes.replace(/^--#METADATA#[^\n]*\n?/, "");
@@ -581,7 +688,19 @@
         // Static maps are ready — enable completions immediately, before WASM loads
         staticReady = true;
 
-        luauWorker.postMessage({ type: "init", definitions: stripped + "\n" + botDefs, requestId: 0 });
+        const solverCheck = document.getElementById("solverCheck");
+        solverCheck.checked = localStorage.getItem("luau_solver") === "1";
+        solverCheck.addEventListener("change", () => {
+          localStorage.setItem("luau_solver", solverCheck.checked ? "1" : "0");
+          workerRequest({ type: "set_solver", solver: solverCheck.checked ? 1 : 0 });
+        });
+
+        luauWorker.postMessage({
+          type: "init",
+          definitions: stripped + "\n" + botDefs,
+          solver: solverCheck.checked ? 1 : 0,
+          requestId: 0,
+        });
       } catch(e) { console.warn("Luau WASM unavailable:", e); }
     })();
 
@@ -592,6 +711,52 @@
       const token    = cm.getTokenAt(cur);
       const line     = cm.getLine(cur.line);
       const charPrev = line.charAt(cur.ch - 1);
+
+      // ── String enum completions: Instance.new("Part") / GetService("Workspace") ──
+      if (token.type === "string" || (token.type && token.type.startsWith("string"))) {
+        const lineText = line.slice(0, cur.ch);
+        // Partial text typed so far inside the string (strip opening quote)
+        const raw     = token.string.slice(0, cur.ch - token.start);
+        const partial = raw.replace(/^["']/, "");
+        const fromPos = CodeMirror.Pos(cur.line, token.start + 1); // after the opening quote
+        const toPos   = CodeMirror.Pos(cur.line, cur.ch);
+
+        if (/Instance\.new\s*\(\s*["']\w*$/.test(lineText) && creatableInstances.length > 0) {
+          const names = partial
+            ? creatableInstances.filter(n => n.toLowerCase().startsWith(partial.toLowerCase()))
+            : creatableInstances;
+          if (names.length > 0) { callback({ list: names, from: fromPos, to: toPos }); return; }
+        }
+
+        if (/[:\.]GetService\s*\(\s*["']\w*$/.test(lineText) && serviceNames.length > 0) {
+          const names = partial
+            ? serviceNames.filter(n => n.toLowerCase().startsWith(partial.toLowerCase()))
+            : serviceNames;
+          if (names.length > 0) { callback({ list: names, from: fromPos, to: toPos }); return; }
+        }
+
+        // Fall through to WASM — it knows union/literal types from context (e.g. a: "A"|"B")
+        if (!workerReady) { callback(null); return; }
+        workerRequest({ type: "autocomplete", code: cm.getValue(), line: cur.line, col: cur.ch })
+          .then(data => {
+            const raw = data.result;
+            // WASM returns items with kind=12 (Value) for string literal completions
+            const allItems = raw?.items ?? (Array.isArray(raw) ? raw : []);
+            const strItems = allItems.filter(p => p.kind === 12 || typeof p === "string");
+            if (strItems.length === 0) { callback(null); return; }
+            const list = strItems.map(p => {
+              const label = typeof p === "string" ? p : (p.label ?? "");
+              if (!label) return null;
+              if (partial && !label.toLowerCase().startsWith(partial.toLowerCase())) return null;
+              return { text: label, displayText: label };
+            }).filter(Boolean);
+            if (list.length === 0) { callback(null); return; }
+            callback({ list, from: fromPos, to: toPos });
+          })
+          .catch(() => callback(null));
+        return;
+      }
+
       const isDot    = charPrev === "." || charPrev === ":";
       const tokenStr   = token.string.slice(0, cur.ch - token.start);
       const sepIdx     = Math.max(tokenStr.lastIndexOf("."), tokenStr.lastIndexOf(":"));
@@ -599,6 +764,30 @@
       const word = isDot ? "" : hasSepInToken ? tokenStr.slice(sepIdx + 1) : tokenStr;
       const from = CodeMirror.Pos(cur.line, isDot ? cur.ch : hasSepInToken ? token.start + sepIdx + 1 : token.start);
       const to   = CodeMirror.Pos(cur.line, cur.ch);
+
+      // ── Type annotation context: "local x: Rep..." or "local x:" ──
+      // Detect "local varName :" pattern on this line (not a method call)
+      {
+        // Case A: cursor right after ":" in "local x:" (isDot, charPrev===':')
+        const beforeColon = charPrev === ':' ? line.slice(0, cur.ch - 1) : null;
+        const isAnnotColon = beforeColon !== null && /\blocal\s+\w+\s*$/.test(beforeColon);
+
+        // Case B: cursor mid-type-name "local x:Rep" (not isDot, no sep in token)
+        const isAnnotWord = !isDot && !hasSepInToken && word.length > 0
+          && /\blocal\s+\w+\s*:\s*\w+$/.test(line.slice(0, cur.ch));
+
+        if (isAnnotColon || isAnnotWord) {
+          // Primitives first, then class names
+          const PRIMITIVES = ["any","boolean","buffer","never","nil","number","string","thread","unknown","void"];
+          const classNames = Object.keys(classMembers);
+          let typeNames = [...PRIMITIVES, ...classNames.filter(n => !PRIMITIVES.includes(n))];
+          if (word) typeNames = typeNames.filter(t => t.toLowerCase().startsWith(word.toLowerCase()));
+          if (typeNames.length > 0) {
+            callback({ list: typeNames.map(n => ({ text: n })), from, to });
+            return;
+          }
+        }
+      }
 
       // ── Roblox member access: game. / workspace. / game:GetService / etc. ──
       let robloxTarget = null;
@@ -613,78 +802,123 @@
         const m = lineBeforeToken.match(/(\w+)\s*[.:]\s*$/);
         robloxTarget = m ? m[1] : null;
       }
+      // Detect whether access was via ":" (method-call) or "." (property/method)
+      const isColonAccess = (() => {
+        if (isDot) return charPrev === ":";
+        if (hasSepInToken) return tokenStr[sepIdx] === ":";
+        return /\w\s*:\s*$/.test(line.slice(0, token.start)); // separate tokens: "x:Foo"
+      })();
+
       if (robloxTarget) {
+        let memberList       = null;
+        let resolvedTypeName = null;
+
         // 1. Known Roblox global (game, workspace, Instance, etc.)
-        let memberList = globalMembers[robloxTarget] || null;
+        if (globalMembers[robloxTarget]) {
+          memberList       = globalMembers[robloxTarget];
+          resolvedTypeName = globalTypeOf[robloxTarget] || robloxTarget;
+        }
+
+        const code = cm.getValue();
 
         // 2. Local variable typed via Instance.new("ClassName")
         if (!memberList) {
-          const code = cm.getValue();
           const localRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
           for (const m of code.matchAll(localRe)) {
             if (m[1] === robloxTarget && classMembers[m[2]]) {
-              memberList = classMembers[m[2]];
-              break;
+              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
             }
           }
         }
 
-        // 3. Local variable with type annotation: local x: Ray  or  local x: Ray = ...
+        // 3. Local variable with type annotation: local x: BasePart
         if (!memberList) {
-          const code = cm.getValue();
           const annotRe = /\blocal\s+(\w+)\s*:\s*(\w+)/g;
           for (const m of code.matchAll(annotRe)) {
             if (m[1] === robloxTarget && classMembers[m[2]]) {
-              memberList = classMembers[m[2]];
-              break;
+              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
             }
           }
         }
 
         // 4. Local variable assigned from a known global: local x = game
         if (!memberList) {
-          const code = cm.getValue();
           const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
           for (const m of code.matchAll(assignRe)) {
             if (m[1] === robloxTarget && globalMembers[m[2]]) {
-              memberList = globalMembers[m[2]];
-              break;
+              memberList = globalMembers[m[2]]; resolvedTypeName = globalTypeOf[m[2]] || m[2]; break;
             }
           }
         }
 
         // 5. Local variable from ClassName.method(...): local img = Image.new(...) / Image.fromPng(...)
         if (!memberList) {
-          const code = cm.getValue();
           const newRe = /\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g;
           for (const m of code.matchAll(newRe)) {
             if (m[1] === robloxTarget && classMembers[m[2]]) {
-              memberList = classMembers[m[2]];
-              break;
+              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
+            }
+          }
+        }
+
+        // 6. local a = game:GetService("HttpService") / obj:Method("ClassName") returning a typed value
+        if (!memberList) {
+          const svcRe = /\blocal\s+(\w+)\s*=\s*\w+:\w+\s*\(\s*["'](\w+)["']\s*\)/g;
+          for (const m of code.matchAll(svcRe)) {
+            if (m[1] === robloxTarget && classMembers[m[2]]) {
+              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
             }
           }
         }
 
         if (memberList) {
           let names = memberList;
+          // ":" syntax → only methods (functions), not properties
+          if (isColonAccess && resolvedTypeName) {
+            const sigs = sigsOf[resolvedTypeName] || {};
+            names = names.filter(n => (sigs[n] || "").startsWith("function "));
+          }
           if (word) names = names.filter(n => n.toLowerCase().startsWith(word.toLowerCase()));
-          if (names.length > 0) { callback({ list: names, from, to }); return; }
+          if (names.length > 0) {
+            const typeSigs = resolvedTypeName ? (sigsOf[resolvedTypeName] || {}) : {};
+            const list = names.map(n => {
+              const sig = typeSigs[n] || "";
+              // Functions get "()" auto-appended with cursor placed inside
+              const isFunc = sig.startsWith("function ") || sig.startsWith("(");
+              if (!isFunc) return n;
+              return {
+                text: n,
+                hint(cm, data, completion) {
+                  cm.replaceRange(n, data.from, data.to);
+                  const cur = cm.getCursor();
+                  cm.replaceRange("()", cur, cur);
+                  cm.setCursor(CodeMirror.Pos(cur.line, cur.ch + 1));
+                },
+              };
+            });
+            callback({ list, from, to });
+            return;
+          }
         }
         // No Roblox match — fall through to WASM
       }
+
+      // Whether we identified a member-access target (even if static maps had no match)
+      // Used below to suppress merging top-level globals into WASM member completions
+      const hadMemberTarget = robloxTarget !== null || isColonAccess || isDot || hasSepInToken;
 
       // ── WASM completion (user-defined variable type inference) ──
       // Skip WASM round-trip entirely if worker isn't ready yet — static maps handle everything else
       if (!workerReady) {
         // Top-level: serve all known globals from static maps only
-        if (!isDot && !hasSepInToken) {
-          let pairs = allGlobals
+        if (!hadMemberTarget) {
+          const pairs = allGlobals
             .filter(g => !word || g.toLowerCase().startsWith(word.toLowerCase()))
-            .map(g => ({ text: g, detail: "" }));
+            .map(g => ({ text: g }));
           if (pairs.length === 0) { callback(null); return; }
-          callback({ list: pairs.map(p => ({ text: p.text })), from, to });
+          callback({ list: pairs, from, to });
         } else {
-          callback(null);
+          callback(null); // member access but WASM not ready — no completions yet
         }
         return;
       }
@@ -707,11 +941,42 @@
             pairs = Object.keys(raw.entries ?? raw).map(k => ({ text: k, detail: "" }));
           }
 
-          // For top-level, merge in all known Roblox globals (no detail for static entries)
-          if (!isDot && !hasSepInToken) {
+          // For top-level (not member access), merge in all known Roblox globals
+          if (!hadMemberTarget) {
             const existing = new Set(pairs.map(p => p.text));
             for (const g of allGlobals) {
               if (!existing.has(g)) pairs.push({ text: g, detail: "" });
+            }
+
+            // Enrich local variables: replace *error-type* / empty detail with our resolved type
+            const code = cm.getValue();
+            const localTypeMap = new Map();
+            const patterns = [
+              // Instance.new("ClassName")
+              [/\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
+              // Type annotation: local x: Type
+              [/\blocal\s+(\w+)\s*:\s*(\w+)/g, (m) => classMembers[m[2]] ? m[2] : null],
+              // Assigned from global: local x = game
+              [/\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm, (m) => globalMembers[m[2]] ? (globalTypeOf[m[2]] || m[2]) : null],
+              // Constructor call: local x = ClassName.method(...)
+              [/\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g, (m) => classMembers[m[2]] ? m[2] : null],
+              // Colon call with string arg: local x = game:GetService("Svc")
+              [/\blocal\s+(\w+)\s*=\s*\w+:\w+\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
+            ];
+            for (const [re, resolve] of patterns) {
+              for (const m of code.matchAll(re)) {
+                if (!localTypeMap.has(m[1])) {
+                  const t = resolve(m);
+                  if (t) localTypeMap.set(m[1], t);
+                }
+              }
+            }
+            for (const p of pairs) {
+              if (localTypeMap.has(p.text)) {
+                // Replace if WASM detail is absent, an error, or a generic type variable like 'a/'T
+                const unresolved = !p.detail || p.detail.includes("*error-type*") || /^'[a-zA-Z]/.test(p.detail);
+                if (unresolved) p.detail = localTypeMap.get(p.text);
+              }
             }
           }
 
@@ -744,6 +1009,31 @@
     luauHint.async = true;
     CodeMirror.registerHelper("hint", "luau", luauHint);
 
+    // ── Async lint helper (uses luau_get_diagnostics from WASM) ──
+    function luauLint(code, callback) {
+      if (!defsReady) { callback([]); return; }  // wait for Roblox defs, avoids false "Unknown global" errors
+      workerRequest({ type: "diagnostics", code })
+        .then(data => {
+          const diags = (data.result || [])
+            .filter(d => {
+              const unknownType   = d.message.match(/Unknown type '(\w+)'/);
+              if (unknownType   && (classMembers[unknownType[1]]   || globalMembers[unknownType[1]]))   return false;
+              const unknownGlobal = d.message.match(/Unknown global '(\w+)'/);
+              if (unknownGlobal && allGlobals.includes(unknownGlobal[1])) return false;
+              return true;
+            })
+            .map(d => ({
+              from:     CodeMirror.Pos(d.range.start.line, d.range.start.character),
+              to:       CodeMirror.Pos(d.range.end.line,   d.range.end.character),
+              message:  d.message,
+              severity: d.severity === 1 ? "error" : d.severity === 2 ? "warning" : "info",
+            }));
+          callback(diags);
+        })
+        .catch(() => callback([]));
+    }
+    CodeMirror.registerHelper("lint", "luau", luauLint);
+
     // ── Luau = Lua + extra keywords overlay ──
     CodeMirror.defineMode("luau", function(config) {
       const lua = CodeMirror.getMode(config, "lua");
@@ -761,24 +1051,146 @@
       mode: "luau",
       theme: "dracula",
       lineNumbers: true,
+      firstLineNumber: 1,
       indentUnit: 2,
       tabSize: 2,
       indentWithTabs: false,
       smartIndent: true,
       autofocus: true,
+      gutters: ["CodeMirror-lint-markers", "CodeMirror-linenumbers"],
+      lint: false,
+      autoCloseBrackets: {
+        pairs:       '()[]{}\'\'""``',
+        closeBefore: ')]}\'"`',
+        triples:     '',
+        explode:     '[]{}()',
+      },
       extraKeys: {
         Tab: cm => cm.execCommand("insertSoftTab"),
         "Ctrl-Space": cm => CodeMirror.showHint(cm, luauHint, { completeSingle: false }),
+        "Enter": cm => {
+          // Auto-close Luau blocks: "do", "then", "function ... )" → insert end
+          const cur     = cm.getCursor();
+          const line    = cm.getLine(cur.line);
+          const typed   = line.slice(0, cur.ch).trimEnd();
+          const indent  = line.match(/^\s*/)[0];
+          const inner   = indent + "  ";
+
+          const opensBlock =
+            /\bdo\s*$/.test(typed) ||
+            /\bthen\s*$/.test(typed) ||
+            /\bfunction\b[^)]*\)\s*$/.test(typed);
+
+          if (opensBlock) {
+            cm.replaceRange("\n" + inner + "\n" + indent + "end", CodeMirror.Pos(cur.line, cur.ch));
+            cm.setCursor(CodeMirror.Pos(cur.line + 1, inner.length));
+            return;
+          }
+          return CodeMirror.Pass; // default newline + smart indent
+        },
       },
+    });
+
+    // ── Linter toggle (persisted) ──
+    const lintCheck = document.getElementById("lintCheck");
+    const LINT_CFG  = { async: true, getAnnotations: luauLint, delay: 600 };
+    lintCheck.checked = localStorage.getItem("luau_linter") === "1";
+    if (lintCheck.checked) {
+      editor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers"]);
+      editor.setOption("lint", LINT_CFG);
+    }
+    lintCheck.addEventListener("change", () => {
+      localStorage.setItem("luau_linter", lintCheck.checked ? "1" : "0");
+      if (lintCheck.checked) {
+        editor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers"]);
+        editor.setOption("lint", LINT_CFG);
+      } else {
+        editor.setOption("lint", false);
+        editor.setOption("gutters", ["CodeMirror-linenumbers"]);
+        editor.clearGutter("CodeMirror-lint-markers");
+      }
+    });
+
+    // ── Share link: compress+base64url encode/decode ──
+    async function compressToB64(obj) {
+      const bytes = new TextEncoder().encode(JSON.stringify(obj));
+      const cs = new CompressionStream("deflate-raw");
+      const writer = cs.writable.getWriter();
+      writer.write(bytes); writer.close();
+      const chunks = []; const reader = cs.readable.getReader();
+      for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+      const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+      let off = 0; for (const c of chunks) { out.set(c, off); off += c.length; }
+      let s = ""; for (let i = 0; i < out.length; i++) s += String.fromCharCode(out[i]);
+      return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    }
+    async function decompressFromB64(b64url) {
+      const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(bytes); writer.close();
+      const chunks = []; const reader = ds.readable.getReader();
+      for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+      const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+      let off = 0; for (const c of chunks) { out.set(c, off); off += c.length; }
+      return JSON.parse(new TextDecoder().decode(out));
+    }
+
+    // ── Persist editor code ──
+    const savedCode = localStorage.getItem("luau_code");
+    if (savedCode) editor.setValue(savedCode);
+
+    // ── Load from URL hash if present (overrides localStorage) ──
+    // When embedded in an iframe the hash lives on the parent page
+    let urlHash = location.hash.slice(1);
+    try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch {}
+    if (urlHash) {
+      decompressFromB64(urlHash).then(state => {
+        if (typeof state.c === "string") editor.setValue(state.c);
+        if (state.l !== undefined) {
+          lintCheck.checked = !!state.l;
+          lintCheck.dispatchEvent(new Event("change"));
+        }
+        if (state.s !== undefined) localStorage.setItem("luau_solver", state.s ? "1" : "0");
+        try {
+          const target = (window.parent !== window) ? window.parent.history : history;
+          target.replaceState(null, "", location.pathname.replace(/playground\.html$/, "playground/"));
+        } catch {}
+      }).catch(() => { /* invalid hash */ });
+    }
+    let saveTimer = null;
+    editor.on("change", () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => localStorage.setItem("luau_code", editor.getValue()), 1000);
+    });
+
+    // ── Share button ──
+    document.getElementById("shareBtn").addEventListener("click", async function() {
+      const state = {
+        c: editor.getValue(),
+        l: lintCheck.checked ? 1 : 0,
+        s: document.getElementById("solverCheck")?.checked ? 1 : 0,
+      };
+      const encoded = await compressToB64(state);
+      // If loaded inside an iframe, build URL from the parent page instead
+      const base = (window.parent !== window && document.referrer)
+        ? new URL(document.referrer).origin + new URL(document.referrer).pathname
+        : location.origin + location.pathname.replace(/playground\.html$/, "playground/");
+      const url = base.replace(/\/$/, "") + "/#" + encoded;
+      await navigator.clipboard.writeText(url);
+      this.textContent = "Copied!";
+      setTimeout(() => { this.innerHTML = "&#128279; Share"; }, 2000);
     });
 
     // Auto-trigger autocomplete while typing
     editor.on("keyup", function(cm, event) {
       if (cm.state.completionActive) return;
       if (event.ctrlKey || event.altKey || event.metaKey) return;
-      const isDot = event.key === "." || event.key === ":";
+      const isDot  = event.key === "." || event.key === ":";
       const isWord = /^[a-zA-Z_]$/.test(event.key);
-      if (!isDot && !isWord) return;
+      const isStr  = event.key === '"' || event.key === "'"; // trigger string enum completions
+      if (!isDot && !isWord && !isStr) return;
       if (!staticReady) return;
       CodeMirror.showHint(cm, luauHint, { completeSingle: false });
     });
@@ -789,7 +1201,8 @@
     function hideSig() { sigHelp.style.display = "none"; }
 
     function showSigAt(content, cm) {
-      const cur    = cm.getCursor();
+      // Don't overlap the autocomplete dropdown
+      if (cm.state.completionActive) return;
       const coords = cm.cursorCoords(true, "page");
       sigHelp.innerHTML = content;
       sigHelp.style.display = "block";
@@ -848,18 +1261,53 @@
       if (!info) { hideSig(); return; }
 
       // ── Static Roblox signature lookup ──
-      // Resolve obj: may be a direct global, or a local assigned from a global
-      let sigObj = info.obj;
-      if (sigObj && !globalMembers[sigObj]) {
-        const code = cm.getValue();
-        const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
-        for (const m of code.matchAll(assignRe)) {
-          if (m[1] === sigObj && globalMembers[m[2]]) { sigObj = m[2]; break; }
+      // Resolve info.obj to a type name using the same 5-case logic as autocomplete
+      const sigObj = info.obj;
+      let resolvedSigType = null;
+
+      if (sigObj) {
+        // 1. Direct global
+        if (globalMembers[sigObj]) {
+          resolvedSigType = globalTypeOf[sigObj] || sigObj;
+        }
+
+        if (!resolvedSigType) {
+          const code = cm.getValue();
+
+          // 2. Instance.new("ClassName")
+          const newRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
+          for (const m of code.matchAll(newRe)) {
+            if (m[1] === sigObj && classMembers[m[2]]) { resolvedSigType = m[2]; break; }
+          }
+
+          // 3. Type annotation: local x: BasePart
+          if (!resolvedSigType) {
+            const annotRe = /\blocal\s+(\w+)\s*:\s*(\w+)/g;
+            for (const m of code.matchAll(annotRe)) {
+              if (m[1] === sigObj && classMembers[m[2]]) { resolvedSigType = m[2]; break; }
+            }
+          }
+
+          // 4. Assigned from global: local x = game
+          if (!resolvedSigType) {
+            const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
+            for (const m of code.matchAll(assignRe)) {
+              if (m[1] === sigObj && globalMembers[m[2]]) { resolvedSigType = globalTypeOf[m[2]] || m[2]; break; }
+            }
+          }
+
+          // 5. Constructor call: local img = Image.new(...)
+          if (!resolvedSigType) {
+            const ctorRe = /\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g;
+            for (const m of code.matchAll(ctorRe)) {
+              if (m[1] === sigObj && classMembers[m[2]]) { resolvedSigType = m[2]; break; }
+            }
+          }
         }
       }
-      if (sigObj && info.name && globalMembers[sigObj]) {
-        const typeName = globalTypeOf[sigObj] || sigObj;
-        const sig = (sigsOf[typeName] || {})[info.name];
+
+      if (resolvedSigType && info.name) {
+        const sig = (sigsOf[resolvedSigType] || {})[info.name];
         if (sig) {
           showSigAt(`<span class="sig-type">${escHtml(sig)}</span>`, cm);
           return;
@@ -870,9 +1318,9 @@
       workerRequest({ type: "hover", code: cm.getValue(), line: info.pos.line, col: info.pos.ch })
         .then(data => {
           const r   = data.result;
-          const raw = (r?.contents?.value ?? r?.content ?? r?.markdown ?? "")
+          const raw = (r?.contents?.value ?? r?.content ?? r?.markdown ?? r?.type ?? "")
             .replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
-          if (!raw || raw.includes("*error-type*")) { hideSig(); return; }
+          if (!raw) { hideSig(); return; }
           let display = raw;
           if (info.name) {
             const memberRe = new RegExp(
@@ -893,8 +1341,120 @@
       return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
 
-    // Hide sig help when editor loses focus or code runs
+    // Hide sig help when editor loses focus, code runs, or autocomplete opens
     editor.on("blur", hideSig);
+    editor.on("startCompletion", hideSig);
+    editor.on("endCompletion", () => {
+      // Re-trigger sig-help after completion closes (cursor may still be inside a call)
+      editor.getOption("extraKeys")?.["("]?.(editor);
+    });
+
+    // ── Hover type tooltip ──
+    const hoverTip = document.getElementById("hover-tip");
+    let hoverTimer  = null;
+
+    function resolveHoverType(tokenStr, code) {
+      // Check static maps first (instant, no WASM round-trip)
+      if (globalMembers[tokenStr]) return globalTypeOf[tokenStr] || tokenStr;
+      if (classMembers[tokenStr]) return tokenStr;
+      // Resolve locals via same 5-case chain
+      const newRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
+      for (const m of code.matchAll(newRe)) {
+        if (m[1] === tokenStr && classMembers[m[2]]) return m[2];
+      }
+      const annotRe = /\blocal\s+(\w+)\s*:\s*(\w+)/g;
+      for (const m of code.matchAll(annotRe)) {
+        if (m[1] === tokenStr && classMembers[m[2]]) return m[2];
+      }
+      const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
+      for (const m of code.matchAll(assignRe)) {
+        if (m[1] === tokenStr && globalMembers[m[2]]) return globalTypeOf[m[2]] || m[2];
+      }
+      const ctorRe = /\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g;
+      for (const m of code.matchAll(ctorRe)) {
+        if (m[1] === tokenStr && classMembers[m[2]]) return m[2];
+      }
+      return null;
+    }
+
+    let hoverToken = null;
+
+    const editorWrapper = editor.getWrapperElement();
+    let lastMouseX = 0, lastMouseY = 0;
+
+    const badTokenTypes = new Set(["keyword", "operator", "punctuation", "bracket", "comment", "number"]);
+
+    function getHoverToken(x, y) {
+      const pos   = editor.coordsChar({ left: x, top: y }, "window");
+      const token = editor.getTokenAt(pos);
+      if (!token || !token.string.trim() || !/^\w/.test(token.string)) return null;
+      if (token.type && badTokenTypes.has(token.type)) return null;
+      return { token, pos };
+    }
+
+    document.addEventListener("mousemove", e => {
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+
+      if (!editorWrapper.contains(e.target)) {
+        hoverTip.style.display = "none";
+        clearTimeout(hoverTimer);
+        hoverToken = null;
+        return;
+      }
+
+      const hit = getHoverToken(e.clientX, e.clientY);
+      if (!hit) {
+        hoverTip.style.display = "none";
+        clearTimeout(hoverTimer);
+        hoverToken = null;
+        return;
+      }
+
+      const { token, pos } = hit;
+      const tokenKey = token.string + ":" + pos.line + ":" + token.start;
+
+      // Same token — keep current tip, don't restart WASM timer
+      if (hoverToken === tokenKey) return;
+      hoverToken = tokenKey;
+      clearTimeout(hoverTimer);
+
+      const code = editor.getValue();
+
+      function showTip(text) {
+        if (hoverToken !== tokenKey) return;
+        hoverTip.textContent = text;
+        hoverTip.style.display = "block";
+        hoverTip.style.left = (lastMouseX + 14) + "px";
+        hoverTip.style.top  = (lastMouseY + 14) + "px";
+      }
+
+      // Show static type instantly (synchronous — no delay)
+      const staticType = resolveHoverType(token.string, code);
+      if (staticType) showTip(staticType);
+      else hoverTip.style.display = "none";
+
+      // WASM hover after short delay (richer type info)
+      if (!workerReady) return;
+      hoverTimer = setTimeout(async () => {
+        try {
+          const midCol = Math.floor((token.start + token.end) / 2);
+          const data = await workerRequest({ type: "hover", code, line: pos.line, col: midCol });
+          if (hoverToken !== tokenKey) return;
+          const r   = data.result;
+          const raw = (r?.contents?.value ?? r?.content ?? r?.markdown ?? r?.type ?? "")
+            .replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
+          if (raw) showTip(token.string + ": " + raw);
+          else if (!staticType) hoverTip.style.display = "none";
+        } catch { /* silent */ }
+      }, 300);
+    });
+
+    document.addEventListener("mouseleave", () => {
+      clearTimeout(hoverTimer);
+      hoverToken = null;
+      hoverTip.style.display = "none";
+    });
 
     // ── App ──
     const SERVER   = "https://luau.testdemo.win";
@@ -935,6 +1495,15 @@
       for (const f of fileInput.files) queuedFiles.push({ file: f });
       renderFileQueue();
       fileInput.value = "";
+    });
+
+    // Ctrl+V on inputBox: paste clipboard files as attachments (images, etc.)
+    inputBox.addEventListener("paste", e => {
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (files.length === 0) return; // no files — let normal text paste through
+      e.preventDefault();
+      for (const f of files) queuedFiles.push({ file: f });
+      renderFileQueue();
     });
 
     // Drag-and-drop onto the input row
@@ -1043,9 +1612,26 @@
       filesEl.appendChild(container);
     }
 
+    const timestampCheck = document.getElementById("timestampCheck");
+    timestampCheck.checked = localStorage.getItem("luau_timestamp") === "1";
+    timestampCheck.addEventListener("change", () =>
+      localStorage.setItem("luau_timestamp", timestampCheck.checked ? "1" : "0"));
+
+    function injectFlags(code) {
+      if (!timestampCheck.checked) return code;
+      // Skip past leading hot-comment flags (--!strict, --!optimize, --!native, --!nolint)
+      const lines = code.split("\n");
+      let i = 0;
+      while (i < lines.length && /^\s*--!/.test(lines[i])) i++;
+      if (i < lines.length) lines[i] = 'setenvkey("TIMESTAMP",true);' + lines[i];
+      else lines.push('setenvkey("TIMESTAMP",true)');
+      return lines.join("\n");
+    }
+
     runBtn.addEventListener("click", async () => {
-      const code = editor.getValue().trim();
-      if (!code) return;
+      const raw = editor.getValue();
+      if (!raw.trim()) return;
+      const code = injectFlags(raw);
 
       outputEl.innerHTML = "";
       filesEl.innerHTML  = "";
@@ -1059,8 +1645,17 @@
       });
 
       if (!res.ok) {
-        setStatus("Error: " + (await res.text()));
-        setRunning(false);
+        if (res.status === 429) {
+          setStatus("Rate limited — max 30 runs/min");
+          setRunning(false);
+          runBtn.disabled = true;
+          setTimeout(() => { runBtn.disabled = false; }, 5000);
+        } else {
+          let msg;
+          try { msg = (await res.json()).error; } catch { msg = await res.text(); }
+          setStatus("Error: " + msg);
+          setRunning(false);
+        }
         return;
       }
 

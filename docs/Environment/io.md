@@ -54,8 +54,9 @@ Supported file types:
   "webm"
 ```
 
-### `readfile(): (string,string)`
-returns the currently loaded file's content and file type
+### `readfile(file:string): (string,string)`
+reads a loaded file with write file and returns the content and the file type. If the file does not exist or is not loaded then it will return nil.
+
 
 ### `getoutput(): string`
 returns the current output log as a string

@@ -94,6 +94,7 @@ declare function colorstring(text: string, color: string): string
 declare function println(message: string, line: number?): number
 declare function log(text: string, color: string, newLine: boolean?): ()
 declare function bench(funcs: BenchFuncs | BenchFuncsWithParams, printMode: number?, iterations: number?, delayEveryXIter: number?): BenchResults
+declare function ask(prompt: string, contextId: string?): string
 
 -- Extended table library
 declare etable: {
@@ -165,8 +166,8 @@ declare io: {
     followupnext: () -> (),
     write: (...any) -> (),
     read: () -> string,
-    writefile: (content: string, filename: string) -> boolean,
-    readfile: () -> (string, string),
+    writefile: (content: string | buffer, filename: string) -> boolean,
+    readfile: (file: string) -> (string, string),
     getoutput: () -> string,
     clearoutput: () -> (),
 }
@@ -179,10 +180,11 @@ declare misc: {
 }
 
 -- Image library (constructor + utilities)
-declare Image: {
+type ImageLib = {
     new: (size: Vector2) -> Image,
     fromPng: (pngData: string) -> Image,
     toPng: (image: Image, outputLogs: boolean?) -> string,
     toGif: (frames: { Image }, frameDelays: { number }, options: GifOptions?, outputLogs: boolean?) -> string,
     plotFunction: (func: (number) -> number, options: PlotOptions?) -> Image,
 }
+declare Image: ImageLib
