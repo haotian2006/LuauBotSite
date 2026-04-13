@@ -5,28 +5,14 @@ theme:
   logo: images/favicon.png
   custom_dir: overrides
   palette:
-    scheme: slate
-    # Default: dark mode (no media, always applies first)
-    # - scheme: slate
-    #   toggle:
-    #     icon: material/brightness-4
-    #     name: Switch to light mode
-
-    # # Light mode (optional)
-    # - media: "(prefers-color-scheme: light)"
-    #   scheme: default
-    #   toggle:
-    #     icon: material/brightness-7
-    #     name: Switch to dark mode
-
-    # # System preference (optional)
-    # - media: "(prefers-color-scheme)"
-    #   toggle:
-    #     icon: material/brightness-auto
-    #     name: Switch to dark mode
-
-    # System preference (auto)
-
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
 
 extra:
   generator: false
@@ -34,19 +20,17 @@ nav:
   - Home: index.md
   - Commands: Commands.md
   - Environment:
-    - Overview: Environment/index.md
-    - etable: Environment/etable.md
-    - io: Environment/io.md
-    - misc: Environment/misc.md
-    - Image: Environment/Image.md
+      - Overview: Environment/index.md
+      - etable: Environment/etable.md
+      - io: Environment/io.md
+      - misc: Environment/misc.md
+      - Image: Environment/Image.md
   - Playground: playground.md
   - Tos: TOS.md
   - Privacy Policy: PrivacyPolicy.md
   - Changes: Changes.md
 
-
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
-  

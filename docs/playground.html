@@ -18,6 +18,22 @@
        WASM is loaded by the worker (different context) so preload doesn't help there. -->
   <link rel="preload" href="playground/globalTypes.d.luau" as="fetch" crossorigin>
   <link rel="preload" href="playground/botTypes.d.luau" as="fetch" crossorigin>
+  <script>
+    (function () {
+      function pickTheme() {
+        try {
+          const scheme = window.parent !== window
+            ? window.parent.document.documentElement.getAttribute("data-md-color-scheme")
+            : null;
+          if (scheme === "default") return "light";
+          if (scheme === "slate") return "dark";
+        } catch { }
+        return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+
+      document.documentElement.setAttribute("data-playground-theme", pickTheme());
+    })();
+  </script>
   <style>
     .CodeMirror-hints {
       background: #161b22 !important;
@@ -1149,6 +1165,157 @@
       }
     }
   </style>
+  <style>
+    :root {
+      --pg-bg: #0f1117;
+      --pg-fg: #c9d1d9;
+      --pg-surface: #161b22;
+      --pg-surface-2: #21262d;
+      --pg-input: #0d1117;
+      --pg-editor: #282a36;
+      --pg-border: #30363d;
+      --pg-muted: #8b949e;
+      --pg-muted-2: #6e7681;
+      --pg-hover: #30363d;
+      --pg-shadow: rgba(0, 0, 0, .6);
+      color-scheme: dark;
+    }
+
+    html[data-playground-theme="light"] {
+      --pg-bg: #f6f8fc;
+      --pg-fg: #24292f;
+      --pg-surface: #ffffff;
+      --pg-surface-2: #eef2f6;
+      --pg-input: #ffffff;
+      --pg-editor: #f6f8fc;
+      --pg-border: #d0d7de;
+      --pg-muted: #57606a;
+      --pg-muted-2: #6e7781;
+      --pg-hover: #d0d7de;
+      --pg-shadow: rgba(31, 35, 40, .18);
+      color-scheme: light;
+    }
+
+    body {
+      background: var(--pg-bg);
+      color: var(--pg-fg);
+    }
+
+    .toolbar,
+    .input-row,
+    #fileQueue,
+    #files,
+    #output,
+    #settings-popover,
+    #hist-popover,
+    #hist-sheet,
+    #sm-modal,
+    #defs-modal {
+      background: var(--pg-surface) !important;
+      border-color: var(--pg-border) !important;
+      color: var(--pg-fg) !important;
+    }
+
+    .toolbar,
+    .input-row,
+    #files,
+    #output {
+      background-color: var(--pg-surface) !important;
+    }
+
+    #editor-wrapper {
+      border-bottom-color: var(--pg-border);
+    }
+
+    #editor-wrapper .CodeMirror {
+      background: var(--pg-editor) !important;
+      color: var(--pg-fg) !important;
+    }
+
+    #editor-wrapper .CodeMirror-gutters {
+      background: var(--pg-surface) !important;
+      border-right-color: var(--pg-border) !important;
+    }
+
+    #inputBox,
+    #sm-editor,
+    #defs-editor {
+      background: var(--pg-input) !important;
+      color: var(--pg-fg) !important;
+      border-color: var(--pg-border) !important;
+    }
+
+    .file-chip,
+    #attachBtn,
+    #sendBtn,
+    #shareBtn,
+    #settingsBtn,
+    #hist-popover-btn,
+    #hist-sheet-btn,
+    #hist-clear-btn,
+    #hist-sheet-clear {
+      background-color: var(--pg-surface-2) !important;
+      color: var(--pg-fg) !important;
+      border-color: var(--pg-border) !important;
+    }
+
+    .toolbar-title,
+    .lint-toggle,
+    .settings-row,
+    #smLabel,
+    #defsLabel,
+    .hist-label,
+    #history-empty {
+      color: var(--pg-fg) !important;
+    }
+
+    #status,
+    .hist-time,
+    #smStatus,
+    #defsStatus,
+    .cm-hint-detail,
+    #inputBox::placeholder {
+      color: var(--pg-muted) !important;
+    }
+
+    #shareBtn:hover,
+    #settingsBtn:hover,
+    #hist-popover-btn:hover,
+    #hist-sheet-btn:hover,
+    #attachBtn:hover,
+    #sendBtn:hover,
+    .file-chip:hover {
+      background-color: var(--pg-hover) !important;
+    }
+
+    .CodeMirror-hints {
+      background: var(--pg-surface) !important;
+      border-color: var(--pg-border) !important;
+      box-shadow: 0 8px 24px var(--pg-shadow) !important;
+    }
+
+    .CodeMirror-hint {
+      color: var(--pg-fg) !important;
+    }
+
+    .CodeMirror-hint-active {
+      background: var(--pg-surface-2) !important;
+      color: #0969da !important;
+    }
+
+    .CodeMirror-hint-active .cm-hint-detail {
+      color: var(--pg-muted) !important;
+    }
+
+    .CodeMirror-lint-tooltip,
+    #sig-help,
+    #hover-tip {
+      background: var(--pg-surface) !important;
+      border-color: var(--pg-border) !important;
+      color: var(--pg-fg) !important;
+      box-shadow: 0 4px 16px var(--pg-shadow) !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -1898,7 +2065,31 @@ declare myGlobal: MyClass'></textarea>
       });
     });
 
-    const editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+    function readParentTheme() {
+      try {
+        const scheme = window.parent !== window
+          ? window.parent.document.documentElement.getAttribute("data-md-color-scheme")
+          : null;
+        if (scheme === "default") return "light";
+        if (scheme === "slate") return "dark";
+      } catch { }
+      return null;
+    }
+
+    function pickPlaygroundTheme() {
+      return readParentTheme() || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    }
+
+    function applyPlaygroundTheme(theme) {
+      document.documentElement.setAttribute("data-playground-theme", theme);
+      if (editor) editor.setOption("theme", theme === "light" ? "default" : "dracula");
+    }
+
+    function syncPlaygroundTheme() {
+      applyPlaygroundTheme(pickPlaygroundTheme());
+    }
+
+    let editor = CodeMirror.fromTextArea(document.getElementById("code"), {
       mode: "luau",
       theme: "dracula",
       lineNumbers: true,
@@ -1940,6 +2131,20 @@ declare myGlobal: MyClass'></textarea>
           return CodeMirror.Pass; // default newline + smart indent
         },
       },
+    });
+
+    syncPlaygroundTheme();
+
+    try {
+      const parentRoot = window.parent.document.documentElement;
+      new MutationObserver(syncPlaygroundTheme).observe(parentRoot, {
+        attributes: true,
+        attributeFilter: ["data-md-color-scheme"],
+      });
+    } catch { }
+
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+      if (!readParentTheme()) syncPlaygroundTheme();
     });
 
     // ── Linter toggle (persisted) ──
