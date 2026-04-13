@@ -41,44 +41,44 @@ export type GifOptions = {
 }
 declare class Image
     Size: Vector2
-    function SetPixel(x: number, y: number, color: Color3, transparency: number, combineType: any?): ()
-    function GetPixel(x: number, y: number): (Color3, number)
-    function Fill(color: Color3, transparency: number): ()
-    function DrawRectangle(position: Vector2, size: Vector2, color: Color3, transparency: number, combineType: any?): ()
-    function DrawLine(startPos: Vector2, endPos: Vector2, color: Color3, transparency: number, combineType: any?): ()
-    function DrawCircle(center: Vector2, radius: number, color: Color3, transparency: number, combineType: any?): ()
-    function DrawText(text: string, position: Vector2, color: Color3, transparency: number, scale: number?): ()
-    function DrawImageTransformed(position: Vector2, scale: Vector2, rotation: number, sourceImage: Image, options: { CombineType: any?, ResamplerMode: any?, PivotPoint: Vector2? }?): ()
-    function ReadPixelsBuffer(position: Vector2, size: Vector2): buffer
-    function WritePixelsBuffer(position: Vector2, size: Vector2, pixelBuffer: buffer): ()
-    function GetBuffer(): buffer
-    function Clone(): Image
-    function Crop(position: Vector2, size: Vector2): Image
-    function Resize(newSize: Vector2): Image
-    function Grayscale(): ()
-    function Invert(): ()
-    function AdjustBrightness(amount: number): ()
-    function AdjustContrast(factor: number): ()
-    function AdjustSaturation(factor: number): ()
-    function Tint(color: Color3, strength: number): ()
-    function Threshold(cutoff: number?): ()
-    function Blur(radius: number): ()
-    function GaussianBlur(sigma: number): ()
-    function Sharpen(): ()
-    function EdgeDetect(): ()
-    function Emboss(): ()
-    function Pixelate(blockSize: number): ()
-    function Dither(levels: number?): ()
-    function Posterize(levels: number): ()
-    function ChromaticAberration(offset: number): ()
-    function Vignette(strength: number): ()
-    function FlipHorizontal(): ()
-    function FlipVertical(): ()
-    function Rotate90(times: number): ()
-    function GetHistogram(): { r: { number }, g: { number }, b: { number } }
-    function AutoLevels(): ()
-    function Compare(otherImage: Image): Image
-    function AlphaErode(threshold: number?): ()
+    function SetPixel(self, x: number, y: number, color: Color3, transparency: number, combineType: any?): ()
+    function GetPixel(self, x: number, y: number): (Color3, number)
+    function Fill(self, color: Color3, transparency: number): ()
+    function DrawRectangle(self, position: Vector2, size: Vector2, color: Color3, transparency: number, combineType: any?): ()
+    function DrawLine(self, startPos: Vector2, endPos: Vector2, color: Color3, transparency: number, combineType: any?): ()
+    function DrawCircle(self, center: Vector2, radius: number, color: Color3, transparency: number, combineType: any?): ()
+    function DrawText(self, text: string, position: Vector2, color: Color3, transparency: number, scale: number?): ()
+    function DrawImageTransformed(self, position: Vector2, scale: Vector2, rotation: number, sourceImage: Image, options: { CombineType: any?, ResamplerMode: any?, PivotPoint: Vector2? }?): ()
+    function ReadPixelsBuffer(self, position: Vector2, size: Vector2): buffer
+    function WritePixelsBuffer(self, position: Vector2, size: Vector2, pixelBuffer: buffer): ()
+    function GetBuffer(self): buffer
+    function Clone(self): Image
+    function Crop(self, position: Vector2, size: Vector2): Image
+    function Resize(self, newSize: Vector2): Image
+    function Grayscale(self): ()
+    function Invert(self): ()
+    function AdjustBrightness(self, amount: number): ()
+    function AdjustContrast(self, factor: number): ()
+    function AdjustSaturation(self, factor: number): ()
+    function Tint(self, color: Color3, strength: number): ()
+    function Threshold(self, cutoff: number?): ()
+    function Blur(self, radius: number): ()
+    function GaussianBlur(self, sigma: number): ()
+    function Sharpen(self): ()
+    function EdgeDetect(self): ()
+    function Emboss(self): ()
+    function Pixelate(self, blockSize: number): ()
+    function Dither(self, levels: number?): ()
+    function Posterize(self, levels: number): ()
+    function ChromaticAberration(self, offset: number): ()
+    function Vignette(self, strength: number): ()
+    function FlipHorizontal(self): ()
+    function FlipVertical(self): ()
+    function Rotate90(self, times: number): ()
+    function GetHistogram(self): { r: { number }, g: { number }, b: { number } }
+    function AutoLevels(self): ()
+    function Compare(self, otherImage: Image): Image
+    function AlphaErode(self, threshold: number?): ()
 end
 
 -- Simple value globals

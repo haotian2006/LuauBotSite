@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Luau Runner</title>
@@ -13,27 +14,42 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <!-- Preload definition files so downloads start before JS executes.
+       WASM is loaded by the worker (different context) so preload doesn't help there. -->
+  <link rel="preload" href="playground/globalTypes.d.luau" as="fetch" crossorigin>
+  <link rel="preload" href="playground/botTypes.d.luau" as="fetch" crossorigin>
   <style>
     .CodeMirror-hints {
       background: #161b22 !important;
       border: 1px solid #30363d !important;
       border-radius: 6px !important;
-      box-shadow: 0 8px 24px rgba(0,0,0,.5) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .5) !important;
       font-family: "JetBrains Mono", "Fira Code", Consolas, monospace !important;
       font-size: 12.5px !important;
       padding: 4px 0 !important;
       max-height: 220px !important;
     }
+
     .CodeMirror-hint {
       color: #c9d1d9 !important;
       padding: 3px 12px !important;
       border-radius: 0 !important;
     }
+
     .CodeMirror-hint-active {
       background: #21262d !important;
       color: #58a6ff !important;
     }
-    .CodeMirror-hint-active .cm-hint-detail { color: #6e7681 !important; }
+
+    .CodeMirror-hint-active .cm-hint-detail {
+      color: #6e7681 !important;
+    }
+
+    .cm-hint-deprecated {
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+
     .cm-hint-detail {
       color: #484f58;
       font-size: 11px;
@@ -44,25 +60,33 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
     /* ── Lint gutter + underlines ── */
-    .CodeMirror-lint-markers { width: 16px; }
+    .CodeMirror-lint-markers {
+      width: 16px;
+    }
+
     .CodeMirror-lint-marker-error,
     .CodeMirror-lint-marker-warning {
-      width: 14px; height: 14px;
+      width: 14px;
+      height: 14px;
       background-size: contain;
     }
+
     .CodeMirror-lint-mark-error {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 3 Q1.5 0 3 3 Q4.5 6 6 3' fill='none' stroke='%23f85149' stroke-width='1'/%3E%3C/svg%3E");
       background-repeat: repeat-x;
       background-position: bottom;
       border-bottom: none;
     }
+
     .CodeMirror-lint-mark-warning {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 3 Q1.5 0 3 3 Q4.5 6 6 3' fill='none' stroke='%23e3b341' stroke-width='1'/%3E%3C/svg%3E");
       background-repeat: repeat-x;
       background-position: bottom;
       border-bottom: none;
     }
+
     .CodeMirror-lint-tooltip {
       background: #1c2128 !important;
       border: 1px solid #30363d !important;
@@ -74,7 +98,11 @@
     }
   </style>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background: #0f1117;
@@ -97,12 +125,14 @@
       border-bottom: 1px solid #21262d;
       flex-shrink: 0;
     }
+
     .toolbar-opts {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       gap: 6px 8px;
     }
+
     .toolbar-title {
       font-size: 13px;
       font-weight: 600;
@@ -124,14 +154,39 @@
       border-radius: 6px;
       transition: background .15s, opacity .15s;
     }
-    button:active { opacity: .8; }
 
-    #runBtn  { background: #238636; color: #fff; }
-    #runBtn:hover  { background: #2ea043; }
-    #stopBtn { background: #b91c1c; color: #fff; display: none; }
-    #stopBtn:hover { background: #dc2626; }
-    #sendBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
-    #sendBtn:hover { background: #30363d; }
+    button:active {
+      opacity: .8;
+    }
+
+    #runBtn {
+      background: #238636;
+      color: #fff;
+    }
+
+    #runBtn:hover {
+      background: #2ea043;
+    }
+
+    #stopBtn {
+      background: #b91c1c;
+      color: #fff;
+      display: none;
+    }
+
+    #stopBtn:hover {
+      background: #dc2626;
+    }
+
+    #sendBtn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+
+    #sendBtn:hover {
+      background: #30363d;
+    }
 
     .lint-toggle {
       display: inline-flex;
@@ -142,12 +197,39 @@
       cursor: pointer;
       user-select: none;
     }
-    .lint-toggle input { cursor: pointer; accent-color: #388bfd; }
-    .lint-toggle:hover { color: #c9d1d9; }
-    #shareBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 3px 10px; }
-    #shareBtn:hover { background: #30363d; }
-    #settingsBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 3px 10px; }
-    #settingsBtn:hover { background: #30363d; }
+
+    .lint-toggle input {
+      cursor: pointer;
+      accent-color: #388bfd;
+    }
+
+    .lint-toggle:hover {
+      color: #c9d1d9;
+    }
+
+    #shareBtn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      font-size: 12px;
+      padding: 3px 10px;
+    }
+
+    #shareBtn:hover {
+      background: #30363d;
+    }
+
+    #settingsBtn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      font-size: 12px;
+      padding: 3px 10px;
+    }
+
+    #settingsBtn:hover {
+      background: #30363d;
+    }
 
     /* ── Settings popover ── */
     #settings-popover {
@@ -157,12 +239,16 @@
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
       width: 200px;
       flex-direction: column;
       overflow: hidden;
     }
-    #settings-popover.open { display: flex; }
+
+    #settings-popover.open {
+      display: flex;
+    }
+
     #settings-popover-header {
       padding: 8px 12px 6px;
       border-bottom: 1px solid #21262d;
@@ -173,11 +259,13 @@
       color: #8b949e;
       flex-shrink: 0;
     }
+
     #settings-popover-body {
       display: flex;
       flex-direction: column;
       padding: 6px 0;
     }
+
     .settings-row {
       display: flex;
       align-items: center;
@@ -188,46 +276,75 @@
       cursor: pointer;
       user-select: none;
     }
-    .settings-row:hover { background: #1c2128; }
+
+    .settings-row:hover {
+      background: #1c2128;
+    }
+
     .settings-divider {
       height: 1px;
       background: #21262d;
       margin: 4px 0;
     }
+
     .settings-sourcemap {
       justify-content: space-between;
       cursor: pointer;
     }
-    #smLabel { font-size: 13px; color: #c9d1d9; }
-    #smLabel.loaded { color: #58a6ff; }
-    #smStatus { font-size: 11px; color: #6e7681; }
-    #smStatus.loaded { color: #58a6ff; }
+
+    #smLabel {
+      font-size: 13px;
+      color: #c9d1d9;
+    }
+
+    #smLabel.loaded {
+      color: #58a6ff;
+    }
+
+    #smStatus {
+      font-size: 11px;
+      color: #6e7681;
+    }
+
+    #smStatus.loaded {
+      color: #58a6ff;
+    }
 
     /* ── Sourcemap modal ── */
     #sm-backdrop {
       display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.6);
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
       z-index: 400;
       backdrop-filter: blur(2px);
     }
-    #sm-backdrop.open { display: block; }
+
+    #sm-backdrop.open {
+      display: block;
+    }
+
     #sm-modal {
       display: none;
       position: fixed;
       z-index: 401;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
       width: min(640px, 92vw);
       height: min(480px, 80vh);
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 10px;
-      box-shadow: 0 16px 48px rgba(0,0,0,.7);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, .7);
       flex-direction: column;
       overflow: hidden;
     }
-    #sm-modal.open { display: flex; }
+
+    #sm-modal.open {
+      display: flex;
+    }
+
     #sm-modal-header {
       display: flex;
       align-items: center;
@@ -241,12 +358,22 @@
       letter-spacing: .05em;
       color: #8b949e;
     }
+
     #smModalClose {
-      background: none; border: none;
-      color: #6e7681; font-size: 18px;
-      padding: 0 4px; cursor: pointer; line-height: 1;
+      background: none;
+      border: none;
+      color: #6e7681;
+      font-size: 18px;
+      padding: 0 4px;
+      cursor: pointer;
+      line-height: 1;
     }
-    #smModalClose:hover { color: #c9d1d9; background: none; }
+
+    #smModalClose:hover {
+      color: #c9d1d9;
+      background: none;
+    }
+
     #sm-editor {
       flex: 1;
       background: #0d1117;
@@ -258,6 +385,7 @@
       font: 12.5px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
       tab-size: 2;
     }
+
     #sm-modal-footer {
       display: flex;
       align-items: center;
@@ -266,11 +394,162 @@
       border-top: 1px solid #21262d;
       flex-shrink: 0;
     }
-    #smSaveBtn  { background: #238636; color: #fff; font-size: 12px; padding: 4px 14px; }
-    #smSaveBtn:hover { background: #2ea043; }
-    #smResetBtn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 4px 14px; }
-    #smResetBtn:hover { background: #30363d; }
-    #sm-error { font-size: 11px; color: #f85149; margin-left: 4px; }
+
+    #smSaveBtn {
+      background: #238636;
+      color: #fff;
+      font-size: 12px;
+      padding: 4px 14px;
+    }
+
+    #smSaveBtn:hover {
+      background: #2ea043;
+    }
+
+    #smResetBtn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      font-size: 12px;
+      padding: 4px 14px;
+    }
+
+    #smResetBtn:hover {
+      background: #30363d;
+    }
+
+    #sm-error,
+    #defs-error {
+      font-size: 11px;
+      color: #f85149;
+      margin-left: 4px;
+    }
+
+    /* ── Custom definitions modal (same layout as sourcemap) ── */
+    #defs-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      z-index: 400;
+      backdrop-filter: blur(2px);
+    }
+
+    #defs-backdrop.open {
+      display: block;
+    }
+
+    #defs-modal {
+      display: none;
+      position: fixed;
+      z-index: 401;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(640px, 92vw);
+      height: min(480px, 80vh);
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, .7);
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #defs-modal.open {
+      display: flex;
+    }
+
+    #defs-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid #21262d;
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #8b949e;
+    }
+
+    #defsModalClose {
+      background: none;
+      border: none;
+      color: #6e7681;
+      font-size: 18px;
+      padding: 0 4px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    #defsModalClose:hover {
+      color: #c9d1d9;
+      background: none;
+    }
+
+    #defs-editor {
+      flex: 1;
+      background: #0d1117;
+      color: #c9d1d9;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 12px 14px;
+      font: 12.5px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      tab-size: 2;
+    }
+
+    #defs-modal-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-top: 1px solid #21262d;
+      flex-shrink: 0;
+    }
+
+    #defsSaveBtn {
+      background: #238636;
+      color: #fff;
+      font-size: 12px;
+      padding: 4px 14px;
+    }
+
+    #defsSaveBtn:hover {
+      background: #2ea043;
+    }
+
+    #defsResetBtn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      font-size: 12px;
+      padding: 4px 14px;
+    }
+
+    #defsResetBtn:hover {
+      background: #30363d;
+    }
+
+    #defsLabel {
+      font-size: 13px;
+      color: #c9d1d9;
+    }
+
+    #defsLabel.loaded {
+      color: #58a6ff;
+    }
+
+    #defsStatus {
+      font-size: 11px;
+      color: #6e7681;
+    }
+
+    #defsStatus.loaded {
+      color: #58a6ff;
+    }
 
     #status {
       font-size: 12px;
@@ -286,6 +565,7 @@
       overflow: hidden;
       width: 100%;
     }
+
     .main {
       display: flex;
       flex-direction: column;
@@ -295,8 +575,17 @@
     }
 
     /* ── History button (desktop) ── */
-    #hist-popover-btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; font-size: 12px; padding: 3px 10px; }
-    #hist-popover-btn:hover { background: #30363d; }
+    #hist-popover-btn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      font-size: 12px;
+      padding: 3px 10px;
+    }
+
+    #hist-popover-btn:hover {
+      background: #30363d;
+    }
 
     /* ── History floating popover ── */
     #hist-popover {
@@ -306,13 +595,17 @@
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
       width: 240px;
       max-height: 60vh;
       flex-direction: column;
       overflow: hidden;
     }
-    #hist-popover.open { display: flex; }
+
+    #hist-popover.open {
+      display: flex;
+    }
+
     #hist-popover-header {
       display: flex;
       align-items: center;
@@ -321,6 +614,7 @@
       border-bottom: 1px solid #21262d;
       flex-shrink: 0;
     }
+
     #hist-popover-header span {
       font-size: 11px;
       font-weight: 600;
@@ -328,24 +622,31 @@
       letter-spacing: .05em;
       color: #8b949e;
     }
+
     #history-list {
       flex: 1;
       overflow-y: auto;
       padding: 4px 0;
     }
+
     .hist-item {
       display: flex;
       align-items: stretch;
       cursor: pointer;
       border-bottom: 1px solid #21262d;
     }
-    .hist-item:hover .hist-body { background: #1c2128; }
+
+    .hist-item:hover .hist-body {
+      background: #1c2128;
+    }
+
     .hist-body {
       flex: 1;
       padding: 6px 8px;
       min-width: 0;
       overflow: hidden;
     }
+
     .hist-label {
       font-size: 11px;
       font-family: monospace;
@@ -354,11 +655,13 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
     .hist-time {
       font-size: 10px;
       color: #6e7681;
       margin-top: 2px;
     }
+
     .hist-del {
       flex-shrink: 0;
       background: none;
@@ -371,25 +674,41 @@
       align-items: center;
       border-radius: 0;
     }
-    .hist-del:hover { color: #f85149; background: none; }
+
+    .hist-del:hover {
+      color: #f85149;
+      background: none;
+    }
+
     #history-empty {
       padding: 12px 10px;
       font-size: 11px;
       color: #6e7681;
       text-align: center;
     }
+
     /* ── Mobile history bottom sheet ── */
-    #hist-sheet-btn { display: none; }
+    #hist-sheet-btn {
+      display: none;
+    }
+
     #hist-sheet-backdrop {
       display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.5);
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .5);
       z-index: 200;
     }
-    #hist-sheet-backdrop.open { display: block; }
+
+    #hist-sheet-backdrop.open {
+      display: block;
+    }
+
     #hist-sheet {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
       background: #161b22;
       border-top: 1px solid #30363d;
       border-radius: 12px 12px 0 0;
@@ -400,7 +719,11 @@
       transform: translateY(100%);
       transition: transform .25s ease;
     }
-    #hist-sheet.open { transform: translateY(0); }
+
+    #hist-sheet.open {
+      transform: translateY(0);
+    }
+
     #hist-sheet-header {
       display: flex;
       align-items: center;
@@ -409,6 +732,7 @@
       border-bottom: 1px solid #21262d;
       flex-shrink: 0;
     }
+
     #hist-sheet-header span {
       font-size: 12px;
       font-weight: 600;
@@ -416,32 +740,61 @@
       letter-spacing: .05em;
       color: #8b949e;
     }
+
     #hist-sheet-close {
-      background: none; border: none;
-      color: #6e7681; font-size: 18px;
-      padding: 0 4px; cursor: pointer;
+      background: none;
+      border: none;
+      color: #6e7681;
+      font-size: 18px;
+      padding: 0 4px;
+      cursor: pointer;
       line-height: 1;
     }
-    #hist-sheet-close:hover { color: #c9d1d9; background: none; }
-    #hist-sheet-list { flex: 1; overflow-y: auto; padding: 4px 0; }
 
-    #hist-sheet-btn { display: none; }
+    #hist-sheet-close:hover {
+      color: #c9d1d9;
+      background: none;
+    }
+
+    #hist-sheet-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+
+    #hist-sheet-btn {
+      display: none;
+    }
 
     /* ── Mobile bottom history tab ── */
     #hist-bottom-tab {
       display: none;
     }
+
     @media (max-width: 600px) {
-      #hist-popover-btn { display: none; }
-      .toolbar { flex-wrap: wrap; }
-      #status { width: 100%; padding: 1px 10px 3px; font-size: 11px; }
+      #hist-popover-btn {
+        display: none;
+      }
+
+      .toolbar {
+        flex-wrap: wrap;
+      }
+
+      #status {
+        width: 100%;
+        padding: 1px 10px 3px;
+        font-size: 11px;
+      }
+
       #hist-bottom-tab {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
         position: fixed;
-        bottom: 0; left: 0; right: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
         z-index: 150;
         background: #161b22;
         border-top: 1px solid #30363d;
@@ -452,10 +805,19 @@
         user-select: none;
         transition: color .15s;
       }
-      #hist-bottom-tab:hover { color: #c9d1d9; }
-      #hist-bottom-tab svg { flex-shrink: 0; }
+
+      #hist-bottom-tab:hover {
+        color: #c9d1d9;
+      }
+
+      #hist-bottom-tab svg {
+        flex-shrink: 0;
+      }
+
       /* push output area up so tab doesn't overlap content */
-      .body-row { padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px)); }
+      .body-row {
+        padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+      }
     }
 
     /* ── CodeMirror 5 editor ── */
@@ -466,6 +828,7 @@
       flex-direction: column;
       border-bottom: 1px solid #21262d;
     }
+
     #editor-wrapper .CodeMirror {
       flex: 1;
       height: 100%;
@@ -474,9 +837,16 @@
       font-size: 13.5px;
       line-height: 1.6;
     }
-    #editor-wrapper .CodeMirror-scroll { height: 100%; }
+
+    #editor-wrapper .CodeMirror-scroll {
+      height: 100%;
+    }
+
     /* Luau-only keywords (type, export, continue) */
-    .cm-luau-kw { color: #ff79c6 !important; font-weight: 600; }
+    .cm-luau-kw {
+      color: #ff79c6 !important;
+      font-weight: 600;
+    }
 
     /* ── Stdin row ── */
     .input-row {
@@ -487,12 +857,14 @@
       border-bottom: 1px solid #21262d;
       flex-shrink: 0;
     }
+
     .input-controls {
       display: flex;
       gap: 6px;
       padding: 8px 10px;
       align-items: center;
     }
+
     #inputBox {
       flex: 1;
       background: #0d1117;
@@ -504,23 +876,69 @@
       outline: none;
       transition: border-color .15s;
     }
-    #inputBox:focus { border-color: #388bfd; }
-    #inputBox::placeholder { color: #3d444d; }
+
+    #inputBox:focus {
+      border-color: #388bfd;
+    }
+
+    #inputBox::placeholder {
+      color: #3d444d;
+    }
+
+    .input-row.runlocal-disabled {
+      opacity: .72;
+    }
+
+    .input-row.runlocal-disabled #inputBox,
+    .input-row.runlocal-disabled #attachBtn,
+    .input-row.runlocal-disabled #sendBtn,
+    .input-row.runlocal-disabled .file-chip,
+    .settings-row.setting-disabled span {
+      text-decoration: line-through;
+    }
+
+    .input-row.runlocal-disabled #inputBox:disabled,
+    .input-row.runlocal-disabled #attachBtn:disabled,
+    .input-row.runlocal-disabled #sendBtn:disabled,
+    .input-row.runlocal-disabled .file-chip {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .input-row.runlocal-disabled #inputBox::placeholder {
+      color: #5b626b;
+      text-decoration: line-through;
+    }
+
     #attachBtn {
-      background: #21262d; color: #8b949e;
-      border: 1px solid #30363d; border-radius: 6px;
-      padding: 5px 9px; cursor: pointer; font-size: 15px;
-      line-height: 1; transition: background .15s, color .15s;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 5px 9px;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      transition: background .15s, color .15s;
       flex-shrink: 0;
     }
-    #attachBtn:hover { background: #30363d; color: #c9d1d9; }
+
+    #attachBtn:hover {
+      background: #30363d;
+      color: #c9d1d9;
+    }
+
     #fileQueue {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
       padding: 0 10px 8px;
     }
-    #fileQueue:empty { display: none; }
+
+    #fileQueue:empty {
+      display: none;
+    }
+
     .file-chip {
       display: flex;
       align-items: center;
@@ -533,15 +951,27 @@
       color: #c9d1d9;
       max-width: 220px;
     }
+
     .file-chip span {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+
     .file-chip-remove {
-      background: none; border: none; color: #8b949e;
-      cursor: pointer; padding: 0 0 0 2px; font-size: 14px; line-height: 1;
+      background: none;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      padding: 0 0 0 2px;
+      font-size: 14px;
+      line-height: 1;
       flex-shrink: 0;
     }
-    .file-chip-remove:hover { color: #f85149; }
+
+    .file-chip-remove:hover {
+      color: #f85149;
+    }
 
     /* ── Output ── */
     #output {
@@ -553,9 +983,19 @@
       font: 13px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
       color: #c9d1d9;
     }
-    #output::-webkit-scrollbar { width: 6px; }
-    #output::-webkit-scrollbar-track { background: transparent; }
-    #output::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+    #output::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #output::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #output::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 3px;
+    }
 
     /* ── Files ── */
     #files {
@@ -567,22 +1007,50 @@
       border-top: 1px solid #21262d;
       flex-shrink: 0;
     }
-    #files:empty { display: none; }
 
-    .file-item { display: flex; flex-direction: column; gap: 4px; max-width: 220px; }
+    #files:empty {
+      display: none;
+    }
+
+    .file-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 220px;
+    }
+
     .file-item img {
-      max-width: 220px; max-height: 160px; border-radius: 6px;
-      border: 1px solid #30363d; cursor: pointer; object-fit: contain;
-      background: #0d1117; transition: border-color .15s;
+      max-width: 220px;
+      max-height: 160px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      cursor: pointer;
+      object-fit: contain;
+      background: #0d1117;
+      transition: border-color .15s;
     }
-    .file-item img:hover { border-color: #388bfd; }
+
+    .file-item img:hover {
+      border-color: #388bfd;
+    }
+
     a.file-link {
-      background: #21262d; color: #58a6ff; padding: 4px 10px;
-      border-radius: 6px; text-decoration: none; font-size: 12px;
-      border: 1px solid #30363d; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis; transition: background .15s;
+      background: #21262d;
+      color: #58a6ff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 12px;
+      border: 1px solid #30363d;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background .15s;
     }
-    a.file-link:hover { background: #30363d; }
+
+    a.file-link:hover {
+      background: #30363d;
+    }
 
     /* ── Signature help tooltip ── */
     #sig-help {
@@ -595,13 +1063,20 @@
       padding: 5px 10px;
       font: 12.5px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace;
       color: #c9d1d9;
-      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .5);
       max-width: 480px;
       white-space: pre;
       pointer-events: none;
     }
-    #sig-help .sig-type { color: #79c0ff; }
-    #sig-help .sig-detail { color: #8b949e; font-size: 11.5px; }
+
+    #sig-help .sig-type {
+      color: #79c0ff;
+    }
+
+    #sig-help .sig-detail {
+      color: #8b949e;
+      font-size: 11.5px;
+    }
 
     /* ── Hover type tooltip ── */
     #hover-tip {
@@ -617,38 +1092,73 @@
       max-width: 480px;
       white-space: pre-wrap;
       pointer-events: none;
-      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .5);
     }
 
     /* ── Lightbox ── */
     #lightbox {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.85); align-items: center;
-      justify-content: center; z-index: 100; cursor: zoom-out;
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .85);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      cursor: zoom-out;
       backdrop-filter: blur(4px);
     }
-    #lightbox.open { display: flex; }
+
+    #lightbox.open {
+      display: flex;
+    }
+
     #lightbox img {
-      max-width: 90vw; max-height: 90vh; object-fit: contain;
-      border-radius: 8px; box-shadow: 0 24px 64px rgba(0,0,0,.6);
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
     }
 
     @media (max-width: 540px) {
-      .toolbar-title { display: none; }
-      .toolbar { gap: 4px 6px; padding: 5px 8px; }
-      button { padding: 4px 10px; font-size: 12px; }
-      .lint-toggle { font-size: 11px; }
-      #shareBtn { padding: 3px 8px; font-size: 11px; }
-      #status { font-size: 11px; }
+      .toolbar-title {
+        display: none;
+      }
+
+      .toolbar {
+        gap: 4px 6px;
+        padding: 5px 8px;
+      }
+
+      button {
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+
+      .lint-toggle {
+        font-size: 11px;
+      }
+
+      #shareBtn {
+        padding: 3px 8px;
+        font-size: 11px;
+      }
+
+      #status {
+        font-size: 11px;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <div class="toolbar">
     <span class="toolbar-title">Playground</span>
     <button id="runBtn">&#9654; Run</button>
     <button id="stopBtn">&#9632; Stop</button>
+    <button id="fmtBtn" title="Format code (StyLua)"
+      style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;font-size:12px;padding:3px 10px">Format</button>
     <div class="toolbar-opts" style="margin-left:auto">
       <button id="settingsBtn" title="Settings">&#9881; Settings</button>
       <button id="shareBtn" title="Copy shareable link">&#128279; Share</button>
@@ -659,20 +1169,20 @@
   </div>
 
   <div class="body-row">
-  <div class="main">
-    <div id="editor-wrapper"><textarea id="code"></textarea></div>
-    <div class="input-row">
-      <div class="input-controls">
-        <input id="inputBox" type="text" placeholder="stdin input..." autocomplete="off" spellcheck="false" />
-        <button id="attachBtn" title="Attach file">📎</button>
-        <button id="sendBtn">Send</button>
+    <div class="main">
+      <div id="editor-wrapper"><textarea id="code"></textarea></div>
+      <div class="input-row">
+        <div class="input-controls">
+          <input id="inputBox" type="text" placeholder="stdin input..." autocomplete="off" spellcheck="false" />
+          <button id="attachBtn" title="Attach file">📎</button>
+          <button id="sendBtn">Send</button>
+        </div>
+        <div id="fileQueue"></div>
+        <input id="fileInput" type="file" style="display:none" multiple />
       </div>
-      <div id="fileQueue"></div>
-      <input id="fileInput" type="file" style="display:none" multiple />
+      <div id="files"></div>
+      <div id="output"></div>
     </div>
-    <div id="files"></div>
-    <div id="output"></div>
-  </div>
   </div><!-- /.body-row -->
 
   <!-- Settings popover -->
@@ -691,11 +1201,48 @@
         <input type="checkbox" id="timestampCheck" />
         <span>Timestamp</span>
       </label>
-      <div class="settings-divider" id="smDivider" style="display:none"></div>
-      <div class="settings-row settings-sourcemap" id="smRow" style="display:none">
+      <label class="lint-toggle settings-row" title="Run code locally in WASM instead of on the server">
+        <input type="checkbox" id="localRunCheck" />
+        <span>Run Local</span>
+      </label>
+      <div class="settings-divider"></div>
+      <label class="lint-toggle settings-row" title="Load Roblox globalTypes.d.luau definitions">
+        <input type="checkbox" id="robloxDefsCheck" checked />
+        <span>Roblox Types</span>
+      </label>
+      <label class="lint-toggle settings-row" title="Load bot-specific type definitions">
+        <input type="checkbox" id="botDefsCheck" checked />
+        <span>Bot Types</span>
+      </label>
+      <div class="settings-divider"></div>
+      <div class="settings-row settings-sourcemap" id="smRow">
         <span id="smLabel">Sourcemap</span>
         <span id="smStatus">—</span>
       </div>
+      <div class="settings-row settings-sourcemap" id="defsRow">
+        <span id="defsLabel">Definitions</span>
+        <span id="defsStatus">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom definitions modal -->
+  <div id="defs-backdrop"></div>
+  <div id="defs-modal">
+    <div id="defs-modal-header">
+      <span>Custom Definitions (.d.luau)</span>
+      <button id="defsModalClose">&#215;</button>
+    </div>
+    <textarea id="defs-editor" spellcheck="false" placeholder='-- Custom type definitions (loaded as @custom)
+declare class MyClass
+    function MyMethod(self, x: number): string
+end
+
+declare myGlobal: MyClass'></textarea>
+    <div id="defs-modal-footer">
+      <button id="defsSaveBtn">Save</button>
+      <button id="defsResetBtn">Reset</button>
+      <span id="defs-error"></span>
     </div>
   </div>
 
@@ -706,7 +1253,8 @@
       <span>Sourcemap JSON</span>
       <button id="smModalClose">&#215;</button>
     </div>
-    <textarea id="sm-editor" spellcheck="false" placeholder='{"name":"Game","className":"DataModel","children":[]}'></textarea>
+    <textarea id="sm-editor" spellcheck="false"
+      placeholder='{"name":"Game","className":"DataModel","children":[]}'></textarea>
     <div id="sm-modal-footer">
       <button id="smSaveBtn">Save</button>
       <button id="smResetBtn">Reset</button>
@@ -719,14 +1267,18 @@
     <div id="hist-popover-header">
       <span>History</span>
       <div style="display:flex;align-items:center;gap:6px">
-        <label class="lint-toggle" id="hist-record-label" title="Record runs to history" style="font-size:10px;color:#6e7681">
+        <label class="lint-toggle" id="hist-record-label" title="Record runs to history"
+          style="font-size:10px;color:#6e7681">
           <input type="checkbox" id="histRecordCheck" />
           <span>Record</span>
         </label>
-        <button id="hist-clear-btn" title="Clear all history" style="background:none;border:none;color:#6e7681;font-size:11px;padding:0;cursor:pointer;line-height:1">Clear</button>
+        <button id="hist-clear-btn" title="Clear all history"
+          style="background:none;border:none;color:#6e7681;font-size:11px;padding:0;cursor:pointer;line-height:1">Clear</button>
       </div>
     </div>
-    <div id="history-list"><div id="history-empty">No runs yet</div></div>
+    <div id="history-list">
+      <div id="history-empty">No runs yet</div>
+    </div>
   </div>
 
   <div id="lightbox"><img id="lightboxImg" /></div>
@@ -737,7 +1289,13 @@
     <div id="hist-sheet-header">
       <span>History</span>
       <div style="display:flex;align-items:center;gap:8px">
-        <button id="hist-sheet-clear" style="background:none;border:none;color:#6e7681;font-size:12px;padding:0;cursor:pointer;line-height:1">Clear all</button>
+        <label class="lint-toggle" title="Record runs to history" style="font-size:10px;color:#6e7681">
+          <input type="checkbox" id="histRecordCheckMobile" />
+          <span>Record</span>
+        </label>
+        <button id="hist-sheet-clear"
+          style="background:none;border:none;color:#6e7681;font-size:12px;padding:0;cursor:pointer;line-height:1">Clear
+          all</button>
         <button id="hist-sheet-close">&#215;</button>
       </div>
     </div>
@@ -745,8 +1303,10 @@
   </div>
   <!-- Mobile bottom history tab -->
   <div id="hist-bottom-tab">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
     </svg>
     History
   </div>
@@ -758,10 +1318,10 @@
     let luauWorker = null;
     let staticReady = false; // static maps parsed — enables Roblox/bot/stdlib completions
     let workerReady = false; // WASM worker ready — enables user-code type inference
-    let defsReady   = false; // WASM definitions loaded — enables Roblox diagnostics
-    let smActive    = false; // sourcemap disabled (hidden until WASM support is stable)
-    let smTree      = {}; // name → [childName, ...] built from sourcemap JSON for JS-side completions
-    let smClassOf   = {}; // name → className from sourcemap (e.g. "ReplicatedStorage" → "ReplicatedStorage")
+    let defsReady = false; // WASM definitions loaded — enables Roblox diagnostics
+    let smActive = !!localStorage.getItem("luau_sourcemap");
+    let smTree = {}; // name → [childName, ...] built from sourcemap JSON for JS-side completions
+    let smClassOf = {}; // name → className from sourcemap (e.g. "ReplicatedStorage" → "ReplicatedStorage")
     let pendingRequests = new Map();
 
     // Build flat name→children and name→className maps from the sourcemap JSON tree so JS can
@@ -785,9 +1345,9 @@
           smTree["game"] = (root.children || []).map(c => c.name);
           for (const child of root.children || []) walk(child);
         }
-      } catch(e) { console.warn("[sm] failed to parse sourcemap:", e); }
+      } catch (e) { console.warn("[sm] failed to parse sourcemap:", e); }
     }
-    // buildSmTree(localStorage.getItem("luau_sourcemap")); // disabled until WASM support is stable
+    buildSmTree(localStorage.getItem("luau_sourcemap"));
     let reqId = 0;
 
     function workerRequest(msg) {
@@ -800,19 +1360,19 @@
             pendingRequests.delete(id);
             reject(new Error("timeout"));
           }
-        }, 15000);
+        }, 30000);
       });
     }
 
     // ── Roblox static type maps (parsed from globalTypes.d.luau) ──
-    let classMembers      = {};  // className   → sorted string[]
-    let globalMembers     = {}; // globalName  → sorted string[] (for "x." completions)
-    let allGlobals        = []; // all known Roblox global names (for top-level completion)
-    let sigsOf            = {}; // typeName    → { memberName → raw declaration string }
-    let globalTypeOf      = {}; // globalName  → class/table typeName (for sig lookup)
-    let funcSigs          = {}; // funcName    → declaration string (for hover on globals)
+    let classMembers = {};  // className   → sorted string[]
+    let globalMembers = {}; // globalName  → sorted string[] (for "x." completions)
+    let allGlobals = []; // all known Roblox global names (for top-level completion)
+    let sigsOf = {}; // typeName    → { memberName → raw declaration string }
+    let globalTypeOf = {}; // globalName  → class/table typeName (for sig lookup)
+    let funcSigs = {}; // funcName    → declaration string (for hover on globals)
     let creatableInstances = []; // from --#METADATA# CREATABLE_INSTANCES
-    let serviceNames       = []; // from --#METADATA# SERVICES
+    let serviceNames = []; // from --#METADATA# SERVICES
 
     function parseGlobalTypes(src) {
       const rawClasses = {};        // className → { parent, members[], sigs{} }
@@ -908,7 +1468,7 @@
         seen.add(name);
         const { parent, members, sigs } = rawClasses[name];
         if (parent) build(parent, new Set(seen));
-        const inh  = memoM[parent] || [];
+        const inh = memoM[parent] || [];
         const inhS = memoS[parent] || {};
         memoM[name] = [...new Set([...inh, ...members])].sort();
         memoS[name] = { ...inhS, ...sigs };
@@ -916,20 +1476,20 @@
       for (const n of Object.keys(rawClasses)) {
         build(n);
         classMembers[n] = memoM[n];
-        sigsOf[n]       = memoS[n];
+        sigsOf[n] = memoS[n];
       }
 
       // Table globals (skip pure type aliases — they're not real globals)
       for (const [name, members] of Object.entries(tableGlobals)) {
         if (typeAliases.has(name)) continue;
         globalMembers[name] = [...members].sort();
-        sigsOf[name]        = tableGlobalSigs[name] || {};
+        sigsOf[name] = tableGlobalSigs[name] || {};
       }
 
       // Class-typed globals — resolve through classMembers or tableGlobals (e.g. declare Enum: ENUM_LIST)
       for (const [name, typeName] of Object.entries(classTypedGlobals)) {
-        if (classMembers[typeName])       globalMembers[name] = classMembers[typeName];
-        else if (tableGlobals[typeName])  globalMembers[name] = [...new Set(tableGlobals[typeName])].sort();
+        if (classMembers[typeName]) globalMembers[name] = classMembers[typeName];
+        else if (tableGlobals[typeName]) globalMembers[name] = [...new Set(tableGlobals[typeName])].sort();
         globalTypeOf[name] = typeName;
       }
 
@@ -945,113 +1505,6 @@
         '| with members:', Object.keys(globalMembers).length);
     }
 
-    // ── Standard Luau built-in library (not in globalTypes.d.luau) ──
-    const LUAU_STDLIB_MEMBERS = {
-      table:     ['clear','clone','concat','create','find','freeze','getn','insert','isfrozen','maxn','move','pack','remove','sort','unpack'],
-      string:    ['byte','char','find','format','gmatch','gsub','len','lower','match','rep','reverse','split','sub','upper'],
-      math:      ['abs','acos','asin','atan','atan2','ceil','clamp','cos','cosh','deg','exp','floor','fmod','frexp','huge','ldexp','log','log10','max','min','modf','noise','pi','pow','rad','random','randomseed','round','sign','sin','sinh','sqrt','tan','tanh','tointeger','type'],
-      coroutine: ['close','create','isyieldable','resume','running','status','wrap','yield'],
-      buffer:    ['copy','create','fill','fromstring','len','readf32','readf64','readi8','readi16','readi32','readu8','readu16','readu32','readstring','tostring','writef32','writef64','writei8','writei16','writei32','writeu8','writeu16','writeu32','writestring'],
-      bit32:     ['arshift','band','bnot','bor','btest','bxor','countlz','countrz','extract','lrotate','lshift','replace','rrotate','rshift'],
-      os:        ['clock','date','difftime','time'],
-    };
-
-    // Signatures for stdlib functions (shown in sig-help tooltip)
-    const LUAU_STDLIB_SIGS = {
-      table: {
-        insert:   '(t: {V}, value: V) | (t: {V}, pos: number, value: V)',
-        remove:   '(t: {V}, pos: number?): V?',
-        concat:   '(t: {V}, sep: string?, i: number?, j: number?): string',
-        sort:     '(t: {V}, comp: ((V, V) -> boolean)?)',
-        find:     '(haystack: {V}, needle: V, init: number?): number?',
-        move:     '(a1: {V}, f: number, e: number, t: number, a2: {V}?): {V}',
-        pack:     '(...any): { n: number, [number]: any }',
-        unpack:   '(list: {V}, i: number?, j: number?): ...V',
-        create:   '(n: number, v: V?): {V}',
-        freeze:   '(value: T): T',  clone:    '(value: T): T',
-        isfrozen: '(value: T): boolean',  clear: '(t: {})',
-      },
-      string: {
-        format:  '(s: string, ...any): string',
-        byte:    '(s: string, i: number?, j: number?): ...number',
-        char:    '(...number): string',
-        sub:     '(s: string, i: number, j: number?): string',
-        len:     '(s: string): number',
-        rep:     '(s: string, n: number, sep: string?): string',
-        lower:   '(s: string): string',  upper:   '(s: string): string',
-        reverse: '(s: string): string',
-        find:    '(s: string, pattern: string, init: number?, plain: boolean?): (number?, number?, ...string)',
-        match:   '(s: string, pattern: string, init: number?): ...string?',
-        gmatch:  '(s: string, pattern: string): () -> ...string',
-        gsub:    '(s: string, pattern: string, repl: string | {} | function, n: number?): (string, number)',
-        split:   '(s: string, sep: string?): {string}',
-      },
-      math: {
-        abs:    '(n: number): number',  ceil:   '(n: number): number',
-        floor:  '(n: number): number',  round:  '(n: number): number',
-        sqrt:   '(n: number): number',  sign:   '(n: number): number',
-        max:    '(number, ...number): number',  min: '(number, ...number): number',
-        exp:    '(n: number): number',  log:    '(n: number, base: number?): number',
-        pow:    '(x: number, y: number): number',
-        sin:    '(n: number): number',  cos: '(n: number): number',  tan: '(n: number): number',
-        asin:   '(n: number): number',  acos: '(n: number): number',
-        atan:   '(y: number, x: number?): number',  atan2: '(y: number, x: number): number',
-        deg:    '(n: number): number',  rad: '(n: number): number',
-        fmod:   '(x: number, y: number): number',  modf: '(n: number): (number, number)',
-        frexp:  '(n: number): (number, number)',  ldexp: '(x: number, e: number): number',
-        clamp:  '(n: number, min: number, max: number): number',
-        noise:  '(x: number, y: number?, z: number?): number',
-        random: '(m: number?, n: number?): number',  randomseed: '(x: number)',
-        tointeger: '(n: number): number?',  type: '(n: number): string',
-      },
-      bit32: {
-        band:    '(...number): number',  bor:  '(...number): number',
-        bxor:    '(...number): number',  bnot: '(n: number): number',
-        btest:   '(...number): boolean',
-        lshift:  '(n: number, i: number): number',  rshift:  '(n: number, i: number): number',
-        arshift: '(n: number, i: number): number',
-        lrotate: '(n: number, i: number): number',  rrotate: '(n: number, i: number): number',
-        extract: '(n: number, f: number, w: number?): number',
-        replace: '(n: number, v: number, f: number, w: number?): number',
-        countlz: '(n: number): number',  countrz: '(n: number): number',
-      },
-      coroutine: {
-        create:      '(f: function): thread',  wrap:   '(f: function): function',
-        resume:      '(co: thread, ...any): (boolean, ...any)',
-        yield:       '(...any): ...any',  status: '(co: thread): string',
-        running:     '(): (thread, boolean)',  isyieldable: '(): boolean',
-        close:       '(co: thread): (boolean, any?)',
-      },
-      buffer: {
-        create:     '(size: number): buffer',  fromstring: '(str: string): buffer',
-        tostring:   '(b: buffer): string',     len:        '(b: buffer): number',
-        copy:       '(target: buffer, targetOffset: number, source: buffer, sourceOffset: number?, count: number?)',
-        fill:       '(b: buffer, offset: number, value: number, count: number?)',
-        readu8:     '(b: buffer, offset: number): number',
-        readu16:    '(b: buffer, offset: number): number',
-        readu32:    '(b: buffer, offset: number): number',
-        readi8:     '(b: buffer, offset: number): number',
-        readi16:    '(b: buffer, offset: number): number',
-        readi32:    '(b: buffer, offset: number): number',
-        readf32:    '(b: buffer, offset: number): number',
-        readf64:    '(b: buffer, offset: number): number',
-        readstring: '(b: buffer, offset: number, count: number): string',
-        writeu8:    '(b: buffer, offset: number, value: number)',
-        writeu16:   '(b: buffer, offset: number, value: number)',
-        writeu32:   '(b: buffer, offset: number, value: number)',
-        writei8:    '(b: buffer, offset: number, value: number)',
-        writei16:   '(b: buffer, offset: number, value: number)',
-        writei32:   '(b: buffer, offset: number, value: number)',
-        writef32:   '(b: buffer, offset: number, value: number)',
-        writef64:   '(b: buffer, offset: number, value: number)',
-        writestring:'(b: buffer, offset: number, value: string, count: number?)',
-      },
-      os: {
-        clock: '(): number',  time: '(t: table?): number',
-        date:  '(format: string?, time: number?): string | table',
-        difftime: '(t2: number, t1: number): number',
-      },
-    };
 
     (async function initWorker() {
       try {
@@ -1059,14 +1512,29 @@
 
         luauWorker.onmessage = (e) => {
           const { requestId, ...data } = e.data;
-          if (data.type === "ready") { workerReady = true; return; }
+          if (data.type === "ready") { workerReady = true; statusEl.textContent = "Loading types..."; return; }
           if (data.type === "definitions_ready") {
-            // Definitions loaded — enable Roblox diagnostics and re-lint
             defsReady = true;
             if (typeof editor !== "undefined") editor.performLint();
-            // Sourcemap disabled until WASM support is stable
-            // const storedSm = localStorage.getItem("luau_sourcemap");
-            // if (storedSm) workerRequest({ type: "set_sourcemap", json: storedSm }).catch(() => {});
+
+            // Chain: load persisted custom defs → load persisted sourcemap → clear status
+            const customDefs = localStorage.getItem("luau_custom_defs");
+            const storedSm = localStorage.getItem("luau_sourcemap");
+
+            let chain = Promise.resolve();
+            if (customDefs) {
+              statusEl.textContent = "Loading custom definitions...";
+              chain = chain.then(() => workerRequest({ type: "add_definitions", name: "@custom", source: customDefs }));
+            }
+            if (storedSm) {
+              chain = chain.then(() => {
+                statusEl.textContent = "Loading sourcemap...";
+                return workerRequest({ type: "set_sourcemap", json: storedSm });
+              });
+            }
+            chain
+              .then(() => { statusEl.textContent = ""; })
+              .catch(() => { statusEl.textContent = ""; });
             return;
           }
           const cb = pendingRequests.get(requestId);
@@ -1085,61 +1553,98 @@
           try {
             const meta = JSON.parse(metaMatch[1].trim());
             creatableInstances = (meta.CREATABLE_INSTANCES || []).sort();
-            serviceNames       = (meta.SERVICES || []).sort();
-          } catch {}
+            serviceNames = (meta.SERVICES || []).sort();
+          } catch { }
         }
 
         // Strip metadata comment, parse static maps (fallback), send as definitions to WASM
-        const stripped = rawTypes.replace(/^--#METADATA#[^\n]*\n?/, "");
-        parseGlobalTypes(stripped);
+        const strippedRoblox = rawTypes.replace(/^--#METADATA#[^\n]*\n?/, "");
+        parseGlobalTypes(strippedRoblox);
         if (botDefs) parseGlobalTypes(botDefs);
 
-        // Add stdlib to static maps (WASM doesn't include these built-ins)
-        for (const [name, members] of Object.entries(LUAU_STDLIB_MEMBERS)) {
-          if (!globalMembers[name]) globalMembers[name] = [...members].sort();
-          if (!allGlobals.includes(name)) allGlobals.push(name);
-        }
-        // Add stdlib signatures into sigsOf for sig-help
-        for (const [name, sigs] of Object.entries(LUAU_STDLIB_SIGS)) {
-          sigsOf[name] = { ...(sigsOf[name] || {}), ...sigs };
-        }
-        allGlobals.sort();
+        // Store raw sources so toggles can reload them
+        window._robloxDefs = strippedRoblox;
+        window._botDefs = botDefs;
 
-        // Static maps are ready — enable completions immediately, before WASM loads
+        allGlobals.sort();
         staticReady = true;
 
         const solverCheck = document.getElementById("solverCheck");
+        const robloxDefsCheck = document.getElementById("robloxDefsCheck");
+        const botDefsCheck = document.getElementById("botDefsCheck");
+
         solverCheck.checked = localStorage.getItem("luau_solver") === "1";
+        robloxDefsCheck.checked = localStorage.getItem("luau_no_roblox") !== "1";
+        botDefsCheck.checked = localStorage.getItem("luau_no_bot") !== "1";
+
         solverCheck.addEventListener("change", () => {
           localStorage.setItem("luau_solver", solverCheck.checked ? "1" : "0");
-          workerRequest({ type: "set_solver", solver: solverCheck.checked ? 1 : 0 });
+          statusEl.textContent = "Switching solver...";
+          workerRequest({ type: "set_solver", solver: solverCheck.checked ? 1 : 0 })
+            .then(() => { statusEl.textContent = ""; if (lintCheck.checked) editor.performLint(); })
+            .catch(() => { statusEl.textContent = ""; });
         });
 
-        luauWorker.postMessage({
-          type: "init",
-          definitions: stripped + "\n" + botDefs,
-          solver: solverCheck.checked ? 1 : 0,
-          requestId: 0,
+        // Rebuild definitions based on toggles and send full init to worker.
+        // Exposed on window so modal handlers outside this IIFE can trigger reinit.
+        window.sendInitToWorker = sendInitToWorker;
+        function sendInitToWorker() {
+          const defs = robloxDefsCheck.checked ? window._robloxDefs : "";
+          const extra = [];
+          if (botDefsCheck.checked && window._botDefs)
+            extra.push({ name: "@bot", source: window._botDefs });
+          luauWorker.postMessage({
+            type: "init",
+            definitions: defs,
+            extraDefinitions: extra,
+            solver: solverCheck.checked ? 1 : 0,
+            requestId: 0,
+          });
+        }
+
+        robloxDefsCheck.addEventListener("change", () => {
+          localStorage.setItem("luau_no_roblox", robloxDefsCheck.checked ? "0" : "1");
+          // Bot types depend on Roblox types (Color3, Vector2, etc.)
+          if (!robloxDefsCheck.checked) {
+            botDefsCheck.checked = false;
+            botDefsCheck.disabled = true;
+            localStorage.setItem("luau_no_bot", "1");
+          } else {
+            botDefsCheck.disabled = false;
+          }
+          defsReady = false;
+          statusEl.textContent = "Reloading definitions...";
+          sendInitToWorker();
         });
-      } catch(e) { console.warn("Luau WASM unavailable:", e); }
+        botDefsCheck.addEventListener("change", () => {
+          localStorage.setItem("luau_no_bot", botDefsCheck.checked ? "0" : "1");
+          defsReady = false;
+          statusEl.textContent = "Reloading definitions...";
+          sendInitToWorker();
+        });
+        // Disable bot toggle if roblox is off on load
+        if (!robloxDefsCheck.checked) botDefsCheck.disabled = true;
+
+        sendInitToWorker();
+      } catch (e) { console.warn("Luau WASM unavailable:", e); }
     })();
 
     // ── CM5 async hint helper ──
     function luauHint(cm, callback) {
       if (!staticReady) { callback(null); return; }
-      const cur      = cm.getCursor();
-      const token    = cm.getTokenAt(cur);
-      const line     = cm.getLine(cur.line);
+      const cur = cm.getCursor();
+      const token = cm.getTokenAt(cur);
+      const line = cm.getLine(cur.line);
       const charPrev = line.charAt(cur.ch - 1);
 
       // ── String enum completions: Instance.new("Part") / GetService("Workspace") ──
       if (token.type === "string" || (token.type && token.type.startsWith("string"))) {
         const lineText = line.slice(0, cur.ch);
         // Partial text typed so far inside the string (strip opening quote)
-        const raw     = token.string.slice(0, cur.ch - token.start);
+        const raw = token.string.slice(0, cur.ch - token.start);
         const partial = raw.replace(/^["']/, "");
         const fromPos = CodeMirror.Pos(cur.line, token.start + 1); // after the opening quote
-        const toPos   = CodeMirror.Pos(cur.line, cur.ch);
+        const toPos = CodeMirror.Pos(cur.line, cur.ch);
 
         if (/Instance\.new\s*\(\s*["']\w*$/.test(lineText) && creatableInstances.length > 0) {
           const names = partial
@@ -1153,6 +1658,25 @@
             ? serviceNames.filter(n => n.toLowerCase().startsWith(partial.toLowerCase()))
             : serviceNames;
           if (names.length > 0) { callback({ list: names, from: fromPos, to: toPos }); return; }
+        }
+
+        // FindFirstChild / WaitForChild / FindFirstDescendant — show sourcemap children
+        {
+          const childCallMatch = lineText.match(/(\w+)\s*[:.]\s*(?:FindFirstChild|WaitForChild|FindFirstDescendant)\s*\(\s*["']\w*$/);
+          if (childCallMatch) {
+            const objName = childCallMatch[1];
+            // Look up children: direct smTree entry, or resolve through globals (game → smTree["game"])
+            const children = smTree[objName] || [];
+            if (children.length > 0) {
+              const names = partial
+                ? children.filter(n => n.toLowerCase().startsWith(partial.toLowerCase()))
+                : children;
+              if (names.length > 0) {
+                callback({ list: names.sort().map(n => ({ text: n, displayText: n })), from: fromPos, to: toPos });
+                return;
+              }
+            }
+          }
         }
 
         // Fall through to WASM — it knows union/literal types from context (e.g. a: "A"|"B")
@@ -1177,13 +1701,13 @@
         return;
       }
 
-      const isDot    = charPrev === "." || charPrev === ":";
-      const tokenStr   = token.string.slice(0, cur.ch - token.start);
-      const sepIdx     = Math.max(tokenStr.lastIndexOf("."), tokenStr.lastIndexOf(":"));
+      const isDot = charPrev === "." || charPrev === ":";
+      const tokenStr = token.string.slice(0, cur.ch - token.start);
+      const sepIdx = Math.max(tokenStr.lastIndexOf("."), tokenStr.lastIndexOf(":"));
       const hasSepInToken = sepIdx > 0;
       const word = isDot ? "" : hasSepInToken ? tokenStr.slice(sepIdx + 1) : tokenStr;
       const from = CodeMirror.Pos(cur.line, isDot ? cur.ch : hasSepInToken ? token.start + sepIdx + 1 : token.start);
-      const to   = CodeMirror.Pos(cur.line, cur.ch);
+      const to = CodeMirror.Pos(cur.line, cur.ch);
 
       // ── Type annotation context: "local x: Rep..." or "local x:" ──
       // Detect "local varName :" pattern on this line (not a method call)
@@ -1198,7 +1722,7 @@
 
         if (isAnnotColon || isAnnotWord) {
           // Primitives first, then class names
-          const PRIMITIVES = ["any","boolean","buffer","never","nil","number","string","thread","unknown","void"];
+          const PRIMITIVES = ["any", "boolean", "buffer", "never", "nil", "number", "string", "thread", "unknown", "void"];
           const classNames = Object.keys(classMembers);
           let typeNames = [...PRIMITIVES, ...classNames.filter(n => !PRIMITIVES.includes(n))];
           if (word) typeNames = typeNames.filter(t => t.toLowerCase().startsWith(word.toLowerCase()));
@@ -1209,170 +1733,13 @@
         }
       }
 
-      // ── Roblox member access: game. / workspace. / game:GetService / etc. ──
-      let robloxTarget = null;
-      if (isDot || hasSepInToken) {
-        // Separator is the char before cursor, or is inside the token (e.g. "game.Get...")
-        const before = isDot ? line.slice(0, cur.ch - 1) : line.slice(token.start, token.start + sepIdx);
-        const m = before.match(/(\w+)\s*$/);
-        robloxTarget = m ? m[1] : null;
-      } else {
-        // CM5 splits "game:method" into separate tokens — look backward from token start
-        const lineBeforeToken = line.slice(0, token.start);
-        const m = lineBeforeToken.match(/(\w+)\s*[.:]\s*$/);
-        robloxTarget = m ? m[1] : null;
-      }
-      // Detect whether access was via ":" (method-call) or "." (property/method)
-      const isColonAccess = (() => {
-        if (isDot) return charPrev === ":";
-        if (hasSepInToken) return tokenStr[sepIdx] === ":";
-        return /\w\s*:\s*$/.test(line.slice(0, token.start)); // separate tokens: "x:Foo"
-      })();
+      // Whether this is a member-access context (game., x., etc.)
+      const hadMemberTarget = isDot || hasSepInToken
+        || /\w\s*[.:]\s*$/.test(line.slice(0, token.start));
 
-      if (robloxTarget) {
-        let memberList       = null;
-        let resolvedTypeName = null;
-
-        // 1. Known Roblox global (game, workspace, Instance, etc.) + JS-side sourcemap children
-        if (globalMembers[robloxTarget]) {
-          memberList       = [...globalMembers[robloxTarget]];
-          resolvedTypeName = globalTypeOf[robloxTarget] || robloxTarget;
-        }
-        // Merge sourcemap children from the JS-parsed smTree (handles game.Foo and Foo.Bar).
-        // Also merge the Roblox class members for the node's className so colon access and FFC work.
-        if (smTree[robloxTarget]) {
-          if (!memberList) {
-            const nodeClass = smClassOf[robloxTarget];
-            if (nodeClass && classMembers[nodeClass]) {
-              memberList = [...classMembers[nodeClass]];
-              resolvedTypeName = nodeClass;
-            } else {
-              memberList = [];
-            }
-          }
-          const existing = new Set(memberList);
-          for (const n of smTree[robloxTarget]) {
-            if (!existing.has(n)) memberList.push(n);
-          }
-        }
-
-        const code = cm.getValue();
-
-        // 2. Local variable typed via Instance.new("ClassName")
-        if (!memberList) {
-          const localRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
-          for (const m of code.matchAll(localRe)) {
-            if (m[1] === robloxTarget && classMembers[m[2]]) {
-              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
-            }
-          }
-        }
-
-        // 3. Local variable with type annotation: local x: BasePart
-        if (!memberList) {
-          const annotRe = /\blocal\s+(\w+)\s*:\s*(\w+)/g;
-          for (const m of code.matchAll(annotRe)) {
-            if (m[1] === robloxTarget && classMembers[m[2]]) {
-              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
-            }
-          }
-        }
-
-        // 4. Local variable assigned from a known global: local x = game
-        if (!memberList) {
-          const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
-          for (const m of code.matchAll(assignRe)) {
-            if (m[1] === robloxTarget && globalMembers[m[2]]) {
-              memberList = globalMembers[m[2]]; resolvedTypeName = globalTypeOf[m[2]] || m[2]; break;
-            }
-          }
-        }
-
-        // 5. Local variable from ClassName.method(...): local img = Image.new(...) / Image.fromPng(...)
-        if (!memberList) {
-          const newRe = /\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g;
-          for (const m of code.matchAll(newRe)) {
-            if (m[1] === robloxTarget && classMembers[m[2]]) {
-              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
-            }
-          }
-        }
-
-        // 6. local a = game:GetService("HttpService") / obj:Method("ClassName") returning a typed value
-        if (!memberList) {
-          const svcRe = /\blocal\s+(\w+)\s*=\s*\w+:\w+\s*\(\s*["'](\w+)["']\s*\)/g;
-          for (const m of code.matchAll(svcRe)) {
-            if (m[1] === robloxTarget && classMembers[m[2]]) {
-              memberList = classMembers[m[2]]; resolvedTypeName = m[2]; break;
-            }
-          }
-        }
-
-        // 7. local x = obj.Member — resolve via sourcemap className or Roblox class name
-        if (!memberList) {
-          const propRe = /\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm;
-          for (const m of code.matchAll(propRe)) {
-            if (m[1] === robloxTarget) {
-              const propName  = m[2];
-              const className = smClassOf[propName] || propName;
-              // Start with Roblox class members (enables colon filter + FFC for methods)
-              if (classMembers[className]) {
-                memberList = [...classMembers[className]];
-                resolvedTypeName = className;
-              }
-              // Merge sourcemap children (e.g. ClientRuntime, tests, ...)
-              if (smTree[propName]) {
-                if (!memberList) memberList = [];
-                const existing = new Set(memberList);
-                for (const n of smTree[propName]) {
-                  if (!existing.has(n)) memberList.push(n);
-                }
-              }
-              if (memberList) break;
-            }
-          }
-        }
-
-        if (memberList) {
-          let names = memberList;
-          // ":" syntax → only methods (functions), not properties
-          if (isColonAccess && resolvedTypeName) {
-            const sigs = sigsOf[resolvedTypeName] || {};
-            names = names.filter(n => (sigs[n] || "").startsWith("function "));
-          }
-          if (word) names = names.filter(n => n.toLowerCase().startsWith(word.toLowerCase()));
-          if (names.length > 0) {
-            const typeSigs = resolvedTypeName ? (sigsOf[resolvedTypeName] || {}) : {};
-            const list = names.map(n => {
-              const sig = typeSigs[n] || "";
-              // Functions get "()" auto-appended with cursor placed inside
-              const isFunc = sig.startsWith("function ") || sig.startsWith("(");
-              if (!isFunc) return n;
-              return {
-                text: n,
-                hint(cm, data, completion) {
-                  cm.replaceRange(n, data.from, data.to);
-                  const cur = cm.getCursor();
-                  cm.replaceRange("()", cur, cur);
-                  cm.setCursor(CodeMirror.Pos(cur.line, cur.ch + 1));
-                },
-              };
-            });
-            callback({ list, from, to });
-            return;
-          }
-        }
-        // No Roblox match — fall through to WASM
-      }
-
-      // Whether we identified a member-access target (even if static maps had no match)
-      // Used below to suppress merging top-level globals into WASM member completions
-      const hadMemberTarget = robloxTarget !== null || isColonAccess || isDot || hasSepInToken;
-
-      // ── WASM completion (user-defined variable type inference) ──
-      // Skip WASM round-trip entirely if worker isn't ready yet — static maps handle everything else
+      // ── WASM handles all type inference (member access, locals, generics, etc.) ──
+      // Before WASM is ready, serve basic globals from static maps only.
       if (!workerReady) {
-        // Top-level: serve all known globals from static maps only
         if (!hadMemberTarget) {
           const pairs = allGlobals
             .filter(g => !word || g.toLowerCase().startsWith(word.toLowerCase()))
@@ -1380,7 +1747,7 @@
           if (pairs.length === 0) { callback(null); return; }
           callback({ list: pairs, from, to });
         } else {
-          callback(null); // member access but WASM not ready — no completions yet
+          callback(null);
         }
         return;
       }
@@ -1389,14 +1756,15 @@
           const raw = data.result;
           if (!raw) { callback(null); return; }
 
-          // Build { text, detail } pairs preserving WASM detail (type signatures)
+          // Build { text, detail, deprecated } pairs from WASM items
           let pairs = [];
           if (raw.items) {
             for (const e of raw.items) {
               const text = typeof e === "string" ? e : (e.label ?? e.name ?? e.insertText ?? "");
-              // Combine labelDetails (params) + detail (return type) if available
               let detail = "";
+              let deprecated = false;
               if (typeof e === "object") {
+                deprecated = !!e.deprecated;
                 const ld = e.labelDetails;
                 if (ld?.detail || ld?.description) {
                   detail = [ld.detail, ld.description].filter(Boolean).join(" ");
@@ -1404,60 +1772,49 @@
                   detail = e.detail ?? "";
                 }
               }
-              if (text) pairs.push({ text, detail });
+              if (text) pairs.push({ text, detail, deprecated });
             }
           } else if (Array.isArray(raw)) {
-            pairs = raw.map(e => ({ text: typeof e === "string" ? e : (e.label ?? e.name ?? ""), detail: "" }));
+            pairs = raw.map(e => ({ text: typeof e === "string" ? e : (e.label ?? e.name ?? ""), detail: "", deprecated: false }));
           } else {
-            pairs = Object.keys(raw.entries ?? raw).map(k => ({ text: k, detail: "" }));
+            pairs = Object.keys(raw.entries ?? raw).map(k => ({ text: k, detail: "", deprecated: false }));
           }
 
-          // For top-level (not member access), merge in all known Roblox globals
-          if (!hadMemberTarget) {
+          // For top-level (not member access), merge static globals only before
+          // WASM definitions are loaded. Once defsReady, WASM returns its own globals
+          // and the static maps may contain stale entries from disabled type sources.
+          if (!hadMemberTarget && !defsReady) {
             const existing = new Set(pairs.map(p => p.text));
             for (const g of allGlobals) {
               if (!existing.has(g)) pairs.push({ text: g, detail: "" });
             }
+          }
 
-            // Enrich local variables: replace *error-type* / empty detail with our resolved type
-            const code = cm.getValue();
-            const localTypeMap = new Map();
-            const patterns = [
-              // Instance.new("ClassName")
-              [/\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
-              // Type annotation: local x: Type
-              [/\blocal\s+(\w+)\s*:\s*(\w+)/g, (m) => classMembers[m[2]] ? m[2] : null],
-              // Assigned from global: local x = game
-              [/\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm, (m) => globalMembers[m[2]] ? (globalTypeOf[m[2]] || m[2]) : null],
-              // Constructor call: local x = ClassName.method(...)
-              [/\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g, (m) => classMembers[m[2]] ? m[2] : null],
-              // Colon call with string arg: local x = game:GetService("Svc")
-              [/\blocal\s+(\w+)\s*=\s*\w+:\w+\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
-              // Property access: local x = obj.Member — resolve via sourcemap or class name
-              [/\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm, (m) => {
-                const className = smClassOf[m[2]] || m[2];
-                return classMembers[className] ? className : null;
-              }],
-            ];
-            for (const [re, resolve] of patterns) {
-              for (const m of code.matchAll(re)) {
-                if (!localTypeMap.has(m[1])) {
-                  const t = resolve(m);
-                  if (t) localTypeMap.set(m[1], t);
-                }
-              }
-            }
+          // Detect deprecated-by-convention: if both "foo" and "Foo" exist,
+          // the camelCase variant is the deprecated Roblox alias.
+          if (hadMemberTarget) {
+            const nameSet = new Set(pairs.map(p => p.text));
             for (const p of pairs) {
-              if (localTypeMap.has(p.text)) {
-                // Replace if WASM detail is absent, an error, or a generic type variable like 'a/'T
-                const unresolved = !p.detail || p.detail.includes("*error-type*") || /^'[a-zA-Z]/.test(p.detail);
-                if (unresolved) p.detail = localTypeMap.get(p.text);
+              if (!p.deprecated && p.text[0] === p.text[0].toLowerCase() && /^[a-z]/.test(p.text)) {
+                const pascal = p.text[0].toUpperCase() + p.text.slice(1);
+                if (nameSet.has(pascal)) p.deprecated = true;
               }
             }
           }
 
           if (word) pairs = pairs.filter(p => p.text.toLowerCase().startsWith(word.toLowerCase()));
-          pairs.sort((a, b) => a.text.localeCompare(b.text));
+          // Sort: non-deprecated first, then deprecated. Within each group,
+          // PascalCase before camelCase (so GetService beats getService).
+          pairs.sort((a, b) => {
+            if (a.deprecated !== b.deprecated) return a.deprecated ? 1 : -1;
+            // If same name ignoring case, uppercase-first wins (PascalCase convention)
+            if (a.text.toLowerCase() === b.text.toLowerCase()) {
+              const aUpper = a.text[0] === a.text[0].toUpperCase();
+              const bUpper = b.text[0] === b.text[0].toUpperCase();
+              if (aUpper !== bUpper) return aUpper ? -1 : 1;
+            }
+            return a.text.localeCompare(b.text);
+          });
 
           if (pairs.length === 0) { callback(null); return; }
 
@@ -1468,10 +1825,11 @@
             const obj = {
               text: p.text,
               render(el) {
+                if (p.deprecated) el.classList.add("cm-hint-deprecated");
                 const name = document.createElement("span");
                 name.textContent = p.text;
                 el.appendChild(name);
-                if (p.detail && !p.detail.includes("*error-type*")) {
+                if (p.detail) {
                   // Strip "(function) foo: " / "(method) foo: " LSP kind prefix if present
                   const sig = p.detail
                     .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*[^:]+:\s*/, "")
@@ -1485,7 +1843,7 @@
             };
             // Auto-insert "()" with cursor placed inside for callable completions
             if (isFunc) {
-              obj.hint = function(cm, data, completion) {
+              obj.hint = function (cm, data, completion) {
                 cm.replaceRange(p.text, data.from, data.to);
                 const cur = cm.getCursor();
                 cm.replaceRange("()", cur, cur);
@@ -1509,16 +1867,16 @@
         .then(data => {
           const diags = (data.result || [])
             .filter(d => {
-              const unknownType   = d.message.match(/Unknown type '(\w+)'/);
-              if (unknownType   && (classMembers[unknownType[1]]   || globalMembers[unknownType[1]]))   return false;
+              const unknownType = d.message.match(/Unknown type '(\w+)'/);
+              if (unknownType && (classMembers[unknownType[1]] || globalMembers[unknownType[1]])) return false;
               const unknownGlobal = d.message.match(/Unknown global '(\w+)'/);
               if (unknownGlobal && allGlobals.includes(unknownGlobal[1])) return false;
               return true;
             })
             .map(d => ({
-              from:     CodeMirror.Pos(d.range.start.line, d.range.start.character),
-              to:       CodeMirror.Pos(d.range.end.line,   d.range.end.character),
-              message:  d.message,
+              from: CodeMirror.Pos(d.range.start.line, d.range.start.character),
+              to: CodeMirror.Pos(d.range.end.line, d.range.end.character),
+              message: d.message,
               severity: d.severity === 1 ? "error" : d.severity === 2 ? "warning" : "info",
             }));
           callback(diags);
@@ -1528,13 +1886,13 @@
     CodeMirror.registerHelper("lint", "luau", luauLint);
 
     // ── Luau = Lua + extra keywords overlay ──
-    CodeMirror.defineMode("luau", function(config) {
+    CodeMirror.defineMode("luau", function (config) {
       const lua = CodeMirror.getMode(config, "lua");
       const luauRe = /^(?:type|export|continue)\b/;
       return CodeMirror.overlayMode(lua, {
         token(stream) {
           if (stream.match(luauRe)) return "luau-kw";
-          while (stream.next() != null && !stream.match(luauRe, false)) {}
+          while (stream.next() != null && !stream.match(luauRe, false)) { }
           return null;
         }
       });
@@ -1553,21 +1911,21 @@
       gutters: ["CodeMirror-lint-markers", "CodeMirror-linenumbers"],
       lint: false,
       autoCloseBrackets: {
-        pairs:       '()[]{}\'\'""``',
+        pairs: '()[]{}\'\'""``',
         closeBefore: ')]}\'"`',
-        triples:     '',
-        explode:     '[]{}()',
+        triples: '',
+        explode: '[]{}()',
       },
       extraKeys: {
         Tab: cm => cm.execCommand("insertSoftTab"),
         "Ctrl-Space": cm => CodeMirror.showHint(cm, luauHint, { completeSingle: false }),
         "Enter": cm => {
           // Auto-close Luau blocks: "do", "then", "function ... )" → insert end
-          const cur     = cm.getCursor();
-          const line    = cm.getLine(cur.line);
-          const typed   = line.slice(0, cur.ch).trimEnd();
-          const indent  = line.match(/^\s*/)[0];
-          const inner   = indent + "  ";
+          const cur = cm.getCursor();
+          const line = cm.getLine(cur.line);
+          const typed = line.slice(0, cur.ch).trimEnd();
+          const indent = line.match(/^\s*/)[0];
+          const inner = indent + "  ";
 
           const opensBlock =
             /\bdo\s*$/.test(typed) ||
@@ -1586,7 +1944,7 @@
 
     // ── Linter toggle (persisted) ──
     const lintCheck = document.getElementById("lintCheck");
-    const LINT_CFG  = { async: true, getAnnotations: luauLint, delay: 600 };
+    const LINT_CFG = { async: true, getAnnotations: luauLint, delay: 600 };
     lintCheck.checked = localStorage.getItem("luau_linter") === "1";
     if (lintCheck.checked) {
       editor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers"]);
@@ -1611,7 +1969,7 @@
       const writer = cs.writable.getWriter();
       writer.write(bytes); writer.close();
       const chunks = []; const reader = cs.readable.getReader();
-      for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+      for (; ;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
       const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
       let off = 0; for (const c of chunks) { out.set(c, off); off += c.length; }
       let s = ""; for (let i = 0; i < out.length; i++) s += String.fromCharCode(out[i]);
@@ -1624,7 +1982,7 @@
       const writer = ds.writable.getWriter();
       writer.write(bytes); writer.close();
       const chunks = []; const reader = ds.readable.getReader();
-      for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+      for (; ;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
       const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
       let off = 0; for (const c of chunks) { out.set(c, off); off += c.length; }
       return JSON.parse(new TextDecoder().decode(out));
@@ -1637,7 +1995,7 @@
     // ── Load from URL hash if present (overrides localStorage) ──
     // When embedded in an iframe the hash lives on the parent page
     let urlHash = location.hash.slice(1);
-    try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch {}
+    try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch { }
     if (urlHash) {
       decompressFromB64(urlHash).then(state => {
         if (typeof state.c === "string") editor.setValue(state.c);
@@ -1647,10 +2005,16 @@
         }
         if (state.s !== undefined) localStorage.setItem("luau_solver", state.s ? "1" : "0");
         if (state.t !== undefined) { timestampCheck.checked = !!state.t; localStorage.setItem("luau_timestamp", state.t ? "1" : "0"); }
+        // Restore roblox/bot type toggles
+        if (state.r !== undefined) localStorage.setItem("luau_no_roblox", state.r ? "0" : "1");
+        if (state.b !== undefined) localStorage.setItem("luau_no_bot", state.b ? "0" : "1");
+        // Restore shared sourcemap and custom definitions
+        if (state.sm) { localStorage.setItem("luau_sourcemap", state.sm); buildSmTree(state.sm); applySmLoaded(true); }
+        if (state.cd) { localStorage.setItem("luau_custom_defs", state.cd); applyDefsLoaded(true); }
         try {
           const target = (window.parent !== window) ? window.parent.history : history;
           target.replaceState(null, "", location.pathname.replace(/playground\.html$/, "playground/"));
-        } catch {}
+        } catch { }
       }).catch(() => { /* invalid hash */ });
     }
     let saveTimer = null;
@@ -1660,12 +2024,12 @@
     });
 
     // ── Settings popover ──
-    const settingsBtn     = document.getElementById("settingsBtn");
+    const settingsBtn = document.getElementById("settingsBtn");
     const settingsPopover = document.getElementById("settings-popover");
 
     function openSettingsPopover() {
       const rect = settingsBtn.getBoundingClientRect();
-      settingsPopover.style.top   = (rect.bottom + 6) + "px";
+      settingsPopover.style.top = (rect.bottom + 6) + "px";
       settingsPopover.style.right = (window.innerWidth - rect.right) + "px";
       settingsPopover.classList.add("open");
     }
@@ -1682,16 +2046,16 @@
     });
 
     // ── Sourcemap modal ──
-    const smRow        = document.getElementById("smRow");
-    const smLabel      = document.getElementById("smLabel");
-    const smStatusEl   = document.getElementById("smStatus");
-    const smBackdrop   = document.getElementById("sm-backdrop");
-    const smModal      = document.getElementById("sm-modal");
-    const smEditor     = document.getElementById("sm-editor");
-    const smSaveBtn    = document.getElementById("smSaveBtn");
-    const smResetBtn   = document.getElementById("smResetBtn");
+    const smRow = document.getElementById("smRow");
+    const smLabel = document.getElementById("smLabel");
+    const smStatusEl = document.getElementById("smStatus");
+    const smBackdrop = document.getElementById("sm-backdrop");
+    const smModal = document.getElementById("sm-modal");
+    const smEditor = document.getElementById("sm-editor");
+    const smSaveBtn = document.getElementById("smSaveBtn");
+    const smResetBtn = document.getElementById("smResetBtn");
     const smModalClose = document.getElementById("smModalClose");
-    const smErrorEl    = document.getElementById("sm-error");
+    const smErrorEl = document.getElementById("sm-error");
 
     function applySmLoaded(loaded) {
       smLabel.classList.toggle("loaded", loaded);
@@ -1726,7 +2090,7 @@
         closeSmModal();
         return;
       }
-      try { JSON.parse(json); } catch(err) {
+      try { JSON.parse(json); } catch (err) {
         smErrorEl.textContent = "Invalid JSON: " + err.message;
         return;
       }
@@ -1734,8 +2098,13 @@
       smActive = true;
       buildSmTree(json);
       applySmLoaded(true);
-      if (workerReady) workerRequest({ type: "set_sourcemap", json }).catch(() => {});
       closeSmModal();
+      if (workerReady) {
+        statusEl.textContent = "Loading sourcemap...";
+        workerRequest({ type: "set_sourcemap", json })
+          .then(() => { statusEl.textContent = ""; if (lintCheck.checked) editor.performLint(); })
+          .catch(() => { statusEl.textContent = ""; });
+      }
     });
 
     smResetBtn.addEventListener("click", () => {
@@ -1745,38 +2114,260 @@
       smActive = false;
       buildSmTree(null);
       applySmLoaded(false);
-      if (workerReady) workerRequest({ type: "set_sourcemap", json: null }).catch(() => {});
+      if (workerReady) {
+        statusEl.textContent = "Clearing sourcemap...";
+        workerRequest({ type: "set_sourcemap", json: null })
+          .then(() => { statusEl.textContent = ""; if (lintCheck.checked) editor.performLint(); })
+          .catch(() => { statusEl.textContent = ""; });
+      }
     });
 
     document.addEventListener("keydown", e => {
       if (e.key === "Escape" && smModal.classList.contains("open")) closeSmModal();
+      if (e.key === "Escape" && defsModal.classList.contains("open")) closeDefsModal();
+    });
+
+    // ── Custom definitions modal ──
+    const defsRow = document.getElementById("defsRow");
+    const defsLabel = document.getElementById("defsLabel");
+    const defsStatusEl = document.getElementById("defsStatus");
+    const defsBackdrop = document.getElementById("defs-backdrop");
+    const defsModal = document.getElementById("defs-modal");
+    const defsEditor = document.getElementById("defs-editor");
+    const defsSaveBtn = document.getElementById("defsSaveBtn");
+    const defsResetBtn = document.getElementById("defsResetBtn");
+    const defsModalClose = document.getElementById("defsModalClose");
+    const defsErrorEl = document.getElementById("defs-error");
+
+    function applyDefsLoaded(loaded) {
+      defsLabel.classList.toggle("loaded", loaded);
+      defsStatusEl.classList.toggle("loaded", loaded);
+      defsStatusEl.textContent = loaded ? "Loaded" : "—";
+    }
+    applyDefsLoaded(!!localStorage.getItem("luau_custom_defs"));
+
+    function openDefsModal() {
+      defsEditor.value = localStorage.getItem("luau_custom_defs") || "";
+      defsErrorEl.textContent = "";
+      defsBackdrop.classList.add("open");
+      defsModal.classList.add("open");
+      defsEditor.focus();
+      closeSettingsPopover();
+    }
+    function closeDefsModal() {
+      defsBackdrop.classList.remove("open");
+      defsModal.classList.remove("open");
+    }
+
+    defsRow.addEventListener("click", openDefsModal);
+    defsModalClose.addEventListener("click", closeDefsModal);
+    defsBackdrop.addEventListener("click", closeDefsModal);
+
+    function loadCustomDefs(source) {
+      if (!workerReady) return;
+      statusEl.textContent = "Loading custom definitions...";
+      workerRequest({ type: "add_definitions", name: "@custom", source })
+        .then(() => {
+          statusEl.textContent = "";
+          if (lintCheck.checked) editor.performLint();
+        })
+        .catch(() => { statusEl.textContent = ""; });
+    }
+
+    defsSaveBtn.addEventListener("click", () => {
+      const source = defsEditor.value.trim();
+      if (!source) {
+        localStorage.removeItem("luau_custom_defs");
+        applyDefsLoaded(false);
+        closeDefsModal();
+        // Full reinit clears the WASM definition list and rebuilds from toggles
+        if (workerReady) {
+          defsReady = false;
+          statusEl.textContent = "Reloading definitions...";
+          window.sendInitToWorker();
+        }
+        return;
+      }
+      localStorage.setItem("luau_custom_defs", source);
+      applyDefsLoaded(true);
+      closeDefsModal();
+      loadCustomDefs(source);
+    });
+
+    defsResetBtn.addEventListener("click", () => {
+      defsEditor.value = "";
+      defsErrorEl.textContent = "";
+      localStorage.removeItem("luau_custom_defs");
+      applyDefsLoaded(false);
+      if (workerReady) {
+        defsReady = false;
+        statusEl.textContent = "Reloading definitions...";
+        window.sendInitToWorker();
+      }
+    });
+
+    // ── Format button ──
+    document.getElementById("fmtBtn").addEventListener("click", async function () {
+      const code = editor.getValue();
+      if (!code.trim()) return;
+      this.disabled = true;
+      this.textContent = "Formatting...";
+      try {
+        const res = await fetch(`${SERVER}/format`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+        if (res.ok) {
+          const { formatted } = await res.json();
+          if (formatted) {
+            const cur = editor.getCursor();
+            editor.setValue(formatted);
+            editor.setCursor(cur);
+          }
+        }
+        // Silently ignore errors (format failures, rate limits)
+      } catch { }
+      this.disabled = false;
+      this.textContent = "Format";
     });
 
     // ── Share button ──
-    document.getElementById("shareBtn").addEventListener("click", async function() {
+    const MAX_EMBEDDED_STATE_CHARS = 50000;
+
+    function getEmbeddedStateForSave(promptOnLarge = false) {
+      const state = {};
+      const sm = localStorage.getItem("luau_sourcemap");
+      const cd = localStorage.getItem("luau_custom_defs");
+      const largeParts = [];
+
+      if (sm) {
+        if (sm.length > MAX_EMBEDDED_STATE_CHARS) largeParts.push(`Sourcemap: ${sm.length.toLocaleString()} chars`);
+        else state.sm = sm;
+      }
+      if (cd) {
+        if (cd.length > MAX_EMBEDDED_STATE_CHARS) largeParts.push(`Custom definitions: ${cd.length.toLocaleString()} chars`);
+        else state.cd = cd;
+      }
+
+      if (promptOnLarge && largeParts.length > 0) {
+        const includeLarge = window.confirm(
+          `These saved values are large and may be difficult to store or share:\n` +
+          largeParts.map(part => `- ${part}`).join("\n") +
+          `\n\nHint: OK includes them anyway. Cancel gives you a link without them.`
+        );
+        if (includeLarge) {
+          if (sm) state.sm = sm;
+          if (cd) state.cd = cd;
+        }
+      }
+
+      return state;
+    }
+
+    const HISTORY_CACHE_KEY = "luau_history_cache";
+
+    function loadHistoryCache() {
+      try {
+        const cache = JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY)) || {};
+        cache.sm = cache.sm || {};
+        cache.cd = cache.cd || {};
+        return cache;
+      } catch {
+        return { sm: {}, cd: {} };
+      }
+    }
+
+    function saveHistoryCache(cache) {
+      localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(cache));
+    }
+
+    function cacheKeyFor(text) {
+      let hash = 2166136261;
+      for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return `${(hash >>> 0).toString(36)}-${text.length}`;
+    }
+
+    function cacheEmbeddedText(kind, text) {
+      if (!text) return null;
+      const cache = loadHistoryCache();
+      const bucket = cache[kind];
+      const baseKey = cacheKeyFor(text);
+      let key = baseKey;
+      let index = 1;
+
+      while (bucket[key] && bucket[key].text !== text) {
+        key = `${baseKey}-${index++}`;
+      }
+
+      if (bucket[key]) bucket[key].refs += 1;
+      else bucket[key] = { text, refs: 1 };
+
+      saveHistoryCache(cache);
+      return key;
+    }
+
+    function releaseEmbeddedText(kind, key) {
+      if (!key) return;
+      const cache = loadHistoryCache();
+      const bucket = cache[kind];
+      const item = bucket[key];
+      if (!item) return;
+      item.refs -= 1;
+      if (item.refs <= 0) delete bucket[key];
+      saveHistoryCache(cache);
+    }
+
+    function clearEmbeddedCache() {
+      localStorage.removeItem(HISTORY_CACHE_KEY);
+    }
+
+    function resolveEmbeddedText(entry, kind) {
+      const refKey = kind === "sm" ? entry.smRef : entry.cdRef;
+      if (refKey) {
+        const cache = loadHistoryCache();
+        const item = cache[kind][refKey];
+        if (item?.text) return item.text;
+      }
+      return kind === "sm" ? entry.sm : entry.cd;
+    }
+
+    document.getElementById("shareBtn").addEventListener("click", async function () {
       const state = {
         c: editor.getValue(),
         l: lintCheck.checked ? 1 : 0,
         s: document.getElementById("solverCheck")?.checked ? 1 : 0,
         t: timestampCheck.checked ? 1 : 0,
+        r: document.getElementById("robloxDefsCheck")?.checked ? 1 : 0,
+        b: document.getElementById("botDefsCheck")?.checked ? 1 : 0,
+        ...getEmbeddedStateForSave(true),
       };
+
       const encoded = await compressToB64(state);
-      // If loaded inside an iframe, build URL from the parent page instead
       const base = (window.parent !== window && document.referrer)
         ? new URL(document.referrer).origin + new URL(document.referrer).pathname
         : location.origin + location.pathname.replace(/playground\.html$/, "playground/");
       const url = base.replace(/\/$/, "") + "/#" + encoded;
-      await navigator.clipboard.writeText(url);
-      this.textContent = "Copied!";
-      setTimeout(() => { this.innerHTML = "&#128279; Share"; }, 2000);
+      try {
+        await navigator.clipboard.writeText(url);
+        this.textContent = "Copied!";
+        setTimeout(() => { this.innerHTML = "&#128279; Share"; }, 2000);
+      } catch {
+        window.prompt("Copy failed. Use this link instead:", url);
+        this.textContent = "Copy failed";
+        setTimeout(() => { this.innerHTML = "&#128279; Share"; }, 2000);
+      }
     });
 
     // Auto-trigger autocomplete and auto-close brackets/quotes on change.
     // Using "change" (not "keyup") so mobile virtual keyboards work too.
     const AUTO_CLOSE_MAP = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
-    const CLOSE_BEFORE   = new Set([...')]}\'"`', ',', '.', ';', ':', ' ', '']);
+    const CLOSE_BEFORE = new Set([...')]}\'"`', ',', '.', ';', ':', ' ', '']);
 
-    editor.on("change", function(cm, change) {
+    editor.on("change", function (cm, change) {
       if (change.origin !== "+input" && change.origin !== "*compose") return;
       const inserted = change.text ? change.text.join("") : "";
       if (!inserted) return;
@@ -1786,8 +2377,8 @@
       // the pair as one two-char change, so inserted.length > 1 there → we skip).
       if (inserted.length === 1 && AUTO_CLOSE_MAP[inserted]) {
         const closeChar = AUTO_CLOSE_MAP[inserted];
-        const cur       = cm.getCursor();
-        const nextChar  = cm.getLine(cur.line).charAt(cur.ch) || "";
+        const cur = cm.getCursor();
+        const nextChar = cm.getLine(cur.line).charAt(cur.ch) || "";
         // Close only when cursor is at end / before whitespace or punctuation,
         // and the close char isn't already there (desktop autoClose guard).
         if (nextChar !== closeChar && CLOSE_BEFORE.has(nextChar)) {
@@ -1796,11 +2387,17 @@
         }
       }
 
+      // ── Auto-trigger signature help for ( and , on mobile ──
+      if ((inserted === "(" || inserted === ",") && staticReady) {
+        // Simulate the keyup-based sig-help by dispatching a synthetic keyup
+        editor.getInputField().dispatchEvent(new KeyboardEvent("keyup", { key: inserted }));
+      }
+
       // ── Auto-trigger autocomplete ──
       if (cm.state.completionActive) return;
-      const isDot  = inserted === "." || inserted === ":";
+      const isDot = inserted === "." || inserted === ":";
       const isWord = /^[a-zA-Z_]$/.test(inserted);
-      const isStr  = inserted === '"' || inserted === "'";
+      const isStr = inserted === '"' || inserted === "'";
       if (!isDot && !isWord && !isStr) return;
       if (!staticReady) return;
       CodeMirror.showHint(cm, luauHint, { completeSingle: false });
@@ -1818,140 +2415,111 @@
       sigHelp.innerHTML = content;
       sigHelp.style.display = "block";
       sigHelp.style.left = coords.left + "px";
-      sigHelp.style.top  = (coords.bottom + 4) + "px";
+      sigHelp.style.top = (coords.bottom + 4) + "px";
     }
 
-    // Find the function being called: returns { pos, name, obj } or null
-    function getFuncInfo(cm) {
-      const cur  = cm.getCursor();
+    // Find the opening "(" for the current call: returns { parenCol, line } or null
+    function findOpenParen(cm) {
+      const cur = cm.getCursor();
       const line = cm.getLine(cur.line);
       let depth = 0, i = cur.ch - 1;
       while (i >= 0) {
         const c = line[i];
         if (c === ")") depth++;
-        else if (c === "(") { if (depth === 0) break; depth--; }
+        else if (c === "(") { if (depth === 0) return { parenCol: i, line: cur.line }; depth--; }
         i--;
       }
-      if (i < 0) return null;
-      // i is at "(". Get the token just before it (the function name).
-      const tok = cm.getTokenAt(CodeMirror.Pos(cur.line, i));
-      if (!tok || !tok.string.trim()) return null;
-
-      // CM5 Lua mode may give "table.insert" as one token OR just "insert" as separate.
-      // Split on . or : to get obj and name either way.
-      const parts = tok.string.split(/[.:]/);
-      const name = parts[parts.length - 1];
-      let obj = parts.length > 1 ? parts[0] : null;
-
-      // If tok was a bare identifier (no separator inside), look backward in the line
-      if (!obj) {
-        const lineBeforeTok = line.slice(0, tok.start);
-        const m = lineBeforeTok.match(/(\w+)\s*[.:]\s*$/);
-        obj = m ? m[1] : name;
-      }
-
-      // Hover col: position inside the function-name portion of the token.
-      // Clamp to tok.end-1 so single-char names like "x" don't land past the token.
-      const nameOffset = tok.string.lastIndexOf(name);
-      const hoverCh = Math.min(tok.start + nameOffset + 1, tok.end - 1);
-      return { pos: { line: cur.line, ch: hoverCh }, name, obj };
+      return null;
     }
 
-    editor.on("keyup", function(cm, event) {
+    // Resolve a static Roblox signature for obj.name / obj:name
+    // Checks local patterns first so local shadows (e.g. local game: ReplicatedStorage) win.
+    function resolveStaticSig(cm, obj, name) {
+      let resolvedType = null;
+      const code = cm.getValue();
+      const patterns = [
+        [/\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
+        [/\blocal\s+(\w+)\s*:\s*(\w+)/g, (m) => classMembers[m[2]] ? m[2] : null],
+        [/\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm, (m) => globalMembers[m[2]] ? (globalTypeOf[m[2]] || m[2]) : null],
+        [/\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g, (m) => classMembers[m[2]] ? m[2] : null],
+        [/\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm, (m) => { const c = smClassOf[m[2]] || m[2]; return classMembers[c] ? c : null; }],
+      ];
+      for (const [re, resolve] of patterns) {
+        for (const m of code.matchAll(re)) {
+          if (m[1] === obj) { const t = resolve(m); if (t) { resolvedType = t; break; } }
+        }
+        if (resolvedType) break;
+      }
+      // Fall back to globals only if no local shadow found
+      if (!resolvedType && globalMembers[obj]) resolvedType = globalTypeOf[obj] || obj;
+      if (resolvedType && name) return (sigsOf[resolvedType] || {})[name] || null;
+      return null;
+    }
+
+    editor.on("keyup", function (cm, event) {
       if (!staticReady) return;
       if (event.ctrlKey || event.altKey || event.metaKey) return;
       if (event.key === "Escape") { hideSig(); return; }
 
       const shouldShowSig = event.key === "(" || event.key === ",";
       if (!shouldShowSig) {
-        if (!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)) {
-          if (!getFuncInfo(cm)) hideSig();
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+          if (!findOpenParen(cm)) hideSig();
         }
         return;
       }
 
-      const info = getFuncInfo(cm);
-      if (!info) { hideSig(); return; }
+      const paren = findOpenParen(cm);
+      if (!paren) { hideSig(); return; }
 
-      // ── Static Roblox signature lookup ──
-      // Resolve info.obj to a type name using the same 5-case logic as autocomplete
-      const sigObj = info.obj;
-      let resolvedSigType = null;
-
-      if (sigObj) {
-        // 1. Direct global
-        if (globalMembers[sigObj]) {
-          resolvedSigType = globalTypeOf[sigObj] || sigObj;
+      // Try static lookup first for instant display
+      const tok = cm.getTokenAt(CodeMirror.Pos(paren.line, paren.parenCol));
+      if (tok && tok.string.trim()) {
+        const parts = tok.string.split(/[.:]/);
+        const name = parts[parts.length - 1];
+        let obj = parts.length > 1 ? parts[0] : null;
+        if (!obj) {
+          const lineStr = cm.getLine(paren.line);
+          const m = lineStr.slice(0, tok.start).match(/(\w+)\s*[.:]\s*$/);
+          obj = m ? m[1] : name;
         }
-
-        if (!resolvedSigType) {
-          const code = cm.getValue();
-
-          // 2. Instance.new("ClassName")
-          const newRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
-          for (const m of code.matchAll(newRe)) {
-            if (m[1] === sigObj && classMembers[m[2]]) { resolvedSigType = m[2]; break; }
-          }
-
-          // 3. Type annotation: local x: BasePart
-          if (!resolvedSigType) {
-            const annotRe = /\blocal\s+(\w+)\s*:\s*(\w+)/g;
-            for (const m of code.matchAll(annotRe)) {
-              if (m[1] === sigObj && classMembers[m[2]]) { resolvedSigType = m[2]; break; }
-            }
-          }
-
-          // 4. Assigned from global: local x = game
-          if (!resolvedSigType) {
-            const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
-            for (const m of code.matchAll(assignRe)) {
-              if (m[1] === sigObj && globalMembers[m[2]]) { resolvedSigType = globalTypeOf[m[2]] || m[2]; break; }
-            }
-          }
-
-          // 5. Constructor call: local img = Image.new(...)
-          if (!resolvedSigType) {
-            const ctorRe = /\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g;
-            for (const m of code.matchAll(ctorRe)) {
-              if (m[1] === sigObj && classMembers[m[2]]) { resolvedSigType = m[2]; break; }
-            }
-          }
-        }
-      }
-
-      if (resolvedSigType && info.name) {
-        const sig = (sigsOf[resolvedSigType] || {})[info.name];
-        if (sig) {
-          showSigAt(`<span class="sig-type">${escHtml(sig)}</span>`, cm);
+        const staticSig = resolveStaticSig(cm, obj, name);
+        if (staticSig) {
+          showSigAt(`<span class="sig-type">${escHtml(staticSig)}</span>`, cm);
           return;
         }
       }
 
-      // ── WASM hover fallback (for user-defined types / standard Luau) ──
-      workerRequest({ type: "hover", code: cm.getValue(), line: info.pos.line, col: info.pos.ch })
+      // ── WASM signature_help (proper LSP SignatureHelp) ──
+      if (!workerReady) return;
+      const cur = cm.getCursor();
+      workerRequest({ type: "signature_help", code: cm.getValue(), line: cur.line, col: cur.ch })
         .then(data => {
-          const r   = data.result;
-          const raw = (r?.contents?.value ?? r?.content ?? r?.markdown ?? r?.type ?? "")
-            .replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
-          if (!raw) { hideSig(); return; }
-          let display = raw;
-          if (info.name) {
-            const memberRe = new RegExp(
-              `\\b${info.name}\\s*:\\s*(?:@\\w+\\s+)?(.+?)(?=,\\s*\\w+\\s*:|\\s*\\})`, "s"
-            );
-            const m = raw.match(memberRe);
-            if (m) display = `${info.name}: ${m[1].trim()}`;
+          const r = data.result;
+          if (!r || !r.signatures || r.signatures.length === 0) { hideSig(); return; }
+          const sig = r.signatures[r.activeSignature || 0];
+          const label = sig.label || "";
+          // Highlight the active parameter
+          const activeIdx = sig.activeParameter ?? r.activeParameter ?? 0;
+          const param = sig.parameters?.[activeIdx];
+          if (param?.label) {
+            const paramStr = param.label;
+            const idx = label.indexOf(paramStr);
+            if (idx >= 0) {
+              const before = escHtml(label.slice(0, idx));
+              const active = escHtml(paramStr);
+              const after = escHtml(label.slice(idx + paramStr.length));
+              showSigAt(`<span class="sig-type">${before}<b style="color:#ffa657">${active}</b>${after}</span>`, cm);
+              return;
+            }
           }
-          const lines  = display.split("\n");
-          const header = `<span class="sig-type">${escHtml(lines[0])}</span>`;
-          const rest   = lines.slice(1).join("\n").trim();
-          showSigAt(header + (rest ? `\n<span class="sig-detail">${escHtml(rest)}</span>` : ""), cm);
+          showSigAt(`<span class="sig-type">${escHtml(label)}</span>`, cm);
         })
         .catch(() => hideSig());
     });
 
     function escHtml(s) {
-      return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     // Hide sig help when editor loses focus, code runs, or autocomplete opens
@@ -1964,9 +2532,12 @@
 
     // ── Hover type tooltip ──
     const hoverTip = document.getElementById("hover-tip");
-    let hoverTimer  = null;
+    let hoverTimer = null;
 
     function resolveHoverType(tokenStr, code) {
+      // Skip static maps when Roblox types are disabled — let WASM handle it
+      if (document.getElementById("robloxDefsCheck") && !document.getElementById("robloxDefsCheck").checked)
+        return null;
       // Check static maps first (instant, no WASM round-trip)
       if (globalMembers[tokenStr]) return globalTypeOf[tokenStr] || tokenStr;
       if (classMembers[tokenStr]) return tokenStr;
@@ -2046,7 +2617,7 @@
         hoverTip.textContent = text;
         hoverTip.style.display = "block";
         hoverTip.style.left = (lastMouseX + 14) + "px";
-        hoverTip.style.top  = (lastMouseY + 14) + "px";
+        hoverTip.style.top = (lastMouseY + 14) + "px";
       }
 
       // Show static type instantly (synchronous — no delay)
@@ -2054,19 +2625,26 @@
       if (staticType) showTip(staticType);
       else hoverTip.style.display = "none";
 
-      // WASM hover after short delay (richer type info)
+      // WASM hover after short delay (richer type info from structured response)
       if (!workerReady) return;
       hoverTimer = setTimeout(async () => {
         try {
           const midCol = Math.floor((token.start + token.end) / 2);
           const data = await workerRequest({ type: "hover", code, line: pos.line, col: midCol });
           if (hoverToken !== tokenKey) return;
-          const r   = data.result;
-          const raw = (r?.contents?.value ?? r?.content ?? r?.markdown ?? r?.type ?? "")
-            .replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
-          if (raw && !raw.includes("*error-type*")) showTip(token.string + ": " + raw);
-          else if (staticType) showTip(staticType);
-          else hoverTip.style.display = "none";
+          const r = data.result;
+          const hasError = r?.type?.includes("*error-type*") || r?.display?.includes("*error-type*");
+          // If WASM resolved to "any" but we have a better static type, keep static
+          const isAny = r?.type === "any" || r?.display?.endsWith(": any");
+          if (r && !hasError && !isAny && r.display) {
+            showTip(r.display);
+          } else if (r && !hasError && !isAny && r.type) {
+            showTip(token.string + ": " + r.type);
+          } else if (staticType) {
+            showTip(staticType);
+          } else {
+            hoverTip.style.display = "none";
+          }
         } catch { /* silent */ }
       }, 300);
     });
@@ -2085,14 +2663,15 @@
     });
 
     // ── App ──
-    const SERVER   = "https://luau.testdemo.win";
-    const runBtn   = document.getElementById("runBtn");
-    const stopBtn  = document.getElementById("stopBtn");
-    const inputBox   = document.getElementById("inputBox");
-    const sendBtn    = document.getElementById("sendBtn");
-    const attachBtn  = document.getElementById("attachBtn");
-    const fileInput  = document.getElementById("fileInput");
-    const fileQueue  = document.getElementById("fileQueue");
+    const SERVER = "https://luau.testdemo.win";
+    const runBtn = document.getElementById("runBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const inputBox = document.getElementById("inputBox");
+    const sendBtn = document.getElementById("sendBtn");
+    const attachBtn = document.getElementById("attachBtn");
+    const fileInput = document.getElementById("fileInput");
+    const fileQueue = document.getElementById("fileQueue");
+    const inputRow = document.querySelector(".input-row");
 
     // ── File queue: [{file, name}] ──
     let queuedFiles = [];
@@ -2120,6 +2699,7 @@
     attachBtn.addEventListener("click", () => fileInput.click());
 
     fileInput.addEventListener("change", () => {
+      if (localRunCheck.checked) return;
       for (const f of fileInput.files) queuedFiles.push({ file: f });
       renderFileQueue();
       fileInput.value = "";
@@ -2127,6 +2707,7 @@
 
     // Ctrl+V on inputBox: paste clipboard files as attachments (images, etc.)
     inputBox.addEventListener("paste", e => {
+      if (localRunCheck.checked) return;
       const files = Array.from(e.clipboardData?.files ?? []);
       if (files.length === 0) return; // no files — let normal text paste through
       e.preventDefault();
@@ -2135,10 +2716,14 @@
     });
 
     // Drag-and-drop onto the input row
-    const inputRow = document.querySelector(".input-row");
-    inputRow.addEventListener("dragover", e => { e.preventDefault(); inputRow.style.outline = "1px solid #388bfd"; });
+    inputRow.addEventListener("dragover", e => {
+      if (localRunCheck.checked) return;
+      e.preventDefault();
+      inputRow.style.outline = "1px solid #388bfd";
+    });
     inputRow.addEventListener("dragleave", () => { inputRow.style.outline = ""; });
     inputRow.addEventListener("drop", e => {
+      if (localRunCheck.checked) return;
       e.preventDefault();
       inputRow.style.outline = "";
       for (const f of e.dataTransfer.files) queuedFiles.push({ file: f });
@@ -2146,8 +2731,8 @@
     });
     const statusEl = document.getElementById("status");
     const outputEl = document.getElementById("output");
-    const filesEl  = document.getElementById("files");
-    const lightbox    = document.getElementById("lightbox");
+    const filesEl = document.getElementById("files");
+    const lightbox = document.getElementById("lightbox");
     const lightboxImg = document.getElementById("lightboxImg");
 
     let currentToken = null;
@@ -2156,12 +2741,12 @@
     lightbox.addEventListener("click", () => lightbox.classList.remove("open"));
 
     const ANSI_COLORS = {
-      '30':'#555',  '31':'#e06c75','32':'#98c379','33':'#e5c07b',
-      '34':'#61afef','35':'#c678dd','36':'#56b6c2','37':'#abb2bf',
+      '30': '#555', '31': '#e06c75', '32': '#98c379', '33': '#e5c07b',
+      '34': '#61afef', '35': '#c678dd', '36': '#56b6c2', '37': '#abb2bf',
     };
 
     function ansiToHtml(raw) {
-      function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
       let out = '', open = false;
       const parts = raw.split(/(\x1b?\[[\d;]*m|\n)/);
       for (const part of parts) {
@@ -2180,7 +2765,7 @@
         if (color) {
           if (open) out += '</span>';
           const dim = codes.includes('2');
-          out += `<span style="color:${color}${dim?';opacity:.65':''}">`;
+          out += `<span style="color:${color}${dim ? ';opacity:.65' : ''}">`;
           open = true;
         }
       }
@@ -2194,25 +2779,25 @@
       outputEl.scrollTop = outputEl.scrollHeight;
     }
     function setRunning(running) {
-      runBtn.style.display  = running ? "none" : "inline-flex";
+      runBtn.style.display = running ? "none" : "inline-flex";
       stopBtn.style.display = running ? "inline-flex" : "none";
     }
 
-    const IMAGE_TYPES = new Set(['png','jpg','jpeg','gif','webp','svg']);
-    const TEXT_TYPES  = new Set(['txt','lua','luau','json','xml','html','css','js','md','csv','ansi']);
+    const IMAGE_TYPES = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
+    const TEXT_TYPES = new Set(['txt', 'lua', 'luau', 'json', 'xml', 'html', 'css', 'js', 'md', 'csv', 'ansi']);
     const MIME = {
-      png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', gif:'image/gif',
-      webp:'image/webp', svg:'image/svg+xml',
-      txt:'text/plain', lua:'text/plain', luau:'text/plain', ansi:'text/plain',
-      json:'application/json', xml:'text/xml', html:'text/html',
-      css:'text/css', js:'text/javascript', md:'text/plain', csv:'text/csv',
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+      webp: 'image/webp', svg: 'image/svg+xml',
+      txt: 'text/plain', lua: 'text/plain', luau: 'text/plain', ansi: 'text/plain',
+      json: 'application/json', xml: 'text/xml', html: 'text/html',
+      css: 'text/css', js: 'text/javascript', md: 'text/plain', csv: 'text/csv',
     };
 
     function addFileLink(name, type, base64) {
-      const t     = type.toLowerCase();
+      const t = type.toLowerCase();
       const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const blob  = new Blob([bytes], { type: MIME[t] || 'application/octet-stream' });
-      const url   = URL.createObjectURL(blob);
+      const blob = new Blob([bytes], { type: MIME[t] || 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
 
       const container = document.createElement("div");
       container.className = "file-item";
@@ -2241,9 +2826,29 @@
     }
 
     const timestampCheck = document.getElementById("timestampCheck");
+    const timestampRow = timestampCheck.closest("label");
     timestampCheck.checked = localStorage.getItem("luau_timestamp") === "1";
     timestampCheck.addEventListener("change", () =>
       localStorage.setItem("luau_timestamp", timestampCheck.checked ? "1" : "0"));
+
+    const localRunCheck = document.getElementById("localRunCheck");
+    localRunCheck.checked = localStorage.getItem("luau_local_run") === "1";
+
+    function syncRunLocalUi() {
+      const disabled = localRunCheck.checked;
+      inputBox.disabled = disabled;
+      sendBtn.disabled = disabled;
+      attachBtn.disabled = disabled;
+      fileInput.disabled = disabled;
+      inputRow.classList.toggle("runlocal-disabled", disabled);
+      timestampRow.classList.toggle("setting-disabled", disabled);
+    }
+
+    localRunCheck.addEventListener("change", () => {
+      localStorage.setItem("luau_local_run", localRunCheck.checked ? "1" : "0");
+      syncRunLocalUi();
+    });
+    syncRunLocalUi();
 
     function injectFlags(code) {
       if (!timestampCheck.checked) return code;
@@ -2259,11 +2864,45 @@
     runBtn.addEventListener("click", async () => {
       const raw = editor.getValue();
       if (!raw.trim()) return;
+
+      // ── Local WASM execution ──
+      if (localRunCheck.checked && workerReady) {
+        outputEl.innerHTML = "";
+        filesEl.innerHTML = "";
+        setStatus("Running locally...");
+        setRunning(true);
+        let elapsed = null;
+        try {
+          const t0 = performance.now();
+          const data = await workerRequest({ type: "run", code: raw });
+          elapsed = ((performance.now() - t0) / 1000).toFixed(4);
+          if (data.result) {
+            if (data.result.output) setOutput(data.result.output);
+            if (data.result.ok) {
+              setStatus(`Local · Done (${elapsed}s)`);
+            } else {
+              if (data.result.output) outputEl.innerHTML += "\n";
+              outputEl.innerHTML += `<span style="color:#e06c75">${escHtml(data.result.error || "Error")}</span>`;
+              setStatus(`Local · Error (${elapsed}s)`);
+            }
+          } else {
+            setStatus("Local · No result");
+          }
+        } catch (e) {
+          setStatus("Local · " + e.message);
+        }
+        setRunning(false);
+        if (histRecordCheck.checked) {
+          pushHistory(raw, outputEl.innerHTML, filesEl.innerHTML, null, elapsed != null ? +elapsed : null, true);
+        }
+        return;
+      }
+
       const code = injectFlags(raw);
       _pendingCode = raw; // save original (pre-inject) code for history
 
       outputEl.innerHTML = "";
-      filesEl.innerHTML  = "";
+      filesEl.innerHTML = "";
       setStatus("Starting...");
       setRunning(true);
 
@@ -2329,7 +2968,7 @@
 
     // ── Run History ──
     const HISTORY_KEY = "luau_history";
-    const HISTORY_MAX = 10;
+    const HISTORY_MAX = 20;
     const historyList = document.getElementById("history-list");
     const historyEmpty = document.getElementById("history-empty");
 
@@ -2345,7 +2984,7 @@
     function histTime(ts) {
       const d = new Date(ts);
       return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " +
-             d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
 
     function renderHistory() {
@@ -2359,9 +2998,10 @@
 
         const body = document.createElement("div");
         body.className = "hist-body";
+        const localTag = entry.local ? " · Local" : "";
         const serverTag = entry.serverNum != null ? ` · #${entry.serverNum}` : "";
         const runtimeTag = entry.runtime != null ? ` · ${entry.runtime.toFixed(2)}s` : "";
-        body.innerHTML = `<div class="hist-label">${entry.label}</div><div class="hist-time">${histTime(entry.ts)}${serverTag}${runtimeTag}</div>`;
+        body.innerHTML = `<div class="hist-label">${entry.label}</div><div class="hist-time">${histTime(entry.ts)}${localTag}${serverTag}${runtimeTag}</div>`;
         body.addEventListener("click", () => loadHistoryEntry(entry));
 
         const del = document.createElement("button");
@@ -2370,9 +3010,7 @@
         del.textContent = "×";
         del.addEventListener("click", e => {
           e.stopPropagation();
-          const h2 = loadHistory();
-          h2.splice(i, 1);
-          saveHistory(h2);
+          removeHistoryEntry(i);
           renderHistory();
         });
 
@@ -2385,7 +3023,7 @@
     function loadHistoryEntry(entry) {
       // Stop any running session
       if (currentToken) {
-        fetch(`${SERVER}/stop/${currentToken}`, { method: "POST" }).catch(() => {});
+        fetch(`${SERVER}/stop/${currentToken}`, { method: "POST" }).catch(() => { });
         if (es) { es.close(); es = null; }
         currentToken = null;
         setRunning(false);
@@ -2393,23 +3031,65 @@
       editor.setValue(entry.code);
       outputEl.innerHTML = entry.output || "";
       filesEl.innerHTML = entry.files || "";
+      // Restore roblox/bot toggles if stored with this entry
+      if (entry.r !== undefined) {
+        localStorage.setItem("luau_no_roblox", entry.r ? "0" : "1");
+        const cb = document.getElementById("robloxDefsCheck");
+        if (cb) cb.checked = !!entry.r;
+      }
+      if (entry.b !== undefined) {
+        localStorage.setItem("luau_no_bot", entry.b ? "0" : "1");
+        const cb = document.getElementById("botDefsCheck");
+        if (cb) { cb.checked = !!entry.b; cb.disabled = !document.getElementById("robloxDefsCheck")?.checked; }
+      }
+      // Restore sourcemap and custom definitions if stored with this entry
+      const entrySm = resolveEmbeddedText(entry, "sm");
+      if (entrySm) {
+        localStorage.setItem("luau_sourcemap", entrySm);
+        buildSmTree(entrySm);
+        applySmLoaded(true);
+        if (workerReady) workerRequest({ type: "set_sourcemap", json: entrySm }).catch(() => { });
+      }
+      const entryCd = resolveEmbeddedText(entry, "cd");
+      if (entryCd) {
+        localStorage.setItem("luau_custom_defs", entryCd);
+        applyDefsLoaded(true);
+        if (workerReady) workerRequest({ type: "add_definitions", name: "@custom", source: entryCd }).catch(() => { });
+      }
       setStatus("Loaded from history");
     }
 
-    function pushHistory(code, output, files, serverNum, runtime) {
+    function pushHistory(code, output, files, serverNum, runtime, local = false) {
       const h = loadHistory();
-      h.unshift({ ts: Date.now(), label: histLabel(code), code, output, files, serverNum, runtime });
+      const entry = { ts: Date.now(), label: histLabel(code), code, output, files, serverNum, runtime, local: local ? 1 : 0 };
+      // Snapshot settings, sourcemap, and custom definitions with the entry
+      entry.r = document.getElementById("robloxDefsCheck")?.checked ? 1 : 0;
+      entry.b = document.getElementById("botDefsCheck")?.checked ? 1 : 0;
+      const sm = localStorage.getItem("luau_sourcemap");
+      const cd = localStorage.getItem("luau_custom_defs");
+      if (sm) entry.smRef = cacheEmbeddedText("sm", sm);
+      if (cd) entry.cdRef = cacheEmbeddedText("cd", cd);
+      h.unshift(entry);
       if (h.length > HISTORY_MAX) h.length = HISTORY_MAX;
       saveHistory(h);
       renderHistory();
     }
 
+    function removeHistoryEntry(index) {
+      const h = loadHistory();
+      const [removed] = h.splice(index, 1);
+      if (removed?.smRef) releaseEmbeddedText("sm", removed.smRef);
+      if (removed?.cdRef) releaseEmbeddedText("cd", removed.cdRef);
+      saveHistory(h);
+      if (h.length === 0) clearEmbeddedCache();
+    }
+
     // ── Mobile bottom sheet ──
-    const histSheet         = document.getElementById("hist-sheet");
+    const histSheet = document.getElementById("hist-sheet");
     const histSheetBackdrop = document.getElementById("hist-sheet-backdrop");
-    const histSheetList     = document.getElementById("hist-sheet-list");
-    const histSheetBtn      = document.getElementById("hist-sheet-btn");
-    const histSheetClose    = document.getElementById("hist-sheet-close");
+    const histSheetList = document.getElementById("hist-sheet-list");
+    const histSheetBtn = document.getElementById("hist-sheet-btn");
+    const histSheetClose = document.getElementById("hist-sheet-close");
 
     function openHistSheet() {
       histSheetList.innerHTML = historyList.innerHTML;
@@ -2419,7 +3099,7 @@
       histSheetList.querySelectorAll(".hist-del").forEach((del, i) => {
         del.addEventListener("click", e => {
           e.stopPropagation();
-          const h = loadHistory(); h.splice(i, 1); saveHistory(h);
+          removeHistoryEntry(i);
           renderHistory(); openHistSheet();
         });
       });
@@ -2439,12 +3119,20 @@
 
     // Record toggle
     const histRecordCheck = document.getElementById("histRecordCheck");
-    histRecordCheck.checked = localStorage.getItem("luau_hist_record") !== "1"; // default off
-    histRecordCheck.addEventListener("change", () =>
-      localStorage.setItem("luau_hist_record", histRecordCheck.checked ? "1" : "0"));
+    const histRecordCheckMobile = document.getElementById("histRecordCheckMobile");
+    histRecordCheck.checked = localStorage.getItem("luau_hist_record") === "1"; // default off
+    histRecordCheckMobile.checked = histRecordCheck.checked;
+    function syncRecordToggle(checked) {
+      histRecordCheck.checked = checked;
+      histRecordCheckMobile.checked = checked;
+      localStorage.setItem("luau_hist_record", checked ? "1" : "0");
+    }
+    histRecordCheck.addEventListener("change", () => syncRecordToggle(histRecordCheck.checked));
+    histRecordCheckMobile.addEventListener("change", () => syncRecordToggle(histRecordCheckMobile.checked));
 
     function clearHistory() {
       saveHistory([]);
+      clearEmbeddedCache();
       renderHistory();
     }
     document.getElementById("hist-clear-btn").addEventListener("click", clearHistory);
@@ -2454,12 +3142,12 @@
     });
 
     // ── Desktop history popover ──
-    const histPopover    = document.getElementById("hist-popover");
+    const histPopover = document.getElementById("hist-popover");
     const histPopoverBtn = document.getElementById("hist-popover-btn");
 
     function openHistPopover() {
       const rect = histPopoverBtn.getBoundingClientRect();
-      histPopover.style.top  = (rect.bottom + 6) + "px";
+      histPopover.style.top = (rect.bottom + 6) + "px";
       histPopover.style.right = (window.innerWidth - rect.right) + "px";
       histPopover.classList.add("open");
     }
@@ -2505,7 +3193,7 @@
     // Normal send: text first, then 1 file from the front of the queue
     // Shift+send: text first, then ALL queued files
     async function sendInput(all = false) {
-      if (!currentToken) return;
+      if (localRunCheck.checked || !currentToken) return;
       if (!inputBox.value && queuedFiles.length === 0) return;
 
       if (inputBox.value) {
@@ -2531,4 +3219,5 @@
     }
   </script>
 </body>
+
 </html>
