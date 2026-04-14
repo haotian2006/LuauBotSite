@@ -2869,6 +2869,7 @@ declare myGlobal: MyClass'></textarea>
 
     // ── App ──
     const SERVER = "https://luau.testdemo.win";
+    const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
     const runBtn = document.getElementById("runBtn");
     const stopBtn = document.getElementById("stopBtn");
     const inputBox = document.getElementById("inputBox");
@@ -3395,31 +3396,103 @@ declare myGlobal: MyClass'></textarea>
       });
     }
 
+    function bytesToBase64(bytes) {
+      let binary = "";
+      const step = 0x8000;
+      for (let i = 0; i < bytes.length; i += step) {
+        const chunk = bytes.subarray(i, i + step);
+        binary += String.fromCharCode(...chunk);
+      }
+      return btoa(binary);
+    }
+
+    async function sendFileAsChunks(file) {
+      const uploadId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      const total = Math.max(1, Math.ceil(file.size / FILE_UPLOAD_CHUNK_BYTES));
+
+      for (let index = 0; index < total; index++) {
+        const start = index * FILE_UPLOAD_CHUNK_BYTES;
+        const end = Math.min(start + FILE_UPLOAD_CHUNK_BYTES, file.size);
+        const piece = file.slice(start, end);
+        const bytes = new Uint8Array(await piece.arrayBuffer());
+        const input = bytesToBase64(bytes);
+
+        setStatus(`Uploading ${file.name} (${index + 1}/${total})...`);
+
+        const res = await fetch(`${SERVER}/input/${currentToken}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input,
+            isFile: true,
+            isFileChunk: true,
+            uploadId,
+            index,
+            total,
+          }),
+        });
+
+        if (!res.ok) {
+          let msg = `Upload failed (${res.status})`;
+          try {
+            const body = await res.json();
+            if (body.error) msg = body.error;
+          } catch { }
+          throw new Error(msg);
+        }
+      }
+    }
+
     // Normal send: text first, then 1 file from the front of the queue
     // Shift+send: text first, then ALL queued files
     async function sendInput(all = false) {
       if (localRunCheck.checked || !currentToken) return;
       if (!inputBox.value && queuedFiles.length === 0) return;
 
-      if (inputBox.value) {
-        await fetch(`${SERVER}/input/${currentToken}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: inputBox.value }),
-        });
-        inputBox.value = "";
-      }
+      try {
+        if (inputBox.value) {
+          const textRes = await fetch(`${SERVER}/input/${currentToken}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ input: inputBox.value }),
+          });
+          if (!textRes.ok) {
+            let msg = `Send failed (${textRes.status})`;
+            try {
+              const body = await textRes.json();
+              if (body.error) msg = body.error;
+            } catch { }
+            throw new Error(msg);
+          }
+          inputBox.value = "";
+        }
 
-      const batch = all ? queuedFiles.splice(0) : queuedFiles.splice(0, 1);
-      renderFileQueue();
+        const batch = all ? queuedFiles.splice(0) : queuedFiles.splice(0, 1);
+        renderFileQueue();
 
-      for (const { file } of batch) {
-        const base64 = await fileToBase64(file);
-        await fetch(`${SERVER}/input/${currentToken}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: base64, isFile: true }),
-        });
+        for (const { file } of batch) {
+          if (file.size <= FILE_UPLOAD_CHUNK_BYTES) {
+            const base64 = await fileToBase64(file);
+            const singleRes = await fetch(`${SERVER}/input/${currentToken}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ input: base64, isFile: true }),
+            });
+            if (!singleRes.ok) {
+              let msg = `Upload failed (${singleRes.status})`;
+              try {
+                const body = await singleRes.json();
+                if (body.error) msg = body.error;
+              } catch { }
+              throw new Error(msg);
+            }
+          } else {
+            await sendFileAsChunks(file);
+          }
+        }
+        setStatus("Input sent");
+      } catch (err) {
+        setStatus("Send error: " + (err?.message || "unknown error"));
       }
     }
   </script>
