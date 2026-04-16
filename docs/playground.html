@@ -1729,8 +1729,9 @@ declare myGlobal: MyClass'></textarea>
         parseGlobalTypes(strippedRoblox);
         if (botDefs) parseGlobalTypes(botDefs);
 
-        // Store raw sources so toggles can reload them
-        window._robloxDefs = strippedRoblox;
+        // Keep metadata for WASM init (MagicTypeLookup reads --#METADATA# on first line).
+        // Static JS parsing still uses strippedRoblox above.
+        window._robloxDefs = rawTypes;
         window._botDefs = botDefs;
 
         allGlobals.sort();
@@ -1802,6 +1803,7 @@ declare myGlobal: MyClass'></textarea>
       const cur = cm.getCursor();
       const token = cm.getTokenAt(cur);
       const line = cm.getLine(cur.line);
+      const code = cm.getValue();
       const charPrev = line.charAt(cur.ch - 1);
 
       // ── String enum completions: Instance.new("Part") / GetService("Workspace") ──
@@ -1904,6 +1906,34 @@ declare myGlobal: MyClass'></textarea>
       const hadMemberTarget = isDot || hasSepInToken
         || /\w\s*[.:]\s*$/.test(line.slice(0, token.start));
 
+      if (hadMemberTarget) {
+        let memberObject = null;
+        if (hasSepInToken)
+          memberObject = tokenStr.slice(0, sepIdx);
+        if (!memberObject) {
+          const linePrefix = line.slice(0, cur.ch);
+          const match = linePrefix.match(/(\w+)\s*[.:]\s*$/);
+          memberObject = match ? match[1] : null;
+        }
+
+        const staticMemberType = memberObject ? resolveStaticMemberType(memberObject, code) : null;
+        if (staticMemberType) {
+          let pairs = classMembers[staticMemberType].map(name => ({
+            text: name,
+            detail: sigsOf[staticMemberType]?.[name] || "",
+            deprecated: false,
+          }));
+
+          if (word)
+            pairs = pairs.filter(p => p.text.toLowerCase().startsWith(word.toLowerCase()));
+
+          if (pairs.length > 0) {
+            callback({ list: pairs, from, to });
+            return;
+          }
+        }
+      }
+
       // ── WASM handles all type inference (member access, locals, generics, etc.) ──
       // Before WASM is ready, serve basic globals from static maps only.
       if (!workerReady) {
@@ -1930,8 +1960,10 @@ declare myGlobal: MyClass'></textarea>
               const text = typeof e === "string" ? e : (e.label ?? e.name ?? e.insertText ?? "");
               let detail = "";
               let deprecated = false;
+              let insertText = "";
               if (typeof e === "object") {
                 deprecated = !!e.deprecated;
+                insertText = e.insertText ?? "";
                 const ld = e.labelDetails;
                 if (ld?.detail || ld?.description) {
                   detail = [ld.detail, ld.description].filter(Boolean).join(" ");
@@ -1939,12 +1971,12 @@ declare myGlobal: MyClass'></textarea>
                   detail = e.detail ?? "";
                 }
               }
-              if (text) pairs.push({ text, detail, deprecated });
+              if (text) pairs.push({ text, detail, deprecated, insertText });
             }
           } else if (Array.isArray(raw)) {
-            pairs = raw.map(e => ({ text: typeof e === "string" ? e : (e.label ?? e.name ?? ""), detail: "", deprecated: false }));
+            pairs = raw.map(e => ({ text: typeof e === "string" ? e : (e.label ?? e.name ?? ""), detail: "", deprecated: false, insertText: "" }));
           } else {
-            pairs = Object.keys(raw.entries ?? raw).map(k => ({ text: k, detail: "", deprecated: false }));
+            pairs = Object.keys(raw.entries ?? raw).map(k => ({ text: k, detail: "", deprecated: false, insertText: "" }));
           }
 
           // For top-level (not member access), merge static globals only before
@@ -1987,8 +2019,11 @@ declare myGlobal: MyClass'></textarea>
 
           // Build CM5 hint objects — use render() to show detail as secondary text
           const hintList = pairs.map(p => {
-            // Detect callable: detail contains "->" (function return type)
-            const isFunc = p.detail.includes("->") || p.detail.includes("-> ");
+            const detail = (p.detail || "").trim();
+            const hasCallableInsertText = p.insertText === `${p.text}()` || p.insertText === `${p.text}($1)`;
+            const isFunctionPrefix = detail.startsWith("(function)") || detail.startsWith("(method)");
+            const isBareFunctionType = (detail.startsWith("(") || detail.startsWith("<")) && detail.includes("->");
+            const isFunc = hasCallableInsertText || isFunctionPrefix || isBareFunctionType;
             const obj = {
               text: p.text,
               render(el) {
@@ -2011,10 +2046,14 @@ declare myGlobal: MyClass'></textarea>
             // Auto-insert "()" with cursor placed inside for callable completions
             if (isFunc) {
               obj.hint = function (cm, data, completion) {
-                cm.replaceRange(p.text, data.from, data.to);
-                const cur = cm.getCursor();
-                cm.replaceRange("()", cur, cur);
-                cm.setCursor(CodeMirror.Pos(cur.line, cur.ch + 1));
+                const snippet = p.insertText || `${p.text}()`;
+                const hasPlaceholder = snippet.includes("$1");
+                const plain = snippet.replace(/\$1/g, "");
+                cm.replaceRange(plain, data.from, data.to);
+                if (hasPlaceholder) {
+                  const startPos = CodeMirror.Pos(data.from.line, data.from.ch + plain.indexOf("(") + 1);
+                  cm.setCursor(startPos);
+                }
               };
             }
             return obj;
@@ -2477,9 +2516,10 @@ declare myGlobal: MyClass'></textarea>
         const cache = JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY)) || {};
         cache.sm = cache.sm || {};
         cache.cd = cache.cd || {};
+        cache.files = cache.files || {};
         return cache;
       } catch {
-        return { sm: {}, cd: {} };
+        return { sm: {}, cd: {}, files: {} };
       }
     }
 
@@ -2538,6 +2578,17 @@ declare myGlobal: MyClass'></textarea>
         if (item?.text) return item.text;
       }
       return kind === "sm" ? entry.sm : entry.cd;
+    }
+    function resolveHistoryFiles(entry) {
+      if (entry.filesRef) {
+        const cache = loadHistoryCache();
+        const item = cache.files[entry.filesRef];
+        if (item?.text) {
+          try { return JSON.parse(item.text); } catch { }
+        }
+      }
+      if (Array.isArray(entry.filesData)) return entry.filesData;
+      return null;
     }
 
     document.getElementById("shareBtn").addEventListener("click", async function () {
@@ -2767,6 +2818,43 @@ declare myGlobal: MyClass'></textarea>
       return null;
     }
 
+    function resolveStaticMemberType(obj, code) {
+      // Skip static maps when Roblox types are disabled — let WASM handle it
+      if (document.getElementById("robloxDefsCheck") && !document.getElementById("robloxDefsCheck").checked)
+        return null;
+
+      if (typeof code !== "string")
+        return null;
+
+      let resolvedType = null;
+      const patterns = [
+        [/\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
+        [/\blocal\s+(\w+)\s*:\s*(\w+)/g, (m) => classMembers[m[2]] ? m[2] : null],
+        [/\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm, (m) => globalMembers[m[2]] ? (globalTypeOf[m[2]] || m[2]) : null],
+        [/\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g, (m) => classMembers[m[2]] ? m[2] : null],
+        [/\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm, (m) => { const c = smClassOf[m[2]] || m[2]; return classMembers[c] ? c : null; }],
+      ];
+
+      for (const [re, resolve] of patterns) {
+        for (const m of code.matchAll(re)) {
+          if (m[1] === obj) {
+            const typeName = resolve(m);
+            if (typeName) {
+              resolvedType = typeName;
+              break;
+            }
+          }
+        }
+        if (resolvedType)
+          break;
+      }
+
+      if (!resolvedType && globalMembers[obj])
+        resolvedType = globalTypeOf[obj] || obj;
+
+      return resolvedType && classMembers[resolvedType] ? resolvedType : null;
+    }
+
     let hoverToken = null;
 
     const editorWrapper = editor.getWrapperElement();
@@ -2841,7 +2929,10 @@ declare myGlobal: MyClass'></textarea>
           const hasError = r?.type?.includes("*error-type*") || r?.display?.includes("*error-type*");
           // If WASM resolved to "any" but we have a better static type, keep static
           const isAny = r?.type === "any" || r?.display?.endsWith(": any");
-          if (r && !hasError && !isAny && r.display) {
+          const isGenericInstance = r?.type === "Instance" || r?.display?.endsWith(": Instance");
+          if (staticType && (hasError || isAny || isGenericInstance)) {
+            showTip(staticType);
+          } else if (r && !hasError && !isAny && r.display) {
             showTip(r.display);
           } else if (r && !hasError && !isAny && r.type) {
             showTip(token.string + ": " + r.type);
@@ -3075,6 +3166,7 @@ declare myGlobal: MyClass'></textarea>
       if (localRunCheck.checked && workerReady) {
         outputEl.innerHTML = "";
         filesEl.innerHTML = "";
+        _pendingFiles = [];
         setStatus("Running locally...");
         setRunning(true);
         let elapsed = null;
@@ -3099,13 +3191,14 @@ declare myGlobal: MyClass'></textarea>
         }
         setRunning(false);
         if (histRecordCheck.checked) {
-          pushHistory(raw, outputEl.innerHTML, filesEl.innerHTML, null, elapsed != null ? +elapsed : null, true);
+          pushHistory(raw, outputEl.innerHTML, _pendingFiles, null, elapsed != null ? +elapsed : null, true);
         }
         return;
       }
 
       const code = injectFlags(raw);
       _pendingCode = raw; // save original (pre-inject) code for history
+      _pendingFiles = [];
 
       outputEl.innerHTML = "";
       filesEl.innerHTML = "";
@@ -3149,6 +3242,7 @@ declare myGlobal: MyClass'></textarea>
       });
       es.addEventListener("file", e => {
         const { name, type, content } = JSON.parse(e.data);
+        _pendingFiles.push({ name, type, content });
         addFileLink(name, type, content);
       });
       es.addEventListener("done", e => {
@@ -3158,8 +3252,9 @@ declare myGlobal: MyClass'></textarea>
         setRunning(false);
         es.close();
         currentToken = null;
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML, _serverNum, +runtime); }
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, +runtime); }
         _pendingCode = null;
+        _pendingFiles = [];
       });
       es.addEventListener("error", e => {
         try { setStatus("Error: " + JSON.parse(e.data).message); }
@@ -3167,21 +3262,135 @@ declare myGlobal: MyClass'></textarea>
         setRunning(false);
         es.close();
         currentToken = null;
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, filesEl.innerHTML, _serverNum, null); }
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, null); }
         _pendingCode = null;
+        _pendingFiles = [];
       });
     });
 
     // ── Run History ──
     const HISTORY_KEY = "luau_history";
     const HISTORY_MAX = 20;
+    const HISTORY_DB_NAME = "luau_playground_history";
+    const HISTORY_DB_VERSION = 1;
+    const HISTORY_DB_STORE = "kv";
+    const HISTORY_DB_ENTRIES_KEY = "entries";
     const historyList = document.getElementById("history-list");
     const historyEmpty = document.getElementById("history-empty");
 
-    function loadHistory() {
+    let historyEntries = [];
+    let historyStorageMode = "local";
+    let historyDb = null;
+
+    function loadHistoryLocal() {
       try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
     }
-    function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
+
+    function saveHistoryLocal(h) {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    }
+
+    function openHistoryDb() {
+      if (!window.indexedDB) return Promise.resolve(null);
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(HISTORY_DB_NAME, HISTORY_DB_VERSION);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(HISTORY_DB_STORE)) {
+            db.createObjectStore(HISTORY_DB_STORE, { keyPath: "key" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
+      });
+    }
+
+    function idbGet(db, key) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(HISTORY_DB_STORE, "readonly");
+        const store = tx.objectStore(HISTORY_DB_STORE);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result?.value);
+        req.onerror = () => reject(req.error || new Error("IndexedDB read failed"));
+      });
+    }
+
+    function idbSet(db, key, value) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(HISTORY_DB_STORE, "readwrite");
+        const store = tx.objectStore(HISTORY_DB_STORE);
+        store.put({ key, value });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error("IndexedDB write failed"));
+        tx.onabort = () => reject(tx.error || new Error("IndexedDB write aborted"));
+      });
+    }
+
+    function loadHistory() {
+      return historyEntries;
+    }
+
+    function persistHistory(h) {
+      if (historyStorageMode === "idb" && historyDb) {
+        return idbSet(historyDb, HISTORY_DB_ENTRIES_KEY, h)
+          .catch(() => {
+            historyStorageMode = "local";
+            saveHistoryLocal(h);
+          });
+      }
+      saveHistoryLocal(h);
+      return Promise.resolve();
+    }
+
+    function saveHistory(h) {
+      historyEntries = h;
+      persistHistory(h).catch(() => { });
+    }
+
+    function migrateLegacyHistoryEntries(entries) {
+      const migrated = [];
+      for (const entry of entries) {
+        const next = { ...entry };
+        const legacyFiles = resolveHistoryFiles(entry);
+        if (Array.isArray(legacyFiles) && legacyFiles.length > 0) next.filesData = legacyFiles;
+        const legacySm = resolveEmbeddedText(entry, "sm");
+        if (legacySm) next.sm = legacySm;
+        const legacyCd = resolveEmbeddedText(entry, "cd");
+        if (legacyCd) next.cd = legacyCd;
+        delete next.filesRef;
+        delete next.smRef;
+        delete next.cdRef;
+        migrated.push(next);
+      }
+      return migrated;
+    }
+
+    async function initHistoryStorage() {
+      try {
+        historyDb = await openHistoryDb();
+        if (historyDb) {
+          historyStorageMode = "idb";
+          const idbEntries = await idbGet(historyDb, HISTORY_DB_ENTRIES_KEY);
+          if (Array.isArray(idbEntries)) {
+            historyEntries = idbEntries;
+          } else {
+            const localEntries = loadHistoryLocal();
+            historyEntries = migrateLegacyHistoryEntries(localEntries);
+            await idbSet(historyDb, HISTORY_DB_ENTRIES_KEY, historyEntries);
+            // Release old localStorage history/cache payloads after successful migration.
+            localStorage.removeItem(HISTORY_KEY);
+            clearEmbeddedCache();
+          }
+        } else {
+          historyStorageMode = "local";
+          historyEntries = loadHistoryLocal();
+        }
+      } catch {
+        historyStorageMode = "local";
+        historyEntries = loadHistoryLocal();
+      }
+      renderHistory();
+    }
 
     function histLabel(code) {
       const line = code.split("\n").find(l => l.trim() && !/^\s*--/.test(l)) || code.split("\n")[0];
@@ -3236,7 +3445,15 @@ declare myGlobal: MyClass'></textarea>
       }
       editor.setValue(entry.code);
       outputEl.innerHTML = entry.output || "";
-      filesEl.innerHTML = entry.files || "";
+      filesEl.innerHTML = "";
+      const filesData = resolveHistoryFiles(entry);
+      if (Array.isArray(filesData) && filesData.length > 0) {
+        for (const file of filesData) {
+          if (file?.name && file?.type && file?.content) addFileLink(file.name, file.type, file.content);
+        }
+      } else {
+        filesEl.innerHTML = entry.files || "";
+      }
       // Restore roblox/bot toggles if stored with this entry
       if (entry.r !== undefined) {
         localStorage.setItem("luau_no_roblox", entry.r ? "0" : "1");
@@ -3249,14 +3466,14 @@ declare myGlobal: MyClass'></textarea>
         if (cb) { cb.checked = !!entry.b; cb.disabled = !document.getElementById("robloxDefsCheck")?.checked; }
       }
       // Restore sourcemap and custom definitions if stored with this entry
-      const entrySm = resolveEmbeddedText(entry, "sm");
+      const entrySm = entry.sm || resolveEmbeddedText(entry, "sm");
       if (entrySm) {
         localStorage.setItem("luau_sourcemap", entrySm);
         buildSmTree(entrySm);
         applySmLoaded(true);
         if (workerReady) workerRequest({ type: "set_sourcemap", json: entrySm }).catch(() => { });
       }
-      const entryCd = resolveEmbeddedText(entry, "cd");
+      const entryCd = entry.cd || resolveEmbeddedText(entry, "cd");
       if (entryCd) {
         localStorage.setItem("luau_custom_defs", entryCd);
         applyDefsLoaded(true);
@@ -3265,27 +3482,46 @@ declare myGlobal: MyClass'></textarea>
       setStatus("Loaded from history");
     }
 
-    function pushHistory(code, output, files, serverNum, runtime, local = false) {
+    function pushHistory(code, output, filesData, serverNum, runtime, local = false) {
       const h = loadHistory();
-      const entry = { ts: Date.now(), label: histLabel(code), code, output, files, serverNum, runtime, local: local ? 1 : 0 };
+      const entry = { ts: Date.now(), label: histLabel(code), code, output, serverNum, runtime, local: local ? 1 : 0 };
       // Snapshot settings, sourcemap, and custom definitions with the entry
       entry.r = document.getElementById("robloxDefsCheck")?.checked ? 1 : 0;
       entry.b = document.getElementById("botDefsCheck")?.checked ? 1 : 0;
+      if (Array.isArray(filesData) && filesData.length > 0) {
+        if (historyStorageMode === "idb") entry.filesData = filesData;
+        else entry.filesRef = cacheEmbeddedText("files", JSON.stringify(filesData));
+      }
       const sm = localStorage.getItem("luau_sourcemap");
       const cd = localStorage.getItem("luau_custom_defs");
-      if (sm) entry.smRef = cacheEmbeddedText("sm", sm);
-      if (cd) entry.cdRef = cacheEmbeddedText("cd", cd);
+      if (sm) {
+        if (historyStorageMode === "idb") entry.sm = sm;
+        else entry.smRef = cacheEmbeddedText("sm", sm);
+      }
+      if (cd) {
+        if (historyStorageMode === "idb") entry.cd = cd;
+        else entry.cdRef = cacheEmbeddedText("cd", cd);
+      }
       h.unshift(entry);
-      if (h.length > HISTORY_MAX) h.length = HISTORY_MAX;
+      if (h.length > HISTORY_MAX) {
+        const removed = h.splice(HISTORY_MAX);
+        for (const oldEntry of removed) releaseHistoryEntryData(oldEntry);
+      }
       saveHistory(h);
       renderHistory();
+    }
+
+    function releaseHistoryEntryData(entry) {
+      if (!entry) return;
+      if (entry.filesRef) releaseEmbeddedText("files", entry.filesRef);
+      if (entry.smRef) releaseEmbeddedText("sm", entry.smRef);
+      if (entry.cdRef) releaseEmbeddedText("cd", entry.cdRef);
     }
 
     function removeHistoryEntry(index) {
       const h = loadHistory();
       const [removed] = h.splice(index, 1);
-      if (removed?.smRef) releaseEmbeddedText("sm", removed.smRef);
-      if (removed?.cdRef) releaseEmbeddedText("cd", removed.cdRef);
+      releaseHistoryEntryData(removed);
       saveHistory(h);
       if (h.length === 0) clearEmbeddedCache();
     }
@@ -3321,7 +3557,7 @@ declare myGlobal: MyClass'></textarea>
     histSheetClose.addEventListener("click", closeHistSheet);
     histSheetBackdrop.addEventListener("click", closeHistSheet);
 
-    renderHistory();
+    initHistoryStorage();
 
     // Record toggle
     const histRecordCheck = document.getElementById("histRecordCheck");
@@ -3337,6 +3573,8 @@ declare myGlobal: MyClass'></textarea>
     histRecordCheckMobile.addEventListener("change", () => syncRecordToggle(histRecordCheckMobile.checked));
 
     function clearHistory() {
+      const h = loadHistory();
+      for (const entry of h) releaseHistoryEntryData(entry);
       saveHistory([]);
       clearEmbeddedCache();
       renderHistory();
@@ -3372,6 +3610,7 @@ declare myGlobal: MyClass'></textarea>
 
     // Save to history when a run completes or errors
     let _pendingCode = null;
+    let _pendingFiles = [];
 
     stopBtn.addEventListener("click", async () => {
       if (!currentToken) return;
