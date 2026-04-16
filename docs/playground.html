@@ -1916,6 +1916,24 @@ declare myGlobal: MyClass'></textarea>
           memberObject = match ? match[1] : null;
         }
 
+        // Prefer explicit global table members (for example Instance.new)
+        // before class-based member resolution when names overlap.
+        if (memberObject && globalMembers[memberObject]) {
+          let pairs = globalMembers[memberObject].map(name => ({
+            text: name,
+            detail: sigsOf[memberObject]?.[name] || "",
+            deprecated: false,
+          }));
+
+          if (word)
+            pairs = pairs.filter(p => p.text.toLowerCase().startsWith(word.toLowerCase()));
+
+          if (pairs.length > 0) {
+            callback({ list: pairs, from, to });
+            return;
+          }
+        }
+
         const staticMemberType = memberObject ? resolveStaticMemberType(memberObject, code) : null;
         if (staticMemberType) {
           let pairs = classMembers[staticMemberType].map(name => ({
@@ -2047,11 +2065,12 @@ declare myGlobal: MyClass'></textarea>
             if (isFunc) {
               obj.hint = function (cm, data, completion) {
                 const snippet = p.insertText || `${p.text}()`;
-                const hasPlaceholder = snippet.includes("$1");
                 const plain = snippet.replace(/\$1/g, "");
                 cm.replaceRange(plain, data.from, data.to);
-                if (hasPlaceholder) {
-                  const startPos = CodeMirror.Pos(data.from.line, data.from.ch + plain.indexOf("(") + 1);
+                const openParen = plain.indexOf("(");
+                const closeParen = plain.lastIndexOf(")");
+                if (openParen !== -1 && closeParen > openParen) {
+                  const startPos = CodeMirror.Pos(data.from.line, data.from.ch + openParen + 1);
                   cm.setCursor(startPos);
                 }
               };
