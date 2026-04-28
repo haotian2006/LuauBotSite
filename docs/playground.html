@@ -2268,6 +2268,14 @@ declare myGlobal: MyClass'></textarea>
         }
         if (state.s !== undefined) localStorage.setItem("luau_solver", state.s ? "1" : "0");
         if (state.t !== undefined) { timestampCheck.checked = !!state.t; localStorage.setItem("luau_timestamp", state.t ? "1" : "0"); }
+        if (state.u !== undefined) {
+          const localRunCheckEl = document.getElementById("localRunCheck");
+          if (localRunCheckEl) {
+            localRunCheckEl.checked = !!state.u;
+            localStorage.setItem("luau_local_run", state.u ? "1" : "0");
+            localRunCheckEl.dispatchEvent(new Event("change"));
+          }
+        }
         // Restore roblox/bot type toggles
         if (state.r !== undefined) localStorage.setItem("luau_no_roblox", state.r ? "0" : "1");
         if (state.b !== undefined) localStorage.setItem("luau_no_bot", state.b ? "0" : "1");
@@ -2618,6 +2626,7 @@ declare myGlobal: MyClass'></textarea>
         t: timestampCheck.checked ? 1 : 0,
         r: document.getElementById("robloxDefsCheck")?.checked ? 1 : 0,
         b: document.getElementById("botDefsCheck")?.checked ? 1 : 0,
+        u: document.getElementById("localRunCheck")?.checked ? 1 : 0,
         ...getEmbeddedStateForSave(true),
       };
 
