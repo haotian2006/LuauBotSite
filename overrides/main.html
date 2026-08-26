@@ -25,6 +25,14 @@
         @media screen and (max-width: 600px) {
             .luau-header-stats { display: none; }
         }
+
+        body[data-md-color-scheme="slate"] .md-typeset table {
+            color: var(--md-default-fg-color);
+        }
+
+        body[data-md-color-scheme="slate"] .md-typeset table code {
+            color: var(--md-default-fg-color);
+        }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

@@ -4,6 +4,8 @@ theme:
   favicon: images/favicon.png
   logo: images/favicon.png
   custom_dir: overrides
+  features:
+    - content.code.copy
   palette:
     - scheme: slate
       toggle:
