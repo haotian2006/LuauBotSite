@@ -16,6 +16,9 @@ theme:
         icon: material/brightness-7
         name: Switch to dark mode
 
+repo_url: https://github.com/haotian2006/RluauRunnerV3
+repo_name: haotian2006/RluauRunnerV3
+
 extra:
   generator: false
 nav:

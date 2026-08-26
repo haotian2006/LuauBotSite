@@ -33,6 +33,11 @@
         body[data-md-color-scheme="slate"] .md-typeset table code {
             color: var(--md-default-fg-color);
         }
+
+        .md-header__option[data-md-component="palette"] { order: 1; }
+        .md-header__source { order: 2; }
+        .md-header__button[for="__search"],
+        .md-header .md-search { order: 3; }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
