@@ -1,14 +1,5 @@
 
 
-### `followupnext()`
-Marks the next output as a followup message. This message will also have `ephemeral` marked as true.
-
-```lua
-print("This is the first message.")
-io.followupnext()
-print("This is a followup message.") -- this will be sent as a followup and the original compiler embed will also be updated
-```
-
 ### `write(...any)`
 Does not add spaces between args and does not output tables expanded.If `TIMESTAMP` is false, then it will not create a new line.
 

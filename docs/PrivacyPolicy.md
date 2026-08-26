@@ -6,7 +6,7 @@ Private messages to the bot will not be logged or read by the bot.
 
 ## Logged Data
 - **Timestamp** of the command usage  
-- **Username** and **User ID** of the person using the bot  
+- **Username** and **User ID** of the person using the bot or if bot is used in the play ground then a hash of the IP address is logged (the actual IP address is not logged anywhere).
 - **Command invoked**  
 - **Message length** (number of characters)  
 

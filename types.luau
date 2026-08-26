@@ -1,7 +1,7 @@
 --[==[IGNORE START]==]
 local TIMEOUT, OUTPUT_LOGS, TIMESTAMP, native, optimize
 local bench, println, log, user, colorstring
-local etable, io, misc, Image
+local etable, io, misc, Image, discord
 --Collapse this block to help with readability
 do
 	-- Global variable types
@@ -192,12 +192,6 @@ do
 
 	-- IO Library type
 	type io = {
-		followupnext: typeof( --[[
-				Marks the next output as a followup message with ephemeral set to true.
-				
-				This message will be sent as a followup and the original compiler embed will be updated.
-			]]function() end),
-
 		write: typeof( --[[
 				Writes output without adding spaces between arguments and without expanding tables.
 				
@@ -248,6 +242,52 @@ do
 
 		clearoutput: typeof( --[[
 				Clears the output.
+			]]function() end),
+	}
+
+	-- Discord Library type
+	export type DiscordButtonHandle = {
+		Clicked: RBXScriptSignal,
+		Event: RBXScriptSignal,
+
+		Update: (
+			self: DiscordButtonHandle,
+			changes: {
+				Label: string?,
+				Style: string?,
+				Disabled: boolean?,
+				OwnerOnly: boolean?,
+			}
+		) -> (),
+
+		Destroy: (self: DiscordButtonHandle) -> (),
+	}
+
+	type discord = {
+		-- True when this run came from the web front end rather than Discord.
+		isWeb: boolean,
+
+		button: typeof( --[[
+				Creates an interactive button attached to the response message. Discord-only —
+				errors if the run was started from the web playground.
+
+				@param options string | {Label: string?, Style: string?, Disabled: boolean?, OwnerOnly: boolean?} - A label string, or an options table.
+				@return DiscordButtonHandle - A handle to update/destroy the button and listen for clicks via .Clicked.
+			]]function(
+			options: string | {
+				Label: string?,
+				Style: string?,
+				Disabled: boolean?,
+				OwnerOnly: boolean?,
+			}
+		): DiscordButtonHandle
+			return {} :: any
+		end),
+
+		followUpNext: typeof( --[[
+				Sends the next response as a follow-up instead of editing the original message:
+				ephemeral in a guild, a DM outside one. Useful so io.read() inputs don't require
+				scrolling back to the original message.
 			]]function() end),
 	}
 
@@ -483,6 +523,7 @@ do
 	io = (io::any) :: io
 	misc = (misc::any) :: misc
 	Image = (Image::any) :: ImageLib
+	discord = (discord::any) :: discord
 end
 --[==[IGNORE END]==]
 --The code above will be ignored during compilation.

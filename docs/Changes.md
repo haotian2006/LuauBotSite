@@ -1,5 +1,12 @@
 # Updates
 
+## 8/25/26
+
+- Refactored code base to be a proper project rather then a single file.
+- Added `Discord.button` that supports button creation and click events.
+- Lune will now be used for simple code execution instead of a luau session.
+
+
 ## 4/3/26
 
 - Added multi-file support

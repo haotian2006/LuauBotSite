@@ -10,3 +10,40 @@
     </body>
 </html>
 {% extends "base.html" %}
+
+{% block extrahead %}
+    {{ super() }}
+    <style>
+        .luau-header-stats {
+            margin-left: .65rem;
+            font-size: .72rem;
+            font-weight: 400;
+            opacity: .78;
+            white-space: nowrap;
+        }
+
+        @media screen and (max-width: 600px) {
+            .luau-header-stats { display: none; }
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const topic = document.querySelector('.md-header__topic');
+            if (!topic) return;
+
+            const statsLabel = document.createElement('span');
+            statsLabel.className = 'luau-header-stats';
+            statsLabel.textContent = '· 104 servers · 276k members';
+            topic.appendChild(statsLabel);
+
+            fetch('/stats')
+                .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                .then(stats => {
+                    const guilds = Number.isFinite(stats.guilds) ? stats.guilds.toLocaleString() : '104';
+                    const members = Number.isFinite(stats.memberReach) ? stats.memberReach.toLocaleString() : '276,070';
+                    statsLabel.textContent = `· ${guilds} servers · ${members} members`;
+                })
+                .catch(() => {});
+        });
+    </script>
+{% endblock %}
