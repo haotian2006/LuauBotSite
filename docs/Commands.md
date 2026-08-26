@@ -63,6 +63,9 @@ Here are the valid application commands that you can use with the bot:
     print(1+1) -- would optimize to print(2)
     ```
     ```
+## Filtering & Spam
+
+Any raw output will go through a basic filter for slurs and swears. If the output is filtered it will be replaced with tags like $*x*. To prevent output spam discord outputs are truncated to 24 lines and at 1900 characters the output will be truncated.
 
 ## Execution runtime
 
@@ -70,3 +73,4 @@ Here are the valid application commands that you can use with the bot:
 self-contained, and no other
 Roblox-only globals are used, it runs locally on [Lune](https://lune-org.github.io/docs)
 instead, which responds much faster than spinning up a Roblox session. You can tell if its running locally by the presence of a `Lune` in the server number. You can force lune execution by using the `--!lune` hot comment.
+
