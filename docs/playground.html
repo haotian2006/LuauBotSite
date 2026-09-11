@@ -3,7 +3,18 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Luau Runner</title>
+  <!-- Start type downloads before the parser-blocking editor CDN scripts. -->
+  <link rel="preload" href="playground/globalTypes.d.luau" as="fetch" crossorigin>
+  <link rel="preload" href="playground/botTypes.d.luau" as="fetch" crossorigin>
+  <script>
+    // The worker starts downloading/compiling WASM immediately. It only sends
+    // messages after init, once the main script has installed its handlers.
+    try {
+      window.playgroundTypeWorker = new Worker("playground/luau-lsp.worker.js");
+    } catch { /* Retry during initialization if early startup is unavailable. */ }
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
@@ -14,10 +25,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-  <!-- Preload definition files so downloads start before JS executes.
-       WASM is loaded by the worker (different context) so preload doesn't help there. -->
-  <link rel="preload" href="playground/globalTypes.d.luau" as="fetch" crossorigin>
-  <link rel="preload" href="playground/botTypes.d.luau" as="fetch" crossorigin>
   <script>
     (function () {
       function pickTheme() {
@@ -1316,39 +1323,59 @@
       box-shadow: 0 4px 16px var(--pg-shadow) !important;
     }
   </style>
+  <link rel="stylesheet" href="playground/playground.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap">
 </head>
 
 <body>
 
   <div class="toolbar">
-    <span class="toolbar-title">Playground</span>
-    <button id="runBtn">&#9654; Run</button>
-    <button id="stopBtn">&#9632; Stop</button>
+    <button id="runBtn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Run</button>
+    <button id="stopBtn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>Stop</button>
     <button id="fmtBtn" title="Format code (StyLua)"
       style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;font-size:12px;padding:3px 10px">Format</button>
     <div class="toolbar-opts" style="margin-left:auto">
-      <button id="settingsBtn" title="Settings">&#9881; Settings</button>
-      <button id="shareBtn" title="Copy shareable link">&#128279; Share</button>
-      <button id="hist-popover-btn" title="Show history">&#128336; History</button>
+      <button id="settingsBtn" title="Settings"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Settings</button>
+      <button id="shareBtn" title="Copy shareable link"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 1)"/></svg><span class="button-label">Share</span></button>
+      <button id="hist-popover-btn" title="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg>History</button>
     </div>
-    <button id="hist-sheet-btn" title="Show history">&#128336;</button>
+    <button id="hist-sheet-btn" title="Show history" aria-label="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg></button>
     <span id="status"></span>
   </div>
 
   <div class="body-row">
     <div class="main">
-      <div id="editor-wrapper"><textarea id="code"></textarea></div>
+      <section class="editor-pane" aria-label="Code editor">
+        <div class="pane-heading"><span class="file-tab">main.luau</span><span class="pane-caption">Luau editor</span></div>
+        <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
+        <div class="editor-footer"><span>Luau</span><span>Ctrl + Space for suggestions</span></div>
+      </section>
+      <section id="console-pane" class="console-pane" aria-label="Console">
+      <div class="pane-heading">
+        <span>Console</span>
+        <div class="pane-actions">
+          <span class="pane-caption">Output &amp; input</span>
+          <button id="expandConsoleBtn" type="button" title="Expand console" aria-label="Expand console" aria-pressed="false" aria-controls="console-pane">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="input-row">
         <div class="input-controls">
-          <input id="inputBox" type="text" placeholder="stdin input..." autocomplete="off" spellcheck="false" />
-          <button id="attachBtn" title="Attach file">📎</button>
+          <input id="inputBox" type="text" aria-label="Standard input" placeholder="Send input to your program…" autocomplete="off" spellcheck="false" />
+          <button id="attachBtn" title="Attach file" aria-label="Attach file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 11-8 8a6 6 0 0 1-8.5-8.5l8-8a4 4 0 0 1 5.7 5.7l-8 8a2 2 0 0 1-2.8-2.8l7.5-7.5"/></svg></button>
           <button id="sendBtn">Send</button>
         </div>
         <div id="fileQueue"></div>
         <input id="fileInput" type="file" style="display:none" multiple />
       </div>
-      <div id="files"></div>
-      <div id="output"></div>
+      <div class="console-results">
+        <div id="files" aria-label="Generated files"></div>
+        <div id="output" role="log" aria-label="Program output"></div>
+      </div>
+      </section>
     </div>
   </div><!-- /.body-row -->
 
@@ -1448,7 +1475,10 @@ declare myGlobal: MyClass'></textarea>
     </div>
   </div>
 
-  <div id="lightbox"><img id="lightboxImg" /></div>
+  <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image preview">
+    <button id="closePreviewBtn" type="button" aria-label="Close image preview">Close</button>
+    <img id="lightboxImg" alt="" />
+  </div>
 
   <!-- Mobile history bottom sheet -->
   <div id="hist-sheet-backdrop"></div>
@@ -1675,7 +1705,7 @@ declare myGlobal: MyClass'></textarea>
 
     (async function initWorker() {
       try {
-        luauWorker = new Worker("playground/luau-lsp.worker.js");
+        luauWorker = window.playgroundTypeWorker || new Worker("playground/luau-lsp.worker.js");
 
         luauWorker.onmessage = (e) => {
           const { requestId, ...data } = e.data;
@@ -1724,18 +1754,11 @@ declare myGlobal: MyClass'></textarea>
           } catch { }
         }
 
-        // Strip metadata comment, parse static maps (fallback), send as definitions to WASM
+        // Keep the original metadata for WASM's MagicTypeLookup.
         const strippedRoblox = rawTypes.replace(/^--#METADATA#[^\n]*\n?/, "");
-        parseGlobalTypes(strippedRoblox);
-        if (botDefs) parseGlobalTypes(botDefs);
 
-        // Keep metadata for WASM init (MagicTypeLookup reads --#METADATA# on first line).
-        // Static JS parsing still uses strippedRoblox above.
         window._robloxDefs = rawTypes;
         window._botDefs = botDefs;
-
-        allGlobals.sort();
-        staticReady = true;
 
         const solverCheck = document.getElementById("solverCheck");
         const robloxDefsCheck = document.getElementById("robloxDefsCheck");
@@ -1794,6 +1817,12 @@ declare myGlobal: MyClass'></textarea>
         if (!robloxDefsCheck.checked) botDefsCheck.disabled = true;
 
         sendInitToWorker();
+
+        // Let WASM parse definitions in parallel with main-thread fallback maps.
+        parseGlobalTypes(strippedRoblox);
+        if (botDefs) parseGlobalTypes(botDefs);
+        allGlobals.sort();
+        staticReady = true;
       } catch (e) { console.warn("Luau WASM unavailable:", e); }
     })();
 
@@ -1802,6 +1831,7 @@ declare myGlobal: MyClass'></textarea>
       if (!staticReady) { callback(null); return; }
       const cur = cm.getCursor();
       const token = cm.getTokenAt(cur);
+      if (token.type && /\bcomment\b/.test(token.type)) { callback(null); return; }
       const line = cm.getLine(cur.line);
       const code = cm.getValue();
       const charPrev = line.charAt(cur.ch - 1);
@@ -1813,7 +1843,8 @@ declare myGlobal: MyClass'></textarea>
         const raw = token.string.slice(0, cur.ch - token.start);
         const partial = raw.replace(/^["']/, "");
         const fromPos = CodeMirror.Pos(cur.line, token.start + 1); // after the opening quote
-        const toPos = CodeMirror.Pos(cur.line, cur.ch);
+        const suffix = line.slice(cur.ch).match(/^[\w]*/)[0];
+        const toPos = CodeMirror.Pos(cur.line, cur.ch + suffix.length);
 
         if (/Instance\.new\s*\(\s*["']\w*$/.test(lineText) && creatableInstances.length > 0) {
           const names = partial
@@ -1876,7 +1907,8 @@ declare myGlobal: MyClass'></textarea>
       const hasSepInToken = sepIdx > 0;
       const word = isDot ? "" : hasSepInToken ? tokenStr.slice(sepIdx + 1) : tokenStr;
       const from = CodeMirror.Pos(cur.line, isDot ? cur.ch : hasSepInToken ? token.start + sepIdx + 1 : token.start);
-      const to = CodeMirror.Pos(cur.line, cur.ch);
+      const suffix = line.slice(cur.ch).match(/^\w*/)[0];
+      const to = CodeMirror.Pos(cur.line, cur.ch + suffix.length);
 
       // ── Type annotation context: "local x: Rep..." or "local x:" ──
       // Detect "local varName :" pattern on this line (not a method call)
@@ -1912,7 +1944,7 @@ declare myGlobal: MyClass'></textarea>
           memberObject = tokenStr.slice(0, sepIdx);
         if (!memberObject) {
           const linePrefix = line.slice(0, cur.ch);
-          const match = linePrefix.match(/(\w+)\s*[.:]\s*$/);
+          const match = linePrefix.match(/(\w+)\s*[.:]\s*\w*$/);
           memberObject = match ? match[1] : null;
         }
 
@@ -2064,6 +2096,11 @@ declare myGlobal: MyClass'></textarea>
             // Auto-insert "()" with cursor placed inside for callable completions
             if (isFunc) {
               obj.hint = function (cm, data, completion) {
+                // Reuse an existing call instead of producing foo()().
+                if (/^\s*\(/.test(cm.getLine(data.to.line).slice(data.to.ch))) {
+                  cm.replaceRange(p.text, data.from, data.to);
+                  return;
+                }
                 const snippet = p.insertText || `${p.text}()`;
                 const plain = snippet.replace(/\$1/g, "");
                 cm.replaceRange(plain, data.from, data.to);
@@ -2192,6 +2229,21 @@ declare myGlobal: MyClass'></textarea>
     });
 
     syncPlaygroundTheme();
+
+    const expandConsoleBtn = document.getElementById("expandConsoleBtn");
+    const playgroundMain = document.querySelector(".main");
+    expandConsoleBtn.addEventListener("click", () => {
+      const expanded = playgroundMain.classList.toggle("console-expanded");
+      const label = expanded ? "Restore editor and console" : "Expand console";
+      expandConsoleBtn.title = label;
+      expandConsoleBtn.setAttribute("aria-label", label);
+      expandConsoleBtn.setAttribute("aria-pressed", String(expanded));
+      expandConsoleBtn.querySelector("path").setAttribute("d", expanded
+        ? "M3 8h5V3m13 5h-5V3M8 21v-5H3m13 5v-5h5"
+        : "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5");
+      // CodeMirror must remeasure its viewport after its hidden pane returns.
+      if (!expanded) requestAnimationFrame(() => editor.refresh());
+    });
 
     try {
       const parentRoot = window.parent.document.documentElement;
@@ -2637,12 +2689,12 @@ declare myGlobal: MyClass'></textarea>
       const url = base.replace(/\/$/, "") + "/#" + encoded;
       try {
         await navigator.clipboard.writeText(url);
-        this.textContent = "Copied!";
-        setTimeout(() => { this.innerHTML = "&#128279; Share"; }, 2000);
+        this.querySelector(".button-label").textContent = "Copied!";
+        setTimeout(() => { this.querySelector(".button-label").textContent = "Share"; }, 2000);
       } catch {
         window.prompt("Copy failed. Use this link instead:", url);
-        this.textContent = "Copy failed";
-        setTimeout(() => { this.innerHTML = "&#128279; Share"; }, 2000);
+        this.querySelector(".button-label").textContent = "Copy failed";
+        setTimeout(() => { this.querySelector(".button-label").textContent = "Share"; }, 2000);
       }
     });
 
@@ -3063,7 +3115,18 @@ declare myGlobal: MyClass'></textarea>
     let currentToken = null;
     let es = null;
 
-    lightbox.addEventListener("click", () => lightbox.classList.remove("open"));
+    const closePreviewBtn = document.getElementById("closePreviewBtn");
+    let previewTrigger = null;
+    function closePreview() {
+      lightbox.classList.remove("open");
+      previewTrigger?.focus();
+    }
+    closePreviewBtn.addEventListener("click", closePreview);
+    lightbox.addEventListener("click", e => { if (e.target === lightbox) closePreview(); });
+    lightbox.addEventListener("keydown", e => {
+      if (e.key === "Escape") { e.preventDefault(); closePreview(); }
+      if (e.key === "Tab") { e.preventDefault(); closePreviewBtn.focus(); }
+    });
 
     const ANSI_COLORS = {
       '30': '#555', '31': '#e06c75', '32': '#98c379', '33': '#e5c07b',
@@ -3101,7 +3164,8 @@ declare myGlobal: MyClass'></textarea>
     function setStatus(msg) { statusEl.textContent = msg; }
     function setOutput(text) {
       outputEl.innerHTML = ansiToHtml(text);
-      outputEl.scrollTop = outputEl.scrollHeight;
+      const results = outputEl.parentElement;
+      results.scrollTop = results.scrollHeight;
     }
     function setRunning(running) {
       runBtn.style.display = running ? "none" : "inline-flex";
@@ -3127,19 +3191,25 @@ declare myGlobal: MyClass'></textarea>
       const container = document.createElement("div");
       container.className = "file-item";
       const a = document.createElement("a");
-      a.href = url; a.className = "file-link"; a.textContent = "⬇ " + name;
+      a.href = url; a.className = "file-link";
+      const label = document.createElement("span");
+      label.textContent = name;
+      a.appendChild(label);
 
       if (IMAGE_TYPES.has(t)) {
-        a.target = "_blank";
         const img = document.createElement("img");
-        img.src = url; img.title = "Click to enlarge";
-        img.addEventListener("click", e => {
+        img.src = url; img.alt = "";
+        a.title = "Preview " + name;
+        a.prepend(img);
+        a.addEventListener("click", e => {
           e.preventDefault();
+          previewTrigger = a;
           lightboxImg.src = url;
+          lightboxImg.alt = name;
           lightbox.classList.add("open");
+          closePreviewBtn.focus();
         });
         container.appendChild(a);
-        container.appendChild(img);
       } else if (TEXT_TYPES.has(t)) {
         a.target = "_blank";
         container.appendChild(a);
@@ -3266,7 +3336,6 @@ declare myGlobal: MyClass'></textarea>
         _serverNum = serverNum;
         setStatus(`Server #${serverNum}`);
         setOutput(content);
-        filesEl.innerHTML = "";
       });
       es.addEventListener("file", e => {
         const { name, type, content } = JSON.parse(e.data);
