@@ -10,4 +10,8 @@
 .md-main__inner > .md-content > .md-content__inner { margin: 0; padding: 0; }
 h1.post-title, h1 { display: none !important; }
 </style>
-<iframe src="../playground.html" title="Luau playground" style="width:100%;height:calc(100dvh - 64px);border:none;display:block;"></iframe>
+<iframe id="playground-frame" title="Luau playground" style="width:100%;height:calc(100dvh - 64px);border:none;display:block;"></iframe>
+<script>
+  const frame = document.getElementById("playground-frame");
+  frame.src = "../playground.html" + location.search;
+</script>
