@@ -230,7 +230,7 @@
       color: #c9d1d9;
     }
 
-    #shareBtn {
+    #shareBtn, #exportAllBtn, #importFilesBtn {
       background: #21262d;
       color: #c9d1d9;
       border: 1px solid #30363d;
@@ -238,8 +238,12 @@
       padding: 3px 10px;
     }
 
-    #shareBtn:hover {
+    #shareBtn:hover, #exportAllBtn:hover, #importFilesBtn:hover {
       background: #30363d;
+    }
+
+    #exportAllBtn, #importFilesBtn {
+      padding: 3px 7px;
     }
 
     #settingsBtn {
@@ -1162,7 +1166,7 @@
         font-size: 11px;
       }
 
-      #shareBtn {
+      #shareBtn, #exportAllBtn, #importFilesBtn {
         padding: 3px 8px;
         font-size: 11px;
       }
@@ -1257,6 +1261,8 @@
     #sendBtn,
     #shareBtn,
     #settingsBtn,
+    #exportAllBtn,
+    #importFilesBtn,
     #hist-popover-btn,
     #hist-sheet-btn,
     #hist-clear-btn,
@@ -1287,6 +1293,8 @@
 
     #shareBtn:hover,
     #settingsBtn:hover,
+    #exportAllBtn:hover,
+    #importFilesBtn:hover,
     #hist-popover-btn:hover,
     #hist-sheet-btn:hover,
     #attachBtn:hover,
@@ -1332,11 +1340,14 @@
 <body>
 
   <div class="toolbar">
-    <button id="runBtn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Run</button>
+    <button id="runBtn" title="Run main.luau"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Run</button>
     <button id="stopBtn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>Stop</button>
     <button id="fmtBtn" title="Format code (StyLua)"
       style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;font-size:12px;padding:3px 10px">Format</button>
     <div class="toolbar-opts" style="margin-left:auto">
+      <button id="exportAllBtn" type="button" title="Export all code files" aria-label="Export all code files"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg></button>
+      <button id="importFilesBtn" type="button" title="Import code files" aria-label="Import code files"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 17v3h16v-3"/></svg></button>
+      <input id="importFilesInput" type="file" multiple hidden aria-label="Code files to import" />
       <button id="settingsBtn" title="Settings"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Settings</button>
       <button id="shareBtn" title="Copy shareable link"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 1)"/></svg><span class="button-label">Share</span></button>
       <button id="hist-popover-btn" title="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg>History</button>
@@ -1349,7 +1360,12 @@
   <div class="body-row">
     <div class="main">
       <section class="editor-pane" aria-label="Code editor">
-        <div class="pane-heading"><span class="file-tab">main.luau</span><span class="pane-caption">Luau editor</span></div>
+        <div class="pane-heading editor-heading">
+          <div id="fileTabs" class="file-tabs" role="tablist" aria-label="Code files"></div>
+          <button id="addFileBtn" class="file-action" type="button" title="Add module" aria-label="Add module">+</button>
+          <button id="removeAllFilesBtn" class="file-action" type="button" title="Remove all modules" hidden>Remove all</button>
+          <span class="pane-caption">Luau editor</span>
+        </div>
         <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
         <div class="editor-footer"><span>Luau</span><span>Ctrl + Space for suggestions</span></div>
       </section>
@@ -2357,6 +2373,268 @@ declare myGlobal: MyClass'></textarea>
     // ── Persist editor code ──
     const savedCode = localStorage.getItem("luau_code");
     if (savedCode) editor.setValue(savedCode);
+    const MAIN_FILE = "main.luau";
+    const WORKSPACE_KEY = "luau_workspace";
+    const fileTabs = document.getElementById("fileTabs");
+    const removeAllFilesBtn = document.getElementById("removeAllFilesBtn");
+    let workspaceFiles = [{ name: MAIN_FILE, doc: editor.getDoc() }];
+    let activeFileIndex = 0;
+    let saveTimer = null;
+    let runUiReady = false;
+
+    function snapshotWorkspace() {
+      return {
+        files: workspaceFiles.map(file => ({ name: file.name, code: file.doc.getValue() })),
+        active: workspaceFiles[activeFileIndex].name,
+      };
+    }
+
+    function saveWorkspace() {
+      clearTimeout(saveTimer);
+      try {
+        localStorage.setItem(WORKSPACE_KEY, JSON.stringify(snapshotWorkspace()));
+        localStorage.setItem("luau_code", workspaceFiles[0].doc.getValue());
+      } catch {
+        document.getElementById("status").textContent = "Could not save files locally";
+      }
+    }
+
+    function renderFileTabs() {
+      fileTabs.replaceChildren();
+      workspaceFiles.forEach((file, index) => {
+        const tab = document.createElement("div");
+        tab.className = "file-tab" + (index === activeFileIndex ? " active" : "");
+        tab.setAttribute("role", "presentation");
+        const name = document.createElement("button");
+        name.type = "button";
+        name.className = "file-name";
+        name.textContent = file.name;
+        name.title = index === 0 ? file.name : `${file.name} (double-click to rename)`;
+        name.setAttribute("role", "tab");
+        name.setAttribute("aria-selected", String(index === activeFileIndex));
+        name.addEventListener("click", () => selectFile(index));
+        if (index !== 0) name.addEventListener("dblclick", () => editFileName(index));
+        tab.appendChild(name);
+        if (index !== 0) {
+          const close = document.createElement("button");
+          close.type = "button";
+          close.className = "file-close";
+          close.textContent = "×";
+          close.title = `Remove ${file.name}`;
+          close.setAttribute("aria-label", close.title);
+          close.addEventListener("click", () => removeFile(index));
+          tab.appendChild(close);
+        }
+        fileTabs.appendChild(tab);
+      });
+      removeAllFilesBtn.hidden = workspaceFiles.length === 1;
+      document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[activeFileIndex].name;
+      if (runUiReady) syncRunLocalUi();
+    }
+
+    function selectFile(index) {
+      if (index === activeFileIndex) return;
+      activeFileIndex = index;
+      editor.swapDoc(workspaceFiles[index].doc);
+      Array.from(fileTabs.children).forEach((tab, tabIndex) => {
+        tab.classList.toggle("active", tabIndex === index);
+        tab.querySelector(".file-name").setAttribute("aria-selected", String(tabIndex === index));
+      });
+      document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[index].name;
+      saveWorkspace();
+      editor.refresh();
+      editor.focus();
+    }
+
+    function restoreWorkspace(data) {
+      const incoming = Array.isArray(data?.files) ? data.files : [];
+      const main = incoming.find(file => typeof file?.name === "string" && file.name.trim().toLowerCase() === MAIN_FILE);
+      const mainCode = typeof main?.code === "string" ? main.code
+        : typeof data?.c === "string" ? data.c : workspaceFiles[0].doc.getValue();
+      const next = [{ name: MAIN_FILE, doc: new CodeMirror.Doc(mainCode, "luau") }];
+      const names = new Set([MAIN_FILE]);
+      for (const file of incoming) {
+        if (typeof file?.name !== "string" || typeof file.code !== "string") continue;
+        const name = file.name.trim();
+        const key = name.toLowerCase();
+        if (!name || /[\r\n]/.test(name) || names.has(key)) continue;
+        names.add(key);
+        next.push({ name, doc: new CodeMirror.Doc(file.code, "luau") });
+      }
+      workspaceFiles = next;
+      activeFileIndex = Math.max(0, next.findIndex(file => file.name.toLowerCase() === String(data?.active || MAIN_FILE).toLowerCase()));
+      editor.swapDoc(next[activeFileIndex].doc);
+      renderFileTabs();
+      saveWorkspace();
+      editor.refresh();
+    }
+
+    function stripLuauExtension(name) {
+      return name.trim().replace(/(?:\.luau)+$/i, "").trim();
+    }
+
+    function editFileName(index, isNew = false) {
+      if (index === 0) return;
+      const tab = fileTabs.children[index];
+      const button = tab.querySelector(".file-name");
+      const input = document.createElement("input");
+      const initial = workspaceFiles[index].name;
+      button.hidden = true;
+      tab.classList.add("editing");
+      input.className = "file-name-input";
+      input.type = "text";
+      input.value = stripLuauExtension(initial);
+      input.setAttribute("aria-label", isNew ? "New module name" : `Rename ${initial}`);
+      tab.insertBefore(input, button);
+      input.focus();
+      input.select();
+
+      let finished = false;
+      function finish(commit, fromBlur = false) {
+        if (finished) return;
+        const name = stripLuauExtension(input.value);
+        const duplicate = workspaceFiles.some((file, fileIndex) => fileIndex !== index && stripLuauExtension(file.name).toLowerCase() === name.toLowerCase());
+        const error = !name ? "Enter a file name."
+          : /[\r\n]/.test(name) ? "File names cannot contain line breaks."
+            : /[<>:"/\\|?*\x00-\x1f]/.test(name) ? "Use a file name without path or special characters."
+            : duplicate ? "A file with that name already exists." : null;
+        if (commit && error && !fromBlur) {
+          input.setAttribute("aria-invalid", "true");
+          input.title = error;
+          setStatus(error);
+          input.focus();
+          return;
+        }
+        if (commit && error) setStatus(error);
+        finished = true;
+        if (commit && !error) {
+          workspaceFiles[index].name = name;
+          button.textContent = name;
+          button.title = `${name} (double-click to rename)`;
+          const close = tab.querySelector(".file-close");
+          close.title = `Remove ${name}`;
+          close.setAttribute("aria-label", close.title);
+          if (index === activeFileIndex) document.getElementById("editor-wrapper").dataset.activeFile = name;
+          saveWorkspace();
+        }
+        button.hidden = false;
+        input.remove();
+        tab.classList.remove("editing");
+        if (!commit && isNew) removeFile(index);
+      }
+      input.addEventListener("input", () => {
+        input.removeAttribute("aria-invalid");
+        input.removeAttribute("title");
+      });
+      input.addEventListener("keydown", event => {
+        if (event.key === "Enter") { event.preventDefault(); finish(true); }
+        if (event.key === "Escape") { event.preventDefault(); finish(false); }
+      });
+      input.addEventListener("blur", () => finish(true, true));
+    }
+
+    function removeFile(index) {
+      if (index === 0) return;
+      const wasActive = index === activeFileIndex;
+      workspaceFiles.splice(index, 1);
+      if (wasActive) {
+        activeFileIndex = 0;
+        editor.swapDoc(workspaceFiles[0].doc);
+        editor.refresh();
+      } else if (index < activeFileIndex) {
+        activeFileIndex--;
+      }
+      renderFileTabs();
+      saveWorkspace();
+    }
+
+    document.getElementById("addFileBtn").addEventListener("click", () => {
+      let number = 1;
+      while (workspaceFiles.some(file => stripLuauExtension(file.name).toLowerCase() === `file${number}`)) number++;
+      workspaceFiles.push({ name: `file${number}`, doc: new CodeMirror.Doc("-- require me from main to run!", "luau") });
+      renderFileTabs();
+      selectFile(workspaceFiles.length - 1);
+      fileTabs.scrollLeft = fileTabs.scrollWidth;
+      editFileName(workspaceFiles.length - 1, true);
+    });
+    removeAllFilesBtn.addEventListener("click", () => {
+      if (!window.confirm("Remove all modules? main.luau will stay unchanged.")) return;
+      workspaceFiles = [workspaceFiles[0]];
+      activeFileIndex = 0;
+      editor.swapDoc(workspaceFiles[0].doc);
+      renderFileTabs();
+      saveWorkspace();
+      editor.refresh();
+    });
+
+    document.getElementById("exportAllBtn").addEventListener("click", () => {
+      const files = snapshotWorkspace().files;
+      const downloads = files.map((file, index) => ({
+        name: index === 0 ? MAIN_FILE : `${stripLuauExtension(file.name)}.luau`,
+        code: file.code,
+      }));
+      const names = new Set();
+      for (const file of downloads) {
+        const key = file.name.toLowerCase();
+        if (!file.name || /[<>:"/\\|?*\x00-\x1f]/.test(file.name) || names.has(key)) {
+          setStatus(`Cannot export duplicate or invalid file name: ${file.name}`);
+          return;
+        }
+        names.add(key);
+      }
+      for (const file of downloads) {
+        const url = URL.createObjectURL(new Blob([file.code], { type: "text/plain;charset=utf-8" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+      }
+      setStatus(`Exported ${downloads.length} file${downloads.length === 1 ? "" : "s"}. Allow multiple downloads if prompted.`);
+    });
+
+    const importFilesInput = document.getElementById("importFilesInput");
+    document.getElementById("importFilesBtn").addEventListener("click", () => importFilesInput.click());
+    importFilesInput.addEventListener("change", async () => {
+      const selected = Array.from(importFilesInput.files);
+      if (!selected.length) return;
+      try {
+        const incoming = await Promise.all(selected.map(async file => {
+          const name = stripLuauExtension(file.name);
+          if (!name || /[<>:"/\\|?*\x00-\x1f]/.test(name)) throw new Error(`Invalid file name: ${file.name}`);
+          return { name, code: await file.text() };
+        }));
+        const next = snapshotWorkspace();
+        let replaced = 0;
+        let added = 0;
+        for (const file of incoming) {
+          const key = file.name.toLowerCase();
+          const existing = next.files.findIndex((current, index) =>
+            (index === 0 ? "main" : stripLuauExtension(current.name).toLowerCase()) === key);
+          if (existing >= 0) {
+            next.files[existing].code = file.code;
+            replaced++;
+          } else {
+            next.files.push(file);
+            added++;
+          }
+        }
+        setStatus(`Imported ${incoming.length} file${incoming.length === 1 ? "" : "s"}: ${replaced} replaced, ${added} added`);
+        restoreWorkspace(next);
+      } catch (error) {
+        setStatus(`Import failed: ${error.message}`);
+      } finally {
+        importFilesInput.value = "";
+      }
+    });
+
+    try {
+      const savedWorkspace = JSON.parse(localStorage.getItem(WORKSPACE_KEY));
+      if (savedWorkspace) restoreWorkspace(savedWorkspace);
+      else renderFileTabs();
+    } catch { renderFileTabs(); }
     const sourceId = new URLSearchParams(location.search).get("source");
 
     // ── Load from URL hash if present (overrides localStorage) ──
@@ -2365,7 +2643,7 @@ declare myGlobal: MyClass'></textarea>
     try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch { }
     if (urlHash && sourceId === null) {
       decompressFromB64(urlHash).then(state => {
-        if (typeof state.c === "string") editor.setValue(state.c);
+        if (Array.isArray(state.files) || typeof state.c === "string") restoreWorkspace(state);
         if (state.l !== undefined) {
           lintCheck.checked = !!state.l;
           lintCheck.dispatchEvent(new Event("change"));
@@ -2392,10 +2670,9 @@ declare myGlobal: MyClass'></textarea>
         } catch { }
       }).catch(() => { /* invalid hash */ });
     }
-    let saveTimer = null;
     editor.on("change", () => {
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => localStorage.setItem("luau_code", editor.getValue()), 1000);
+      saveTimer = setTimeout(saveWorkspace, 1000);
     });
 
     // ── Settings popover ──
@@ -2724,7 +3001,8 @@ declare myGlobal: MyClass'></textarea>
 
     document.getElementById("shareBtn").addEventListener("click", async function () {
       const state = {
-        c: editor.getValue(),
+        c: workspaceFiles[0].doc.getValue(),
+        ...snapshotWorkspace(),
         l: lintCheck.checked ? 1 : 0,
         s: document.getElementById("solverCheck")?.checked ? 1 : 0,
         t: timestampCheck.checked ? 1 : 0,
@@ -3163,7 +3441,7 @@ declare myGlobal: MyClass'></textarea>
     attachBtn.addEventListener("click", () => fileInput.click());
 
     fileInput.addEventListener("change", () => {
-      if (localRunCheck.checked) return;
+      if (inputBox.disabled) return;
       for (const f of fileInput.files) queuedFiles.push({ file: f });
       renderFileQueue();
       fileInput.value = "";
@@ -3171,7 +3449,7 @@ declare myGlobal: MyClass'></textarea>
 
     // Ctrl+V on inputBox: paste clipboard files as attachments (images, etc.)
     inputBox.addEventListener("paste", e => {
-      if (localRunCheck.checked) return;
+      if (inputBox.disabled) return;
       const files = Array.from(e.clipboardData?.files ?? []);
       if (files.length === 0) return; // no files — let normal text paste through
       e.preventDefault();
@@ -3181,13 +3459,13 @@ declare myGlobal: MyClass'></textarea>
 
     // Drag-and-drop onto the input row
     inputRow.addEventListener("dragover", e => {
-      if (localRunCheck.checked) return;
+      if (inputBox.disabled) return;
       e.preventDefault();
       inputRow.style.outline = "1px solid #388bfd";
     });
     inputRow.addEventListener("dragleave", () => { inputRow.style.outline = ""; });
     inputRow.addEventListener("drop", e => {
-      if (localRunCheck.checked) return;
+      if (inputBox.disabled) return;
       e.preventDefault();
       inputRow.style.outline = "";
       for (const f of e.dataTransfer.files) queuedFiles.push({ file: f });
@@ -3201,7 +3479,7 @@ declare myGlobal: MyClass'></textarea>
         const response = await fetch(`${SERVER}/raw/${encodeURIComponent(sourceId)}`);
         if (!response.ok) throw new Error("Source request failed");
         const code = await response.text();
-        editor.setValue(code);
+        restoreWorkspace({ c: code });
         const sourceStatus = response.headers.get("X-Source-Status");
         if (sourceStatus === "expired" || sourceStatus === "unknown") {
           sourceNotice.textContent = sourceStatus === "expired"
@@ -3340,7 +3618,7 @@ declare myGlobal: MyClass'></textarea>
     localRunCheck.checked = localStorage.getItem("luau_local_run") === "1";
 
     function syncRunLocalUi() {
-      const disabled = localRunCheck.checked;
+      const disabled = localRunCheck.checked && workspaceFiles.length === 1 && !currentToken;
       inputBox.disabled = disabled;
       sendBtn.disabled = disabled;
       attachBtn.disabled = disabled;
@@ -3353,6 +3631,7 @@ declare myGlobal: MyClass'></textarea>
       localStorage.setItem("luau_local_run", localRunCheck.checked ? "1" : "0");
       syncRunLocalUi();
     });
+    runUiReady = true;
     syncRunLocalUi();
 
     function injectFlags(code) {
@@ -3366,12 +3645,107 @@ declare myGlobal: MyClass'></textarea>
       return lines.join("\n");
     }
 
+    const MODULE_MARKER_LINE = /^--==<<\s*FILE:\s*(.*?)\s*>>==--\s*$/;
+    const MODULE_BOOTSTRAP = String.raw`
+do
+local modules = {}
+local modReturns = {}
+function imports.require(x)
+  if type(x) == "string" then x = imports.thread.module:FindFirstChild(x) end
+  local mod = modules[x]
+  if mod then
+    if type(mod) == "string" then error(mod, 2) end
+    if not modReturns[x] then modReturns[x] = table.pack(mod()) end
+    local rtr = modReturns[x]
+    if rtr then return table.unpack(rtr, 1, rtr.n) end
+  end
+  return require(x)
+end
+imports._childmods = modules
+local filestr = io.read():gsub("%%(%x%x)", function(hex) return string.char(tonumber(hex, 16)) end)
+local MARKER = "^%-%-==<<%s*FILE:%s*(.-)%s*>>==%-%-%s*$"
+local function parseFiles(str)
+  local files = {}
+  local name = nil
+  local buf = {}
+  local function flush()
+    if name then
+      local src = table.concat(buf, "\n"):gsub("%s+$", "")
+      if files[name] then warn('Duplicate file name "' .. name .. '", overwriting') end
+      files[name] = src
+    end
+  end
+  for _, line in str:split("\n") do
+    line = line:gsub("\r$", "")
+    local n = line:match(MARKER)
+    if n then
+      flush()
+      if n == "" then error("File marker with no name") end
+      name, buf = n, {}
+    elseif name then
+      table.insert(buf, line)
+    end
+  end
+  flush()
+  return files
+end
+local files = parseFiles(filestr)
+for name, src in files do
+  local parentModule = Instance.new("ModuleScript", script)
+  parentModule.Name = name
+  local fx, module = _execute(src, name)
+  if not fx then
+    modules[parentModule] = module
+  else
+    modules[parentModule] = fx
+    module.Parent = parentModule
+  end
+end
+end
+local require = imports.require;
+`.trim().replace(/\r?\n\s*/g, " ");
+
+    function buildModuleInput(files) {
+      for (const file of files) {
+        if (/[\r\n]/.test(file.name)) throw new Error(`Invalid module name: ${file.name}`);
+        if (MODULE_MARKER_LINE.exec(`--==<< FILE: ${file.name} >>==--`)?.[1] !== file.name) {
+          throw new Error(`Invalid module name: ${file.name}`);
+        }
+        if (file.code.split("\n").some(line => MODULE_MARKER_LINE.test(line.replace(/\r$/, "")))) {
+          throw new Error(`Module ${file.name} contains a file marker line`);
+        }
+      }
+      return files.map(file => `--==<< FILE: ${file.name} >>==--\n${file.code}`).join("\n");
+    }
+
+    function appendModuleInput(code, input) {
+      // Escape comment terminators and the escape prefix before embedding the input.
+      const escaped = input.replace(/%/g, "%25").replace(/\]/g, "%5D");
+      return `${code}\n--[[@${escaped}]]`;
+    }
+
+    function injectModuleBootstrap(code) {
+      const lines = code.split("\n");
+      let first = 0;
+      while (first < lines.length && /^\s*--!/.test(lines[first])) first++;
+      if (first < lines.length) lines[first] = MODULE_BOOTSTRAP + " " + lines[first];
+      else lines.push(MODULE_BOOTSTRAP);
+      return lines.join("\n");
+    }
+
     runBtn.addEventListener("click", async () => {
-      const raw = editor.getValue();
+      const runWorkspace = snapshotWorkspace();
+      const raw = runWorkspace.files[0].code;
       if (!raw.trim()) return;
+      const moduleFiles = runWorkspace.files.slice(1);
+      let moduleInput = "";
+      if (moduleFiles.length) {
+        try { moduleInput = buildModuleInput(moduleFiles); }
+        catch (error) { setStatus(error.message); return; }
+      }
 
       // ── Local WASM execution ──
-      if (localRunCheck.checked && workerReady) {
+      if (localRunCheck.checked && workerReady && !moduleInput) {
         outputEl.innerHTML = "";
         filesEl.innerHTML = "";
         _pendingFiles = [];
@@ -3399,18 +3773,21 @@ declare myGlobal: MyClass'></textarea>
         }
         setRunning(false);
         if (histRecordCheck.checked) {
-          pushHistory(raw, outputEl.innerHTML, _pendingFiles, null, elapsed != null ? +elapsed : null, true);
+          pushHistory(raw, outputEl.innerHTML, _pendingFiles, null, elapsed != null ? +elapsed : null, true, runWorkspace);
         }
         return;
       }
 
-      const code = injectFlags(raw);
+      const code = moduleInput
+        ? appendModuleInput(injectFlags(injectModuleBootstrap(raw)), moduleInput)
+        : injectFlags(raw);
       _pendingCode = raw; // save original (pre-inject) code for history
+      _pendingWorkspace = runWorkspace;
       _pendingFiles = [];
 
       outputEl.innerHTML = "";
       filesEl.innerHTML = "";
-      setStatus("Starting...");
+      setStatus(moduleInput ? "Starting modules on server..." : "Starting...");
       setRunning(true);
 
       const res = await fetch(`${SERVER}/run`, {
@@ -3436,6 +3813,7 @@ declare myGlobal: MyClass'></textarea>
 
       const { token } = await res.json();
       currentToken = token;
+      syncRunLocalUi();
 
       if (es) es.close();
       es = new EventSource(`${SERVER}/stream/${token}`);
@@ -3459,8 +3837,10 @@ declare myGlobal: MyClass'></textarea>
         setRunning(false);
         es.close();
         currentToken = null;
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, +runtime); }
+        syncRunLocalUi();
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, +runtime, false, _pendingWorkspace); }
         _pendingCode = null;
+        _pendingWorkspace = null;
         _pendingFiles = [];
       });
       es.addEventListener("error", e => {
@@ -3469,8 +3849,10 @@ declare myGlobal: MyClass'></textarea>
         setRunning(false);
         es.close();
         currentToken = null;
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, null); }
+        syncRunLocalUi();
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, null, false, _pendingWorkspace); }
         _pendingCode = null;
+        _pendingWorkspace = null;
         _pendingFiles = [];
       });
     });
@@ -3623,7 +4005,13 @@ declare myGlobal: MyClass'></textarea>
         const localTag = entry.local ? " · Local" : "";
         const serverTag = entry.serverNum != null ? ` · #${entry.serverNum}` : "";
         const runtimeTag = entry.runtime != null ? ` · ${entry.runtime.toFixed(2)}s` : "";
-        body.innerHTML = `<div class="hist-label">${entry.label}</div><div class="hist-time">${histTime(entry.ts)}${localTag}${serverTag}${runtimeTag}</div>`;
+        const label = document.createElement("div");
+        label.className = "hist-label";
+        label.textContent = `${entry.workspace?.active || MAIN_FILE} · ${entry.label || "(empty)"}`;
+        const time = document.createElement("div");
+        time.className = "hist-time";
+        time.textContent = `${histTime(entry.ts)}${localTag}${serverTag}${runtimeTag}`;
+        body.append(label, time);
         body.addEventListener("click", () => loadHistoryEntry(entry));
 
         const del = document.createElement("button");
@@ -3648,9 +4036,10 @@ declare myGlobal: MyClass'></textarea>
         fetch(`${SERVER}/stop/${currentToken}`, { method: "POST" }).catch(() => { });
         if (es) { es.close(); es = null; }
         currentToken = null;
+        syncRunLocalUi();
         setRunning(false);
       }
-      editor.setValue(entry.code);
+      restoreWorkspace(entry.workspace || { c: entry.code || "" });
       outputEl.innerHTML = entry.output || "";
       filesEl.innerHTML = "";
       const filesData = resolveHistoryFiles(entry);
@@ -3689,9 +4078,9 @@ declare myGlobal: MyClass'></textarea>
       setStatus("Loaded from history");
     }
 
-    function pushHistory(code, output, filesData, serverNum, runtime, local = false) {
+    function pushHistory(code, output, filesData, serverNum, runtime, local = false, workspace = snapshotWorkspace()) {
       const h = loadHistory();
-      const entry = { ts: Date.now(), label: histLabel(code), code, output, serverNum, runtime, local: local ? 1 : 0 };
+      const entry = { ts: Date.now(), label: histLabel(code), code, workspace, output, serverNum, runtime, local: local ? 1 : 0 };
       // Snapshot settings, sourcemap, and custom definitions with the entry
       entry.r = document.getElementById("robloxDefsCheck")?.checked ? 1 : 0;
       entry.b = document.getElementById("botDefsCheck")?.checked ? 1 : 0;
@@ -3817,6 +4206,7 @@ declare myGlobal: MyClass'></textarea>
 
     // Save to history when a run completes or errors
     let _pendingCode = null;
+    let _pendingWorkspace = null;
     let _pendingFiles = [];
 
     stopBtn.addEventListener("click", async () => {
@@ -3826,6 +4216,7 @@ declare myGlobal: MyClass'></textarea>
       setRunning(false);
       if (es) { es.close(); es = null; }
       currentToken = null;
+      syncRunLocalUi();
     });
 
     sendBtn.addEventListener("click", e => sendInput(e.shiftKey));
@@ -3892,7 +4283,7 @@ declare myGlobal: MyClass'></textarea>
     // Normal send: text first, then 1 file from the front of the queue
     // Shift+send: text first, then ALL queued files
     async function sendInput(all = false) {
-      if (localRunCheck.checked || !currentToken) return;
+      if (!currentToken) return;
       if (!inputBox.value && queuedFiles.length === 0) return;
 
       try {

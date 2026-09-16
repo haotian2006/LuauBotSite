@@ -44,9 +44,22 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .main.console-expanded { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "console"; }
 .main.console-expanded .editor-pane { display: none; }
 .main.console-expanded .pane-splitter { display: none; }
-.file-tab { display: flex; align-items: center; height: 100%; border-bottom: 2px solid var(--pg-accent); font-family: "JetBrains Mono", Consolas, monospace; }
+.editor-heading { justify-content: flex-start; gap: 6px; }
+.editor-heading .pane-caption { margin-left: auto; }
+.file-tabs { display: flex; align-items: stretch; flex: 0 1 auto; min-width: 0; height: 100%; overflow-x: auto; scrollbar-width: thin; }
+.file-tab { display: flex; align-items: center; flex: 0 0 auto; height: 100%; border-bottom: 2px solid transparent; font-family: "JetBrains Mono", Consolas, monospace; }
+.file-tab.active { border-bottom-color: var(--pg-accent); }
+.file-tab button, .file-action { background: transparent; color: var(--pg-muted); border-radius: 5px; }
+.file-tab button:hover, .file-action:hover { background: var(--pg-surface-2); color: var(--pg-fg); }
+.file-tab.active .file-name { color: var(--pg-fg); }
+.file-tab .file-name { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 5px 7px; font: inherit; font-size: 12px; }
+.file-tab .file-name-input { width: 150px; max-width: 40vw; padding: 4px 6px; border: 1px solid var(--pg-accent); border-radius: 4px; outline: none; background: var(--pg-editor); color: var(--pg-fg); font: inherit; font-size: 12px; }
+.file-tab .file-name-input[aria-invalid="true"] { border-color: #e06c75; }
+.file-tab .file-close { padding: 2px 5px; font-size: 15px; line-height: 1; }
+.editor-heading .file-action { flex: 0 0 auto; padding: 3px 7px; font-size: 13px; }
+#removeAllFilesBtn[hidden] { display: none; }
 #editor-wrapper { position: relative; border: 0; }
-#editor-wrapper.file-drag-over::after { content: "↓  Drop file to paste into main.luau"; position: absolute; z-index: 5; inset: 12px; display: grid; place-items: center; padding: 20px; border: 2px dashed var(--pg-accent); border-radius: 10px; background: rgba(25, 30, 43, .92); color: var(--pg-fg); font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; animation: file-drop-enter .18s ease-out, file-drop-pulse 1.2s ease-in-out .18s infinite alternate; }
+#editor-wrapper.file-drag-over::after { content: "↓  Drop file to paste into " attr(data-active-file); position: absolute; z-index: 5; inset: 12px; display: grid; place-items: center; padding: 20px; border: 2px dashed var(--pg-accent); border-radius: 10px; background: rgba(25, 30, 43, .92); color: var(--pg-fg); font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; animation: file-drop-enter .18s ease-out, file-drop-pulse 1.2s ease-in-out .18s infinite alternate; }
 html[data-playground-theme="light"] #editor-wrapper.file-drag-over::after { background: rgba(255, 255, 255, .94); }
 @keyframes file-drop-enter { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
 @keyframes file-drop-pulse { from { box-shadow: 0 0 0 0 rgba(99, 102, 241, .08); } to { box-shadow: 0 0 0 7px rgba(99, 102, 241, .24); } }
