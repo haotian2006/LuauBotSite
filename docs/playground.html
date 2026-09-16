@@ -1343,6 +1343,7 @@
     </div>
     <button id="hist-sheet-btn" title="Show history" aria-label="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg></button>
     <span id="status"></span>
+    <span id="sourceNotice" role="alert"></span>
   </div>
 
   <div class="body-row">
@@ -1352,6 +1353,7 @@
         <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
         <div class="editor-footer"><span>Luau</span><span>Ctrl + Space for suggestions</span></div>
       </section>
+      <div class="pane-splitter" role="separator" tabindex="0" aria-label="Resize editor and console" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75" aria-controls="console-pane"></div>
       <section id="console-pane" class="console-pane" aria-label="Console">
       <div class="pane-heading">
         <span>Console</span>
@@ -2232,6 +2234,55 @@ declare myGlobal: MyClass'></textarea>
 
     const expandConsoleBtn = document.getElementById("expandConsoleBtn");
     const playgroundMain = document.querySelector(".main");
+    const paneSplitter = document.querySelector(".pane-splitter");
+    const minEditorWidth = 320;
+    const minConsoleWidth = 280;
+    const splitterWidth = 16;
+    let resizeFrame;
+    let dragOffset = 0;
+
+    function setEditorWidth(width) {
+      const available = playgroundMain.clientWidth - splitterWidth;
+      const editorWidth = Math.max(minEditorWidth, Math.min(width, available - minConsoleWidth));
+      playgroundMain.style.setProperty("--editor-width", `${editorWidth}px`);
+      paneSplitter.setAttribute("aria-valuenow", String(Math.round(editorWidth / available * 100)));
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => editor.refresh());
+    }
+
+    paneSplitter.addEventListener("pointerdown", event => {
+      if (event.button !== 0 || playgroundMain.classList.contains("console-expanded")) return;
+      event.preventDefault();
+      dragOffset = event.clientX - document.querySelector(".editor-pane").getBoundingClientRect().right;
+      paneSplitter.setPointerCapture(event.pointerId);
+      playgroundMain.classList.add("is-resizing");
+      document.body.classList.add("is-resizing");
+    });
+    paneSplitter.addEventListener("pointermove", event => {
+      if (paneSplitter.hasPointerCapture(event.pointerId)) {
+        setEditorWidth(event.clientX - playgroundMain.getBoundingClientRect().left - dragOffset);
+      }
+    });
+    function stopResizing() {
+      playgroundMain.classList.remove("is-resizing");
+      document.body.classList.remove("is-resizing");
+    }
+    paneSplitter.addEventListener("pointerup", stopResizing);
+    paneSplitter.addEventListener("pointercancel", stopResizing);
+    paneSplitter.addEventListener("lostpointercapture", stopResizing);
+    paneSplitter.addEventListener("keydown", event => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      const currentWidth = document.querySelector(".editor-pane").getBoundingClientRect().width;
+      setEditorWidth(currentWidth + (event.key === "ArrowRight" ? 24 : -24));
+    });
+    window.addEventListener("resize", () => {
+      if (!window.matchMedia("(max-width: 1000px)").matches &&
+          playgroundMain.style.getPropertyValue("--editor-width") &&
+          !playgroundMain.classList.contains("console-expanded")) {
+        setEditorWidth(document.querySelector(".editor-pane").getBoundingClientRect().width);
+      }
+    });
     expandConsoleBtn.addEventListener("click", () => {
       const expanded = playgroundMain.classList.toggle("console-expanded");
       const label = expanded ? "Restore editor and console" : "Expand console";
@@ -2306,12 +2357,13 @@ declare myGlobal: MyClass'></textarea>
     // ── Persist editor code ──
     const savedCode = localStorage.getItem("luau_code");
     if (savedCode) editor.setValue(savedCode);
+    const sourceId = new URLSearchParams(location.search).get("source");
 
     // ── Load from URL hash if present (overrides localStorage) ──
     // When embedded in an iframe the hash lives on the parent page
     let urlHash = location.hash.slice(1);
     try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch { }
-    if (urlHash) {
+    if (urlHash && sourceId === null) {
       decompressFromB64(urlHash).then(state => {
         if (typeof state.c === "string") editor.setValue(state.c);
         if (state.l !== undefined) {
@@ -3107,6 +3159,29 @@ declare myGlobal: MyClass'></textarea>
       renderFileQueue();
     });
     const statusEl = document.getElementById("status");
+    const sourceNotice = document.getElementById("sourceNotice");
+    async function loadSourceFromQuery() {
+      if (sourceId === null) return;
+      try {
+        const response = await fetch(`${SERVER}/raw/${encodeURIComponent(sourceId)}`);
+        if (!response.ok) throw new Error("Source request failed");
+        const code = await response.text();
+        editor.setValue(code);
+        const sourceStatus = response.headers.get("X-Source-Status");
+        if (sourceStatus === "expired" || sourceStatus === "unknown") {
+          sourceNotice.textContent = sourceStatus === "expired"
+            ? "This script link has expired."
+            : "This script link no longer exists.";
+        }
+      } catch {
+        sourceNotice.textContent = "Could not load the script. Check your connection and try again.";
+      } finally {
+        const url = new URL(location.href);
+        url.searchParams.delete("source");
+        history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+      }
+    }
+    loadSourceFromQuery();
     const outputEl = document.getElementById("output");
     const filesEl = document.getElementById("files");
     const lightbox = document.getElementById("lightbox");
