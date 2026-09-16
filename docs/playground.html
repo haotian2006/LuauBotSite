@@ -2990,6 +2990,41 @@ declare myGlobal: MyClass'></textarea>
     let hoverToken = null;
 
     const editorWrapper = editor.getWrapperElement();
+    const codeDropZone = document.getElementById("editor-wrapper");
+    function isFileDrag(event) {
+      return Array.from(event.dataTransfer?.types || []).includes("Files");
+    }
+    codeDropZone.addEventListener("dragover", event => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      codeDropZone.classList.add("file-drag-over");
+    }, true);
+    codeDropZone.addEventListener("dragleave", event => {
+      const bounds = codeDropZone.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX >= bounds.right ||
+          event.clientY < bounds.top || event.clientY >= bounds.bottom) {
+        codeDropZone.classList.remove("file-drag-over");
+      }
+    });
+    codeDropZone.addEventListener("drop", async event => {
+      const files = Array.from(event.dataTransfer?.files || []);
+      if (files.length === 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      codeDropZone.classList.remove("file-drag-over");
+      const offset = editor.indexFromPos(editor.coordsChar({ left: event.clientX, top: event.clientY }, "window"));
+      try {
+        const content = (await Promise.all(files.map(file => file.text()))).join("\n");
+        editor.operation(() => {
+          editor.replaceRange(content, editor.posFromIndex(offset));
+          editor.setCursor(editor.posFromIndex(offset + content.length));
+        });
+        editor.focus();
+      } catch {
+        setStatus("Could not read dropped file");
+      }
+    }, true);
     let lastMouseX = 0, lastMouseY = 0;
 
     const badTokenTypes = new Set(["keyword", "operator", "punctuation", "bracket", "comment", "number"]);

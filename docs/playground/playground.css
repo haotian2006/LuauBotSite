@@ -45,7 +45,12 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .main.console-expanded .editor-pane { display: none; }
 .main.console-expanded .pane-splitter { display: none; }
 .file-tab { display: flex; align-items: center; height: 100%; border-bottom: 2px solid var(--pg-accent); font-family: "JetBrains Mono", Consolas, monospace; }
-#editor-wrapper { border: 0; }
+#editor-wrapper { position: relative; border: 0; }
+#editor-wrapper.file-drag-over::after { content: "↓  Drop file to paste into main.luau"; position: absolute; z-index: 5; inset: 12px; display: grid; place-items: center; padding: 20px; border: 2px dashed var(--pg-accent); border-radius: 10px; background: rgba(25, 30, 43, .92); color: var(--pg-fg); font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; animation: file-drop-enter .18s ease-out, file-drop-pulse 1.2s ease-in-out .18s infinite alternate; }
+html[data-playground-theme="light"] #editor-wrapper.file-drag-over::after { background: rgba(255, 255, 255, .94); }
+@keyframes file-drop-enter { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+@keyframes file-drop-pulse { from { box-shadow: 0 0 0 0 rgba(99, 102, 241, .08); } to { box-shadow: 0 0 0 7px rgba(99, 102, 241, .24); } }
+@media (prefers-reduced-motion: reduce) { #editor-wrapper.file-drag-over::after { animation: none; } }
 #editor-wrapper .CodeMirror { padding-top: 10px; font-size: 14px; line-height: 1.75; }
 #editor-wrapper .CodeMirror-gutters { background: var(--pg-editor); border: 0; }
 .CodeMirror-linenumber { color: var(--pg-muted-2); }
