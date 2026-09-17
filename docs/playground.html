@@ -1340,7 +1340,7 @@
 <body>
 
   <div class="toolbar">
-    <button id="runBtn" title="Run main.luau"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Run</button>
+    <button id="runBtn" title="Run selected file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Run</button>
     <button id="stopBtn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>Stop</button>
     <button id="fmtBtn" title="Format code (StyLua)"
       style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;font-size:12px;padding:3px 10px">Format</button>
@@ -3706,11 +3706,15 @@ local require = imports.require;
 `.trim().replace(/\r?\n\s*/g, " ");
 
     function buildModuleInput(files) {
+      const names = new Set();
       for (const file of files) {
         if (/[\r\n]/.test(file.name)) throw new Error(`Invalid module name: ${file.name}`);
         if (MODULE_MARKER_LINE.exec(`--==<< FILE: ${file.name} >>==--`)?.[1] !== file.name) {
           throw new Error(`Invalid module name: ${file.name}`);
         }
+        const key = file.name.toLowerCase();
+        if (names.has(key)) throw new Error(`Duplicate module name: ${file.name}`);
+        names.add(key);
         if (file.code.split("\n").some(line => MODULE_MARKER_LINE.test(line.replace(/\r$/, "")))) {
           throw new Error(`Module ${file.name} contains a file marker line`);
         }
@@ -3735,9 +3739,11 @@ local require = imports.require;
 
     runBtn.addEventListener("click", async () => {
       const runWorkspace = snapshotWorkspace();
-      const raw = runWorkspace.files[0].code;
+      const entryIndex = activeFileIndex;
+      const raw = runWorkspace.files[entryIndex].code;
       if (!raw.trim()) return;
-      const moduleFiles = runWorkspace.files.slice(1);
+      const moduleFiles = runWorkspace.files.flatMap((file, index) =>
+        index === entryIndex ? [] : [{ name: index === 0 ? "main" : file.name, code: file.code }]);
       let moduleInput = "";
       if (moduleFiles.length) {
         try { moduleInput = buildModuleInput(moduleFiles); }
