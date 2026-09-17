@@ -3647,17 +3647,31 @@ declare myGlobal: MyClass'></textarea>
 
     const MODULE_MARKER_LINE = /^--==<<\s*FILE:\s*(.*?)\s*>>==--\s*$/;
     const MODULE_BOOTSTRAP = String.raw`
+local __playground_entry_results, __playground_entry_running = nil, true;
 do
+local entryScript = script
+local entryName = nil
 local modules = {}
 local modReturns = {}
+local modLoading = {}
 function imports.require(x)
-  if type(x) == "string" then x = imports.thread.module:FindFirstChild(x) end
+  if type(x) == "string" then
+    if x == entryName then x = entryScript else x = imports.thread.module:FindFirstChild(x) end
+  end
   local mod = modules[x]
   if mod then
     if type(mod) == "string" then error(mod, 2) end
-    if not modReturns[x] then modReturns[x] = table.pack(mod()) end
     local rtr = modReturns[x]
-    if rtr then return table.unpack(rtr, 1, rtr.n) end
+    if not rtr then
+      if modLoading[x] then error("Circular require: " .. (x == entryScript and entryName or x.Name), 2) end
+      modLoading[x] = true
+      local ok, result = pcall(function() return table.pack(mod()) end)
+      modLoading[x] = nil
+      if not ok then error(result, 2) end
+      modReturns[x] = result
+      rtr = result
+    end
+    return table.unpack(rtr, 1, rtr.n)
   end
   return require(x)
 end
@@ -3667,6 +3681,7 @@ local MARKER = "^%-%-==<<%s*FILE:%s*(.-)%s*>>==%-%-%s*$"
 local function parseFiles(str)
   local files = {}
   local name = nil
+  local entryName = nil
   local buf = {}
   local function flush()
     if name then
@@ -3681,28 +3696,38 @@ local function parseFiles(str)
     if n then
       flush()
       if n == "" then error("File marker with no name") end
+      if not entryName then entryName = n end
       name, buf = n, {}
     elseif name then
       table.insert(buf, line)
     end
   end
   flush()
-  return files
+  return files, entryName
 end
-local files = parseFiles(filestr)
+local files, parsedEntryName = parseFiles(filestr)
+entryName = parsedEntryName
 for name, src in files do
-  local parentModule = Instance.new("ModuleScript", script)
-  parentModule.Name = name
-  local fx, module = _execute(src, name)
-  if not fx then
-    modules[parentModule] = module
+  if name == entryName then
+    modules[entryScript] = function()
+      if __playground_entry_running then error("Circular require: " .. name, 2) end
+      return table.unpack(__playground_entry_results, 1, __playground_entry_results.n)
+    end
   else
-    modules[parentModule] = fx
-    module.Parent = parentModule
+    local parentModule = Instance.new("ModuleScript", script)
+    parentModule.Name = name
+    local fx, module = _execute(src, name)
+    if not fx then
+      modules[parentModule] = module
+    else
+      modules[parentModule] = fx
+      module.Parent = parentModule
+    end
   end
 end
 end
 local require = imports.require;
+local function __playground_entry(...)
 `.trim().replace(/\r?\n\s*/g, " ");
 
     function buildModuleInput(files) {
@@ -3734,7 +3759,7 @@ local require = imports.require;
       while (first < lines.length && /^\s*--!/.test(lines[first])) first++;
       if (first < lines.length) lines[first] = MODULE_BOOTSTRAP + " " + lines[first];
       else lines.push(MODULE_BOOTSTRAP);
-      return lines.join("\n");
+      return lines.join("\n") + "\nend; __playground_entry_results = table.pack(__playground_entry(...)); __playground_entry_running = false; return table.unpack(__playground_entry_results, 1, __playground_entry_results.n)";
     }
 
     runBtn.addEventListener("click", async () => {
@@ -3742,8 +3767,12 @@ local require = imports.require;
       const entryIndex = activeFileIndex;
       const raw = runWorkspace.files[entryIndex].code;
       if (!raw.trim()) return;
-      const moduleFiles = runWorkspace.files.flatMap((file, index) =>
-        index === entryIndex ? [] : [{ name: index === 0 ? "main" : file.name, code: file.code }]);
+      const moduleFiles = runWorkspace.files.length > 1
+        ? [
+          { name: entryIndex === 0 ? "main" : runWorkspace.files[entryIndex].name, code: "" },
+          ...runWorkspace.files.flatMap((file, index) => index === entryIndex ? [] : [{ name: index === 0 ? "main" : file.name, code: file.code }]),
+        ]
+        : [];
       let moduleInput = "";
       if (moduleFiles.length) {
         try { moduleInput = buildModuleInput(moduleFiles); }
