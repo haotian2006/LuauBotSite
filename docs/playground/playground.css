@@ -39,6 +39,57 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .pane-heading { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 12px; height: 46px; padding: 0 16px; border-bottom: 1px solid var(--pg-border); background: var(--pg-surface); font-size: 12px; font-weight: 600; }
 .pane-caption { color: var(--pg-muted); font-weight: 400; font-size: 11px; }
 .pane-actions { display: flex; align-items: center; gap: 12px; }
+.result-tabs { display: flex; align-items: stretch; align-self: stretch; min-width: 0; overflow-x: auto; }
+.result-tab { flex: 0 0 auto; padding: 0 10px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--pg-muted); font-size: 12px; }
+.result-tab:hover { color: var(--pg-fg); background: var(--pg-surface-2); }
+.result-tab.active { color: var(--pg-fg); border-bottom-color: var(--pg-accent); }
+.console-pane [hidden] { display: none !important; }
+.tool-results { display: flex; flex-direction: column; flex: 1; min-height: 0; background: var(--pg-editor); }
+.bytecode-options { border-bottom: 1px solid var(--pg-border); background: var(--pg-surface); }
+.bytecode-options > summary { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 14px; color: var(--pg-fg); cursor: pointer; font-size: 11px; font-weight: 600; list-style: none; }
+.bytecode-options > summary::-webkit-details-marker { display: none; }
+.bytecode-options > summary::before { content: "▸"; color: var(--pg-muted); font-size: 14px; transition: transform .15s; }
+.bytecode-options[open] > summary::before { transform: rotate(90deg); }
+.bytecode-options > summary:focus-visible { outline: 2px solid var(--pg-accent); outline-offset: -2px; }
+#bytecodeOptionSummary { min-width: 0; margin-left: auto; overflow: hidden; color: var(--pg-muted); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.bytecode-option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 4px 14px 12px; }
+.bytecode-options label { display: flex; flex-direction: column; gap: 4px; min-width: 0; color: var(--pg-muted); font-size: 11px; }
+.bytecode-options .bytecode-output-option { grid-column: 1 / -1; }
+.bytecode-options select { width: 100%; min-width: 0; min-height: 28px; padding: 3px 6px; border: 1px solid var(--pg-border); border-radius: 6px; background: var(--pg-input); color: var(--pg-fg); font: inherit; }
+.tool-results-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; padding: 6px 14px; border-bottom: 1px solid var(--pg-border); color: var(--pg-muted); font-size: 11px; }
+.tool-state { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.tool-spinner { width: 13px; height: 13px; flex: 0 0 13px; border: 2px solid var(--pg-border); border-top-color: var(--pg-accent); border-radius: 50%; animation: tool-spin .75s linear infinite; }
+@keyframes tool-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .tool-spinner { animation: none; border-color: var(--pg-accent); } }
+#toolStatus { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#copyToolBtn { padding: 4px 10px; border: 1px solid var(--pg-border); background: var(--pg-surface); color: var(--pg-fg); font-size: 11px; }
+#copyToolBtn:disabled { opacity: .5; cursor: default; }
+#toolOutput { flex: 1; min-height: 0; margin: 0; padding: 14px 16px; overflow: auto; color: var(--pg-fg); font: 12px/1.6 "JetBrains Mono", Consolas, monospace; tab-size: 2; }
+#toolOutput .bytecode-line { display: block; min-height: 1.6em; }
+#toolOutput .bytecode-line.is-linked { background: rgba(99, 102, 241, .22); box-shadow: inset 3px 0 var(--pg-accent); }
+html[data-playground-theme="light"] #toolOutput .bytecode-line.is-linked { background: rgba(79, 70, 229, .13); }
+#toolOutput .syntax-source { color: #8b949e; }
+#toolOutput .syntax-op { color: #79c0ff; font-weight: 600; }
+#toolOutput .syntax-op[data-opcode] { cursor: help; text-decoration: underline dotted; text-decoration-color: color-mix(in srgb, currentColor 55%, transparent); text-underline-offset: 3px; }
+.opcode-tooltip { position: fixed; z-index: 30; width: max-content; max-width: min(380px, calc(100vw - 24px)); max-height: min(360px, 60vh); padding: 10px 12px; overflow: hidden; border: 1px solid var(--pg-border); border-radius: 8px; background: var(--pg-surface); color: var(--pg-fg); box-shadow: 0 10px 28px #0008; font: 12px/1.45 "JetBrains Mono", Consolas, monospace; pointer-events: none; white-space: normal; }
+.opcode-tooltip strong { display: block; margin-bottom: 4px; color: var(--pg-accent); }
+.opcode-tooltip .opcode-details { display: block; margin-top: 7px; color: var(--pg-muted); white-space: pre-line; }
+#toolOutput .syntax-register { color: #7ee2d0; }
+#toolOutput .syntax-label, #toolOutput .syntax-key { color: #c9a7ff; }
+#toolOutput .syntax-string { color: #a5d6a7; }
+#toolOutput .syntax-number, #toolOutput .syntax-constant { color: #f2cc87; }
+#toolOutput .syntax-comment { color: #8b949e; font-style: italic; }
+#toolOutput .syntax-keyword { color: #ff9aa2; }
+html[data-playground-theme="light"] #toolOutput .syntax-source,
+html[data-playground-theme="light"] #toolOutput .syntax-comment { color: #687486; }
+html[data-playground-theme="light"] #toolOutput .syntax-op { color: #1f5ca9; }
+html[data-playground-theme="light"] #toolOutput .syntax-register { color: #087b70; }
+html[data-playground-theme="light"] #toolOutput .syntax-label,
+html[data-playground-theme="light"] #toolOutput .syntax-key { color: #7040a3; }
+html[data-playground-theme="light"] #toolOutput .syntax-string { color: #287548; }
+html[data-playground-theme="light"] #toolOutput .syntax-number,
+html[data-playground-theme="light"] #toolOutput .syntax-constant { color: #9a6014; }
+html[data-playground-theme="light"] #toolOutput .syntax-keyword { color: #a03d45; }
 #expandConsoleBtn { padding: 6px; background: transparent; color: var(--pg-muted); border-radius: 6px; }
 #expandConsoleBtn:hover { background: var(--pg-surface-2); color: var(--pg-fg); }
 .main.console-expanded { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "console"; }

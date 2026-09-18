@@ -1372,9 +1372,12 @@
       <div class="pane-splitter" role="separator" tabindex="0" aria-label="Resize editor and console" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75" aria-controls="console-pane"></div>
       <section id="console-pane" class="console-pane" aria-label="Console">
       <div class="pane-heading">
-        <span>Console</span>
+        <div class="result-tabs" role="tablist" aria-label="Result view">
+          <button class="result-tab active" type="button" role="tab" id="consoleTab" aria-selected="true" aria-controls="consoleResults" data-result-view="console">Console</button>
+          <button class="result-tab" type="button" role="tab" id="bytecodeTab" aria-selected="false" aria-controls="toolResults" data-result-view="bytecode">Bytecode</button>
+          <button class="result-tab" type="button" role="tab" id="astTab" aria-selected="false" aria-controls="toolResults" data-result-view="ast">AST</button>
+        </div>
         <div class="pane-actions">
-          <span class="pane-caption">Output &amp; input</span>
           <button id="expandConsoleBtn" type="button" title="Expand console" aria-label="Expand console" aria-pressed="false" aria-controls="console-pane">
             <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
           </button>
@@ -1389,9 +1392,58 @@
         <div id="fileQueue"></div>
         <input id="fileInput" type="file" style="display:none" multiple />
       </div>
-      <div class="console-results">
+      <div id="consoleResults" class="console-results" role="tabpanel" aria-labelledby="consoleTab">
         <div id="files" aria-label="Generated files"></div>
         <div id="output" role="log" aria-label="Program output"></div>
+      </div>
+      <div id="toolResults" class="tool-results" role="tabpanel" aria-labelledby="bytecodeTab" hidden>
+        <details id="bytecodeOptions" class="bytecode-options">
+          <summary><span>Compiler options</span><span id="bytecodeOptionSummary">O2 · G2 · T0 · VM bytecode</span></summary>
+          <div class="bytecode-option-grid">
+          <label>Optimization
+            <select id="bytecodeOptimize" aria-label="Bytecode optimization">
+              <option value="auto">Auto: O2</option>
+              <option value="0">O0</option>
+              <option value="1">O1</option>
+              <option value="2">O2</option>
+            </select>
+          </label>
+          <label>Debug
+            <select id="bytecodeDebug" aria-label="Bytecode debug level" title="G1 or G2 shows source lines for highlighting">
+              <option value="auto">Auto: G0</option>
+              <option value="0">G0 · None</option>
+              <option value="1">G1 · Lines</option>
+              <option value="2" selected>G2 · Full</option>
+            </select>
+          </label>
+          <label>Type Info
+            <select id="bytecodeType" aria-label="Bytecode type information level">
+              <option value="auto">Auto: T0</option>
+              <option value="0">T0 · None</option>
+              <option value="1">T1 · Types</option>
+            </select>
+          </label>
+          <label class="bytecode-output-option">Output
+            <select id="bytecodeOutputMode" aria-label="Bytecode output format">
+              <option value="auto">Auto: VM bytecode</option>
+              <option value="vm">VM bytecode</option>
+              <option value="constants">VM + constants</option>
+              <option value="remarks">Compiler remarks</option>
+              <option value="asm-x64">x64 ASM (interleaved)</option>
+              <option value="asm-a64">ARM64 ASM (interleaved)</option>
+              <option value="native-x64">x64 native (verbose)</option>
+              <option value="native-a64">ARM64 native (verbose)</option>
+              <option value="binary">Binary</option>
+            </select>
+          </label>
+          </div>
+        </details>
+        <div class="tool-results-toolbar">
+          <span class="tool-state"><span id="toolSpinner" class="tool-spinner" aria-hidden="true" hidden></span><span id="toolStatus" role="status"></span></span>
+          <button id="copyToolBtn" type="button" disabled>Copy</button>
+        </div>
+        <pre id="toolOutput"></pre>
+        <div id="opcodeTooltip" class="opcode-tooltip" role="tooltip" hidden></div>
       </div>
       </section>
     </div>
@@ -2381,6 +2433,7 @@ declare myGlobal: MyClass'></textarea>
     let activeFileIndex = 0;
     let saveTimer = null;
     let runUiReady = false;
+    let toolViewsReady = false;
 
     function snapshotWorkspace() {
       return {
@@ -2430,6 +2483,7 @@ declare myGlobal: MyClass'></textarea>
       removeAllFilesBtn.hidden = workspaceFiles.length === 1;
       document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[activeFileIndex].name;
       if (runUiReady) syncRunLocalUi();
+      refreshToolView();
     }
 
     function selectFile(index) {
@@ -2444,6 +2498,7 @@ declare myGlobal: MyClass'></textarea>
       saveWorkspace();
       editor.refresh();
       editor.focus();
+      refreshToolView();
     }
 
     function restoreWorkspace(data) {
@@ -2467,6 +2522,7 @@ declare myGlobal: MyClass'></textarea>
       renderFileTabs();
       saveWorkspace();
       editor.refresh();
+      refreshToolView();
     }
 
     function stripLuauExtension(name) {
@@ -2673,6 +2729,7 @@ declare myGlobal: MyClass'></textarea>
     editor.on("change", () => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(saveWorkspace, 1000);
+      refreshToolView();
     });
 
     // ── Settings popover ──
@@ -3406,6 +3463,344 @@ declare myGlobal: MyClass'></textarea>
     // ── App ──
     const SERVER = "https://luau.testdemo.win";
     const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
+    const TOOL_REFRESH_MS = 650; // Leave room under the 120 requests/minute limit.
+    const TOOL_EDIT_DELAY_MS = 300;
+    const resultTabs = Array.from(document.querySelectorAll(".result-tab"));
+    const consoleResults = document.getElementById("consoleResults");
+    const toolResults = document.getElementById("toolResults");
+    const toolStatus = document.getElementById("toolStatus");
+    const toolSpinner = document.getElementById("toolSpinner");
+    const toolOutput = document.getElementById("toolOutput");
+    const copyToolBtn = document.getElementById("copyToolBtn");
+    const opcodeTooltip = document.getElementById("opcodeTooltip");
+    const bytecodeOptions = document.getElementById("bytecodeOptions");
+    const bytecodeOptionSummary = document.getElementById("bytecodeOptionSummary");
+    const bytecodeOptimize = document.getElementById("bytecodeOptimize");
+    const bytecodeDebug = document.getElementById("bytecodeDebug");
+    const bytecodeType = document.getElementById("bytecodeType");
+    const bytecodeOutputMode = document.getElementById("bytecodeOutputMode");
+    const toolViews = {
+      bytecode: { signature: null, output: "", error: false, lastStartedAt: 0, inFlight: false, timer: null },
+      ast: { signature: null, output: "", error: false, lastStartedAt: 0, inFlight: false, timer: null },
+    };
+    let activeResultView = "console";
+    let bytecodeRowsByLine = new Map();
+    let highlightedBytecodeRows = [];
+    let opcodeHelp = null;
+
+    fetch("playground/opcode-help.json")
+      .then(response => {
+        if (!response.ok) throw new Error("Opcode help unavailable");
+        return response.json();
+      })
+      .then(reference => {
+        opcodeHelp = reference.opcodes;
+      })
+      .catch(() => { /* The bytecode viewer still works without hover help. */ });
+
+    function hideOpcodeTooltip() { opcodeTooltip.hidden = true; }
+
+    function showOpcodeTooltip(target) {
+      const name = target.dataset.opcode;
+      const help = opcodeHelp?.[name];
+      if (!help) return;
+      const heading = document.createElement("strong");
+      heading.textContent = name;
+      const description = document.createElement("div");
+      description.textContent = help.description;
+      const details = coloredSpan("opcode-details", help.details.slice(0, 4).join("\n"));
+      opcodeTooltip.replaceChildren(heading, description, details);
+      opcodeTooltip.hidden = false;
+      const rect = target.getBoundingClientRect();
+      const tip = opcodeTooltip.getBoundingClientRect();
+      opcodeTooltip.style.left = `${Math.max(12, Math.min(rect.left, innerWidth - tip.width - 12))}px`;
+      const top = rect.bottom + tip.height + 8 < innerHeight ? rect.bottom + 8 : rect.top - tip.height - 8;
+      opcodeTooltip.style.top = `${Math.max(12, top)}px`;
+    }
+
+    toolOutput.addEventListener("pointerover", event => {
+      const target = event.target.closest?.(".syntax-op[data-opcode]");
+      if (target) showOpcodeTooltip(target);
+    });
+    toolOutput.addEventListener("pointerout", event => {
+      if (event.target.closest?.(".syntax-op[data-opcode]")) hideOpcodeTooltip();
+    });
+    toolOutput.addEventListener("scroll", hideOpcodeTooltip);
+
+    function inferredBytecodeOptions(code) {
+      const optimize = code.match(/--!optimize (\d+)/);
+      const debug = code.match(/--!debug (\d+)/);
+      const type = code.match(/--!typeinfo (\d+)/);
+      const architecture = code.match(/--!architecture (\S+)/)?.[1] || "x64";
+      const arm = architecture === "a64" || architecture === "arm64";
+      const output = code.includes("--!asm")
+        ? (arm ? "asm-a64" : "asm-x64")
+        : code.includes("--!native")
+        ? (architecture === "a64" || architecture === "arm64" ? "native-a64" : "native-x64")
+        : code.includes("--!remarks") ? "remarks"
+          : code.includes("--!binary") ? "binary"
+            : code.includes("--!dump-constants") ? "constants" : "vm";
+      return {
+        optimizeLevel: optimize ? Math.min(2, Number(optimize[1])) : 2,
+        debugLevel: debug ? Math.min(2, Number(debug[1])) : 0,
+        typeLevel: type ? Math.min(1, Number(type[1])) : 0,
+        output,
+      };
+    }
+
+    const outputNames = {
+      vm: "VM bytecode", constants: "VM + constants", remarks: "Compiler remarks",
+      binary: "Binary", "asm-x64": "x64 ASM (interleaved)", "asm-a64": "ARM64 ASM (interleaved)",
+      "native-x64": "x64 native (verbose)", "native-a64": "ARM64 native (verbose)",
+    };
+
+    function updateBytecodeAutoLabels(code) {
+      const inferred = inferredBytecodeOptions(code);
+      bytecodeOptimize.options[0].textContent = `Auto: O${inferred.optimizeLevel}`;
+      bytecodeDebug.options[0].textContent = `Auto: G${inferred.debugLevel}`;
+      bytecodeType.options[0].textContent = `Auto: T${inferred.typeLevel}`;
+      bytecodeOutputMode.options[0].textContent = `Auto: ${outputNames[inferred.output]}`;
+      const optimize = bytecodeOptimize.value === "auto" ? inferred.optimizeLevel : bytecodeOptimize.value;
+      const debug = bytecodeDebug.value === "auto" ? inferred.debugLevel : bytecodeDebug.value;
+      const type = bytecodeType.value === "auto" ? inferred.typeLevel : bytecodeType.value;
+      const output = bytecodeOutputMode.value === "auto" ? inferred.output : bytecodeOutputMode.value;
+      bytecodeOptionSummary.textContent = `O${optimize} · G${debug} · T${type} · ${outputNames[output]}`;
+    }
+
+    function selectedToolSource() {
+      const file = workspaceFiles[activeFileIndex];
+      const code = file.doc.getValue();
+      const settings = activeResultView === "bytecode"
+        ? `${bytecodeOptimize.value}\0${bytecodeDebug.value}\0${bytecodeType.value}\0${bytecodeOutputMode.value}` : "";
+      return { name: file.name, code, signature: `${file.name}\0${code}\0${settings}` };
+    }
+
+    function clearBytecodeRows() {
+      bytecodeRowsByLine.clear();
+      highlightedBytecodeRows = [];
+    }
+
+    function coloredSpan(className, text) {
+      const span = document.createElement("span");
+      span.className = className;
+      span.textContent = text;
+      return span;
+    }
+
+    function appendColoredTokens(parent, text, pattern, classify, decorate) {
+      let previous = 0;
+      for (const match of text.matchAll(pattern)) {
+        if (match.index > previous) parent.appendChild(document.createTextNode(text.slice(previous, match.index)));
+        const span = coloredSpan(classify(match, text), match[0]);
+        if (decorate) decorate(span, match);
+        parent.appendChild(span);
+        previous = match.index + match[0].length;
+      }
+      if (previous < text.length) parent.appendChild(document.createTextNode(text.slice(previous)));
+    }
+
+    function appendBytecodeColors(row, line, marker) {
+      if (marker) {
+        row.appendChild(coloredSpan("syntax-number", marker[0]));
+        row.appendChild(coloredSpan("syntax-source", line.slice(marker[0].length)));
+      } else if (/^\s*(?:Function \d+|L\d+:|\.L\d+:)/.test(line)) {
+        row.appendChild(coloredSpan("syntax-label", line));
+      } else if (/^\s*(?:;|#|REMARK\b)/.test(line)) {
+        row.appendChild(coloredSpan("syntax-comment", line));
+      } else {
+        appendColoredTokens(row, line,
+          /^\s*[A-Za-z][\w.]*(?=\s|$)|\[[^\]]*\]|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\b(?:R|K|L)\d+\b|\b\d+(?:\.\d+)?\b/g,
+          match => match.index === 0 && /^[\s]*[A-Za-z]/.test(match[0]) ? "syntax-op"
+            : /^[RKL]\d+$/.test(match[0]) ? "syntax-register"
+              : /^\[|^['"]/.test(match[0]) ? "syntax-constant" : "syntax-number",
+          (span, match) => {
+            const name = match[0].trim();
+            if (span.className === "syntax-op" && /^[A-Z][A-Z0-9_]*$/.test(name)) span.dataset.opcode = name;
+          });
+      }
+    }
+
+    function renderAstOutput(output) {
+      const fragment = document.createDocumentFragment();
+      appendColoredTokens(fragment, output,
+        /"(?:\\.|[^"\\])*"|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b|\b(?:true|false|null)\b/g,
+        (match, text) => match[0][0] === '"'
+          ? /^\s*:/.test(text.slice(match.index + match[0].length)) ? "syntax-key" : "syntax-string"
+          : /^(?:true|false|null)$/.test(match[0]) ? "syntax-keyword" : "syntax-number");
+      toolOutput.replaceChildren(fragment);
+      clearBytecodeRows();
+    }
+
+    function renderBytecodeOutput(output) {
+      hideOpcodeTooltip();
+      const fragment = document.createDocumentFragment();
+      bytecodeRowsByLine = new Map();
+      highlightedBytecodeRows = [];
+      let sourceLine = null;
+      for (const line of output.split("\n")) {
+        if (!line || /^Function \d+ \(/.test(line)) sourceLine = null;
+        const marker = line.match(/^\s{4}(\d+):(?:\s|$)/);
+        if (marker) sourceLine = Number(marker[1]);
+        const row = document.createElement("span");
+        row.className = "bytecode-line";
+        if (sourceLine > 0) {
+          const rows = bytecodeRowsByLine.get(sourceLine) || [];
+          rows.push(row);
+          bytecodeRowsByLine.set(sourceLine, rows);
+        }
+        if (line) appendBytecodeColors(row, line, marker);
+        else row.textContent = "\u00a0";
+        fragment.appendChild(row);
+      }
+      toolOutput.replaceChildren(fragment);
+      highlightBytecodeSelection(false);
+    }
+
+    function highlightBytecodeSelection(scroll = true) {
+      if (activeResultView !== "bytecode" || toolResults.hidden) return;
+      const selectedLines = new Set();
+      for (const selection of editor.listSelections()) {
+        const direction = CodeMirror.cmpPos(selection.anchor, selection.head);
+        if (direction === 0) continue;
+        const from = direction < 0 ? selection.anchor : selection.head;
+        const to = from === selection.anchor ? selection.head : selection.anchor;
+        const lastLine = to.ch === 0 && to.line > from.line ? to.line - 1 : to.line;
+        for (let line = from.line; line <= lastLine; line++) selectedLines.add(line + 1);
+      }
+      let firstMatch = null;
+      for (const row of highlightedBytecodeRows) row.classList.remove("is-linked");
+      highlightedBytecodeRows = [];
+      for (const line of selectedLines) {
+        for (const row of bytecodeRowsByLine.get(line) || []) {
+          row.classList.add("is-linked");
+          highlightedBytecodeRows.push(row);
+          if (!firstMatch) firstMatch = row;
+        }
+      }
+      if (scroll && firstMatch) firstMatch.scrollIntoView({ block: "nearest" });
+    }
+
+    editor.on("cursorActivity", () => highlightBytecodeSelection());
+
+    function refreshToolView() {
+      if (!toolViewsReady) return;
+      const source = selectedToolSource();
+      updateBytecodeAutoLabels(source.code);
+      if (activeResultView === "console") return;
+      const state = toolViews[activeResultView];
+      copyToolBtn.textContent = "Copy";
+      if (!source.code.trim()) {
+        toolStatus.textContent = `${source.name} · Enter code to see ${activeResultView}.`;
+        toolSpinner.hidden = true;
+        toolOutput.textContent = "";
+        clearBytecodeRows();
+        copyToolBtn.disabled = true;
+        return;
+      }
+      if (state.signature === source.signature) {
+        toolStatus.textContent = state.error ? `${source.name} · Error` : source.name;
+        toolSpinner.hidden = true;
+        if (activeResultView === "bytecode" && !state.error) renderBytecodeOutput(state.output);
+        else if (activeResultView === "ast" && !state.error) renderAstOutput(state.output);
+        else {
+          toolOutput.textContent = state.output;
+          clearBytecodeRows();
+        }
+        copyToolBtn.disabled = state.error || !state.output;
+        return;
+      }
+      toolStatus.textContent = source.name;
+      toolSpinner.hidden = false;
+      toolOutput.textContent = "";
+      clearBytecodeRows();
+      copyToolBtn.disabled = true;
+      scheduleToolRefresh(activeResultView);
+    }
+
+    function scheduleToolRefresh(name) {
+      const state = toolViews[name];
+      if (activeResultView !== name || state.timer || state.inFlight) return;
+      const delay = Math.max(TOOL_EDIT_DELAY_MS, state.lastStartedAt + TOOL_REFRESH_MS - Date.now());
+      state.timer = setTimeout(() => {
+        state.timer = null;
+        void requestToolResult(name);
+      }, delay);
+    }
+
+    async function requestToolResult(name) {
+      if (activeResultView !== name) return;
+      const source = selectedToolSource();
+      const state = toolViews[name];
+      if (!source.code.trim() || state.signature === source.signature || state.inFlight) return;
+      state.inFlight = true;
+      state.lastStartedAt = Date.now();
+      try {
+        const body = { code: source.code };
+        if (name === "bytecode") {
+          body.options = {};
+          if (bytecodeOptimize.value !== "auto") body.options.optimizeLevel = Number(bytecodeOptimize.value);
+          if (bytecodeDebug.value !== "auto") body.options.debugLevel = Number(bytecodeDebug.value);
+          if (bytecodeType.value !== "auto") body.options.typeLevel = Number(bytecodeType.value);
+          if (bytecodeOutputMode.value !== "auto") body.options.output = bytecodeOutputMode.value;
+        }
+        const response = await fetch(`${SERVER}/${name}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
+        let output = result[name];
+        if (name === "ast") {
+          try { output = JSON.stringify(JSON.parse(output), null, 2); } catch { /* Show the raw AST. */ }
+        }
+        state.output = output;
+        state.error = false;
+      } catch (error) {
+        state.output = error.message || "Could not load result";
+        state.error = true;
+      } finally {
+        state.signature = source.signature;
+        state.inFlight = false;
+        if (activeResultView === name) refreshToolView();
+      }
+    }
+
+    resultTabs.forEach(tab => tab.addEventListener("click", () => {
+      const next = tab.dataset.resultView;
+      if (next === activeResultView) return;
+      if (activeResultView !== "console") {
+        clearTimeout(toolViews[activeResultView].timer);
+        toolViews[activeResultView].timer = null;
+      }
+      activeResultView = next;
+      resultTabs.forEach(item => {
+        const selected = item === tab;
+        item.classList.toggle("active", selected);
+        item.setAttribute("aria-selected", String(selected));
+      });
+      consoleResults.hidden = next !== "console";
+      toolResults.hidden = next === "console";
+      document.querySelector(".input-row").hidden = next !== "console";
+      hideOpcodeTooltip();
+      if (next !== "console") {
+        bytecodeOptions.hidden = next !== "bytecode";
+        toolResults.setAttribute("aria-labelledby", tab.id);
+        refreshToolView();
+      }
+    }));
+    bytecodeOptimize.addEventListener("change", refreshToolView);
+    bytecodeDebug.addEventListener("change", refreshToolView);
+    bytecodeType.addEventListener("change", refreshToolView);
+    bytecodeOutputMode.addEventListener("change", refreshToolView);
+    copyToolBtn.addEventListener("click", async () => {
+      if (copyToolBtn.disabled) return;
+      try {
+        await navigator.clipboard.writeText(toolViews[activeResultView].output);
+        copyToolBtn.textContent = "Copied";
+      } catch { copyToolBtn.textContent = "Copy failed"; }
+    });
+    toolViewsReady = true;
     const runBtn = document.getElementById("runBtn");
     const stopBtn = document.getElementById("stopBtn");
     const inputBox = document.getElementById("inputBox");
