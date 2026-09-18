@@ -1398,7 +1398,7 @@
       </div>
       <div id="toolResults" class="tool-results" role="tabpanel" aria-labelledby="bytecodeTab" hidden>
         <details id="bytecodeOptions" class="bytecode-options">
-          <summary><span>Compiler options</span><span id="bytecodeOptionSummary">O2 · G2 · T0 · VM bytecode</span></summary>
+          <summary><span>Compiler options</span><span id="bytecodeOptionSummary">O2 · G2 · VM bytecode</span></summary>
           <div class="bytecode-option-grid">
           <label>Optimization
             <select id="bytecodeOptimize" aria-label="Bytecode optimization">
@@ -1416,21 +1416,14 @@
               <option value="2" selected>G2 · Full</option>
             </select>
           </label>
-          <label>Type Info
-            <select id="bytecodeType" aria-label="Bytecode type information level">
-              <option value="auto">Auto: T0</option>
-              <option value="0">T0 · None</option>
-              <option value="1">T1 · Types</option>
-            </select>
-          </label>
           <label class="bytecode-output-option">Output
             <select id="bytecodeOutputMode" aria-label="Bytecode output format">
               <option value="auto">Auto: VM bytecode</option>
               <option value="vm">VM bytecode</option>
-              <option value="constants">VM + constants</option>
-              <option value="remarks">Compiler remarks</option>
               <option value="asm-x64">x64 ASM (interleaved)</option>
               <option value="asm-a64">ARM64 ASM (interleaved)</option>
+              <option value="constants">VM + constants</option>
+              <option value="remarks">Compiler remarks</option>
               <option value="native-x64">x64 native (verbose)</option>
               <option value="native-a64">ARM64 native (verbose)</option>
               <option value="binary">Binary</option>
@@ -3477,7 +3470,6 @@ declare myGlobal: MyClass'></textarea>
     const bytecodeOptionSummary = document.getElementById("bytecodeOptionSummary");
     const bytecodeOptimize = document.getElementById("bytecodeOptimize");
     const bytecodeDebug = document.getElementById("bytecodeDebug");
-    const bytecodeType = document.getElementById("bytecodeType");
     const bytecodeOutputMode = document.getElementById("bytecodeOutputMode");
     const toolViews = {
       bytecode: { signature: null, output: "", error: false, lastStartedAt: 0, inFlight: false, timer: null },
@@ -3530,7 +3522,6 @@ declare myGlobal: MyClass'></textarea>
     function inferredBytecodeOptions(code) {
       const optimize = code.match(/--!optimize (\d+)/);
       const debug = code.match(/--!debug (\d+)/);
-      const type = code.match(/--!typeinfo (\d+)/);
       const architecture = code.match(/--!architecture (\S+)/)?.[1] || "x64";
       const arm = architecture === "a64" || architecture === "arm64";
       const output = code.includes("--!asm")
@@ -3543,7 +3534,6 @@ declare myGlobal: MyClass'></textarea>
       return {
         optimizeLevel: optimize ? Math.min(2, Number(optimize[1])) : 2,
         debugLevel: debug ? Math.min(2, Number(debug[1])) : 0,
-        typeLevel: type ? Math.min(1, Number(type[1])) : 0,
         output,
       };
     }
@@ -3558,20 +3548,18 @@ declare myGlobal: MyClass'></textarea>
       const inferred = inferredBytecodeOptions(code);
       bytecodeOptimize.options[0].textContent = `Auto: O${inferred.optimizeLevel}`;
       bytecodeDebug.options[0].textContent = `Auto: G${inferred.debugLevel}`;
-      bytecodeType.options[0].textContent = `Auto: T${inferred.typeLevel}`;
       bytecodeOutputMode.options[0].textContent = `Auto: ${outputNames[inferred.output]}`;
       const optimize = bytecodeOptimize.value === "auto" ? inferred.optimizeLevel : bytecodeOptimize.value;
       const debug = bytecodeDebug.value === "auto" ? inferred.debugLevel : bytecodeDebug.value;
-      const type = bytecodeType.value === "auto" ? inferred.typeLevel : bytecodeType.value;
       const output = bytecodeOutputMode.value === "auto" ? inferred.output : bytecodeOutputMode.value;
-      bytecodeOptionSummary.textContent = `O${optimize} · G${debug} · T${type} · ${outputNames[output]}`;
+      bytecodeOptionSummary.textContent = `O${optimize} · G${debug} · ${outputNames[output]}`;
     }
 
     function selectedToolSource() {
       const file = workspaceFiles[activeFileIndex];
       const code = file.doc.getValue();
       const settings = activeResultView === "bytecode"
-        ? `${bytecodeOptimize.value}\0${bytecodeDebug.value}\0${bytecodeType.value}\0${bytecodeOutputMode.value}` : "";
+        ? `${bytecodeOptimize.value}\0${bytecodeDebug.value}\0${bytecodeOutputMode.value}` : "";
       return { name: file.name, code, signature: `${file.name}\0${code}\0${settings}` };
     }
 
@@ -3740,7 +3728,6 @@ declare myGlobal: MyClass'></textarea>
           body.options = {};
           if (bytecodeOptimize.value !== "auto") body.options.optimizeLevel = Number(bytecodeOptimize.value);
           if (bytecodeDebug.value !== "auto") body.options.debugLevel = Number(bytecodeDebug.value);
-          if (bytecodeType.value !== "auto") body.options.typeLevel = Number(bytecodeType.value);
           if (bytecodeOutputMode.value !== "auto") body.options.output = bytecodeOutputMode.value;
         }
         const response = await fetch(`${SERVER}/${name}`, {
@@ -3791,7 +3778,6 @@ declare myGlobal: MyClass'></textarea>
     }));
     bytecodeOptimize.addEventListener("change", refreshToolView);
     bytecodeDebug.addEventListener("change", refreshToolView);
-    bytecodeType.addEventListener("change", refreshToolView);
     bytecodeOutputMode.addEventListener("change", refreshToolView);
     copyToolBtn.addEventListener("click", async () => {
       if (copyToolBtn.disabled) return;
