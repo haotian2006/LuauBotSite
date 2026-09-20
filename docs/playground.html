@@ -1341,31 +1341,34 @@
 <body>
 
   <div class="toolbar">
-    <button id="runBtn" title="Run selected file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>Run</button>
-    <button id="stopBtn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>Stop</button>
-    <button id="fmtBtn" title="Format code (StyLua)"
-      style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;font-size:12px;padding:3px 10px">Format</button>
+    <button id="runBtn" title="Run selected file" aria-label="Run selected file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span class="button-label">Run</span></button>
+    <button id="stopBtn" title="Stop execution" aria-label="Stop execution"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg><span class="button-label">Stop</span></button>
+    <button id="fmtBtn" title="Format code (StyLua)" aria-label="Format code (StyLua)"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M8 10h12M8 15h8M4 20h16M2 10l3 2.5L2 15"/></svg><span class="button-label">Format</span></button>
     <div class="toolbar-opts" style="margin-left:auto">
       <button id="exportAllBtn" type="button" title="Export all code files" aria-label="Export all code files"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg></button>
       <button id="importFilesBtn" type="button" title="Import code files" aria-label="Import code files"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 17v3h16v-3"/></svg></button>
       <input id="importFilesInput" type="file" multiple hidden aria-label="Code files to import" />
-      <button id="settingsBtn" title="Settings"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Settings</button>
-      <button id="shareBtn" title="Copy shareable link"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 1)"/></svg><span class="button-label">Share</span></button>
+      <button id="settingsBtn" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="settings-popover"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="button-label">Settings</span></button>
+      <button id="shareBtn" title="Copy shareable link" aria-label="Copy shareable link"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 1)"/></svg><span class="button-label">Share</span></button>
       <button id="hist-popover-btn" title="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg>History</button>
     </div>
     <button id="hist-sheet-btn" title="Show history" aria-label="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg></button>
-    <span id="status"></span>
+    <span id="status" role="status"></span>
+    <span id="actionNotice" role="status"></span>
     <span id="sourceNotice" role="alert"></span>
   </div>
 
   <div class="body-row">
     <div class="main">
-      <section class="editor-pane" aria-label="Code editor">
+      <section id="editor-pane" class="editor-pane" aria-label="Code editor">
         <div class="pane-heading editor-heading">
           <div id="fileTabs" class="file-tabs" role="tablist" aria-label="Code files"></div>
           <button id="addFileBtn" class="file-action" type="button" title="Add module" aria-label="Add module">+</button>
-          <button id="removeAllFilesBtn" class="file-action" type="button" title="Remove all modules" hidden>Remove all</button>
-          <span class="pane-caption">Luau editor</span>
+          <button id="removeAllFilesBtn" class="file-action" type="button" title="Remove all modules" aria-label="Remove all modules" hidden><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg><span class="button-label">Remove all</span></button>
+          <div class="pane-actions editor-view-actions">
+            <button id="showConsoleBtn" class="pane-view-button" type="button" title="Show console" aria-label="Show console" aria-controls="console-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 6 6 6-6 6m9 0h7"/></svg></button>
+            <button id="expandEditorBtn" class="pane-view-button" type="button" title="Expand editor" aria-label="Expand editor" aria-pressed="false" aria-controls="editor-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+          </div>
         </div>
         <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
         <div class="editor-footer"><span>Luau</span><span>Ctrl + Space for suggestions</span></div>
@@ -1379,16 +1382,17 @@
           <button class="result-tab" type="button" role="tab" id="astTab" aria-selected="false" aria-controls="toolResults" data-result-view="ast">AST</button>
         </div>
         <div class="pane-actions">
-          <button id="expandConsoleBtn" type="button" title="Expand console" aria-label="Expand console" aria-pressed="false" aria-controls="console-pane">
+          <button id="showEditorBtn" class="pane-view-button" type="button" title="Show editor" aria-label="Show editor" aria-controls="editor-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5-7 7 7 7m8-14 7 7-7 7m-3-17-2 20"/></svg></button>
+          <button id="expandConsoleBtn" class="pane-view-button" type="button" title="Expand console" aria-label="Expand console" aria-pressed="false" aria-controls="console-pane">
             <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
           </button>
         </div>
       </div>
       <div class="input-row">
         <div class="input-controls">
-          <input id="inputBox" type="text" aria-label="Standard input" placeholder="Send input to your program…" autocomplete="off" spellcheck="false" />
+          <input id="inputBox" type="text" aria-label="Standard input" placeholder="Program input…" autocomplete="off" spellcheck="false" />
           <button id="attachBtn" title="Attach file" aria-label="Attach file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 11-8 8a6 6 0 0 1-8.5-8.5l8-8a4 4 0 0 1 5.7 5.7l-8 8a2 2 0 0 1-2.8-2.8l7.5-7.5"/></svg></button>
-          <button id="sendBtn">Send</button>
+          <button id="sendBtn" title="Send input" aria-label="Send input"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 19 9-19 9 4-9-4-9Zm4 9h15"/></svg><span class="button-label">Send</span></button>
         </div>
         <div id="fileQueue"></div>
         <input id="fileInput" type="file" style="display:none" multiple />
@@ -2294,6 +2298,7 @@ declare myGlobal: MyClass'></textarea>
 
     syncPlaygroundTheme();
 
+    const expandEditorBtn = document.getElementById("expandEditorBtn");
     const expandConsoleBtn = document.getElementById("expandConsoleBtn");
     const playgroundMain = document.querySelector(".main");
     const paneSplitter = document.querySelector(".pane-splitter");
@@ -2302,6 +2307,47 @@ declare myGlobal: MyClass'></textarea>
     const splitterWidth = 16;
     let resizeFrame;
     let dragOffset = 0;
+
+    function setExpandedPane(pane) {
+      for (const [name, button] of [["editor", expandEditorBtn], ["console", expandConsoleBtn]]) {
+        const expanded = pane === name;
+        playgroundMain.classList.toggle(`${name}-expanded`, expanded);
+        const label = expanded ? "Restore editor and console" : `Expand ${name}`;
+        button.title = label;
+        button.setAttribute("aria-label", label);
+        button.setAttribute("aria-pressed", String(expanded));
+        button.querySelector("path").setAttribute("d", expanded
+          ? "M3 8h5V3m13 5h-5V3M8 21v-5H3m13 5v-5h5"
+          : "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5");
+      }
+      if (!pane && !window.matchMedia("(max-width: 1000px)").matches &&
+          playgroundMain.style.getPropertyValue("--editor-width")) {
+        setEditorWidth(parseFloat(playgroundMain.style.getPropertyValue("--editor-width")));
+      }
+      // Remeasure CodeMirror whenever its pane is resized or made visible.
+      requestAnimationFrame(() => editor.refresh());
+    }
+
+    expandEditorBtn.addEventListener("click", () => {
+      setExpandedPane(playgroundMain.classList.contains("editor-expanded") ? null : "editor");
+    });
+    expandConsoleBtn.addEventListener("click", () => {
+      setExpandedPane(playgroundMain.classList.contains("console-expanded") ? null : "console");
+    });
+    document.getElementById("showConsoleBtn").addEventListener("click", () => {
+      setExpandedPane("console");
+      document.querySelector('.result-tab[aria-selected="true"]').focus({ preventScroll: true });
+    });
+    document.getElementById("showEditorBtn").addEventListener("click", () => {
+      setExpandedPane("editor");
+      expandEditorBtn.focus({ preventScroll: true });
+    });
+
+    // The viewport can shrink without a window resize (for example, a phone keyboard).
+    new ResizeObserver(() => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => editor.refresh());
+    }).observe(document.getElementById("editor-wrapper"));
 
     function setEditorWidth(width) {
       const available = playgroundMain.clientWidth - splitterWidth;
@@ -2313,7 +2359,7 @@ declare myGlobal: MyClass'></textarea>
     }
 
     paneSplitter.addEventListener("pointerdown", event => {
-      if (event.button !== 0 || playgroundMain.classList.contains("console-expanded")) return;
+      if (event.button !== 0 || playgroundMain.matches(".editor-expanded, .console-expanded")) return;
       event.preventDefault();
       dragOffset = event.clientX - document.querySelector(".editor-pane").getBoundingClientRect().right;
       paneSplitter.setPointerCapture(event.pointerId);
@@ -2341,21 +2387,9 @@ declare myGlobal: MyClass'></textarea>
     window.addEventListener("resize", () => {
       if (!window.matchMedia("(max-width: 1000px)").matches &&
           playgroundMain.style.getPropertyValue("--editor-width") &&
-          !playgroundMain.classList.contains("console-expanded")) {
+          !playgroundMain.matches(".editor-expanded, .console-expanded")) {
         setEditorWidth(document.querySelector(".editor-pane").getBoundingClientRect().width);
       }
-    });
-    expandConsoleBtn.addEventListener("click", () => {
-      const expanded = playgroundMain.classList.toggle("console-expanded");
-      const label = expanded ? "Restore editor and console" : "Expand console";
-      expandConsoleBtn.title = label;
-      expandConsoleBtn.setAttribute("aria-label", label);
-      expandConsoleBtn.setAttribute("aria-pressed", String(expanded));
-      expandConsoleBtn.querySelector("path").setAttribute("d", expanded
-        ? "M3 8h5V3m13 5h-5V3M8 21v-5H3m13 5v-5h5"
-        : "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5");
-      // CodeMirror must remeasure its viewport after its hidden pane returns.
-      if (!expanded) requestAnimationFrame(() => editor.refresh());
     });
 
     try {
@@ -2734,9 +2768,21 @@ declare myGlobal: MyClass'></textarea>
       const rect = settingsBtn.getBoundingClientRect();
       settingsPopover.style.top = (rect.bottom + 6) + "px";
       settingsPopover.style.right = (window.innerWidth - rect.right) + "px";
+      settingsPopover.style.maxHeight = Math.max(0, window.innerHeight - rect.bottom - 18) + "px";
       settingsPopover.classList.add("open");
+      settingsBtn.setAttribute("aria-expanded", "true");
     }
-    function closeSettingsPopover() { settingsPopover.classList.remove("open"); }
+    function closeSettingsPopover() {
+      settingsPopover.classList.remove("open");
+      settingsBtn.setAttribute("aria-expanded", "false");
+    }
+    window.addEventListener("resize", closeSettingsPopover);
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && settingsPopover.classList.contains("open")) {
+        closeSettingsPopover();
+        settingsBtn.focus();
+      }
+    });
 
     settingsBtn.addEventListener("click", e => {
       e.stopPropagation();
@@ -2914,7 +2960,9 @@ declare myGlobal: MyClass'></textarea>
       const code = editor.getValue();
       if (!code.trim()) return;
       this.disabled = true;
-      this.textContent = "Formatting...";
+      this.classList.add("is-busy");
+      this.setAttribute("aria-label", "Formatting code");
+      this.querySelector(".button-label").textContent = "Formatting...";
       try {
         const res = await fetch(`${SERVER}/format`, {
           method: "POST",
@@ -2932,11 +2980,21 @@ declare myGlobal: MyClass'></textarea>
         // Silently ignore errors (format failures, rate limits)
       } catch { }
       this.disabled = false;
-      this.textContent = "Format";
+      this.classList.remove("is-busy");
+      this.setAttribute("aria-label", "Format code (StyLua)");
+      this.querySelector(".button-label").textContent = "Format";
     });
 
     // ── Share button ──
     const MAX_EMBEDDED_STATE_CHARS = 50000;
+
+    let actionNoticeTimer;
+    function showActionNotice(message) {
+      const notice = document.getElementById("actionNotice");
+      clearTimeout(actionNoticeTimer);
+      notice.textContent = message;
+      actionNoticeTimer = setTimeout(() => { notice.textContent = ""; }, 2500);
+    }
 
     function getEmbeddedStateForSave(promptOnLarge = false) {
       const state = {};
@@ -3071,10 +3129,12 @@ declare myGlobal: MyClass'></textarea>
       try {
         await navigator.clipboard.writeText(url);
         this.querySelector(".button-label").textContent = "Copied!";
+        showActionNotice("Share link copied");
         setTimeout(() => { this.querySelector(".button-label").textContent = "Share"; }, 2000);
       } catch {
         window.prompt("Copy failed. Use this link instead:", url);
         this.querySelector(".button-label").textContent = "Copy failed";
+        showActionNotice("Could not copy the share link");
         setTimeout(() => { this.querySelector(".button-label").textContent = "Share"; }, 2000);
       }
     });
@@ -4149,6 +4209,11 @@ local function __playground_entry(...)
       const entryIndex = activeFileIndex;
       const raw = runWorkspace.files[entryIndex].code;
       if (!raw.trim()) return;
+      document.getElementById("consoleTab").click();
+      if (window.matchMedia("(max-width: 1000px)").matches && playgroundMain.classList.contains("editor-expanded")) {
+        editor.getInputField().blur();
+        setExpandedPane("console");
+      }
       const moduleFiles = runWorkspace.files.length > 1
         ? [
           { name: entryIndex === 0 ? "main" : runWorkspace.files[entryIndex].name, code: "" },

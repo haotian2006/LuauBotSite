@@ -19,13 +19,17 @@ body { height: 100dvh; }
 .toolbar { padding: 14px 20px; gap: 10px; background: var(--pg-bg); }
 .ui-icon { width: 16px; height: 16px; flex: 0 0 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .toolbar button, #fmtBtn { min-height: 34px; border-radius: 7px; padding: 6px 12px; font-size: 12px; }
-#fmtBtn { background: var(--pg-surface) !important; color: var(--pg-fg) !important; border-color: var(--pg-border) !important; }
+#fmtBtn { background: var(--pg-surface); color: var(--pg-fg); border: 1px solid var(--pg-border); }
+#fmtBtn.is-busy .ui-icon { animation: tool-spin 1s linear infinite; }
 #runBtn { background: #6366f1; padding-inline: 20px; box-shadow: 0 2px 8px #6366f126; }
 #runBtn:hover { background: #4f46e5; }
 #status:empty { display: none; }
 #status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 #sourceNotice:empty { display: none; }
 #sourceNotice { max-width: 100%; overflow: hidden; text-overflow: ellipsis; color: #e06c75; font-size: 12px; }
+#actionNotice:empty { display: none; }
+#actionNotice { position: fixed; z-index: 400; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); padding: 10px 16px; border: 1px solid var(--pg-border); border-radius: 8px; background: var(--pg-surface); color: var(--pg-fg); box-shadow: 0 4px 20px #0004; font-size: 13px; pointer-events: none; }
+#settings-popover-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
 .body-row { padding: 16px 20px 20px; min-height: 0; }
 .main { display: grid; grid-template-columns: minmax(320px, var(--editor-width, 3fr)) 16px minmax(280px, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "editor splitter console"; gap: 0; }
 .editor-pane { grid-area: editor; }
@@ -90,11 +94,17 @@ html[data-playground-theme="light"] #toolOutput .syntax-string { color: #287548;
 html[data-playground-theme="light"] #toolOutput .syntax-number,
 html[data-playground-theme="light"] #toolOutput .syntax-constant { color: #9a6014; }
 html[data-playground-theme="light"] #toolOutput .syntax-keyword { color: #a03d45; }
-#expandConsoleBtn { padding: 6px; background: transparent; color: var(--pg-muted); border-radius: 6px; }
-#expandConsoleBtn:hover { background: var(--pg-surface-2); color: var(--pg-fg); }
-.main.console-expanded { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "console"; }
+.pane-view-button { padding: 6px; background: transparent; color: var(--pg-muted); border-radius: 6px; }
+.pane-view-button:hover { background: var(--pg-surface-2); color: var(--pg-fg); }
+.main.editor-expanded, .main.console-expanded { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0; overflow: hidden; }
+.main.editor-expanded { grid-template-areas: "editor"; }
+.main.console-expanded { grid-template-areas: "console"; }
+.main.editor-expanded .console-pane,
 .main.console-expanded .editor-pane { display: none; }
-.main.console-expanded .pane-splitter { display: none; }
+.main.editor-expanded .pane-splitter, .main.console-expanded .pane-splitter { display: none; }
+#showEditorBtn, #showConsoleBtn { display: none; }
+.main.console-expanded #showEditorBtn, .main.editor-expanded #showConsoleBtn { display: inline-flex; }
+.editor-view-actions { margin-left: auto; gap: 4px; flex-shrink: 0; }
 .editor-heading { justify-content: flex-start; gap: 6px; }
 .editor-heading .pane-caption { margin-left: auto; }
 .file-tabs { display: flex; align-items: stretch; flex: 0 1 auto; min-width: 0; height: 100%; overflow-x: auto; scrollbar-width: thin; }
@@ -144,9 +154,43 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--pg-accent);
   .pane-heading { height: 36px; }
   .editor-footer { padding-block: 6px; }
 }
-@media (max-width: 480px) {
-  .toolbar { gap: 6px; }
-  .toolbar button, #fmtBtn { padding-inline: 9px; }
-  .toolbar-opts { gap: 6px; }
+@media (max-width: 600px) {
+  .toolbar { gap: 4px; padding: 6px 8px; }
+  .toolbar-opts { display: contents; }
+  .toolbar button { justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0 !important; }
+  .toolbar .button-label, .file-action .button-label, #sendBtn .button-label { display: none; }
+  .toolbar .ui-icon, .pane-view-button .ui-icon, #sendBtn .ui-icon { width: 20px; height: 20px; flex-basis: 20px; }
+  #hist-sheet-btn { display: inline-flex; }
+  #hist-bottom-tab { display: none; }
+  #status { margin: 0; padding: 0 4px; font-size: 11px; }
+  #sourceNotice { flex-basis: 100%; white-space: normal; }
+  .body-row { padding: 6px 8px max(8px, env(safe-area-inset-bottom, 0px)); }
+  .main { gap: 6px; }
+  .pane-heading { height: 44px; padding: 0 4px; gap: 4px; }
+  .pane-actions { gap: 0; flex-shrink: 0; }
   .pane-caption { display: none; }
+  .file-tabs { flex: 1; }
+  .file-tab .file-name { max-width: 130px; min-height: 44px; }
+  .file-tab .file-close, .editor-heading .file-action, .pane-view-button { min-width: 40px; min-height: 44px; justify-content: center; }
+  .file-tab .file-name-input { font-size: 16px; }
+  .editor-footer { display: none; }
+  .result-tab { min-height: 44px; padding-inline: 8px; }
+  .input-controls { padding: 6px; }
+  #inputBox { font-size: 16px; min-height: 44px; }
+  #sendBtn, #attachBtn { flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+  #output, #toolOutput { padding: 10px; }
+  #settings-popover { width: min(280px, calc(100vw - 16px)); left: 8px; right: auto !important; }
+  .settings-row { min-height: 44px; }
+  .settings-row input[type="checkbox"] { width: 20px; height: 20px; }
+  #hist-sheet { max-height: 85dvh; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  #hist-sheet-header { flex-wrap: wrap; }
+  #hist-sheet-header button, #hist-sheet-header label, .hist-del { min-height: 44px; min-width: 44px; justify-content: center; }
+  #copyToolBtn, .bytecode-options select, .bytecode-options > summary { min-height: 44px; }
+}
+@media (max-width: 359px) {
+  .toolbar { padding-inline: 6px; }
+  .toolbar button { flex-basis: 40px; width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #fmtBtn.is-busy .ui-icon { animation: none; }
 }
