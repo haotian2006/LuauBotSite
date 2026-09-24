@@ -7,10 +7,13 @@
 @media (min-width: 76.25em) { .md-main__inner > .md-sidebar--primary { display: none !important; } }
 .md-main__inner > .md-sidebar--secondary { display: none !important; }
 .md-content { flex: 1 1 auto; min-width: 0; width: 100%; max-width: none; margin: 0; }
-.md-main__inner > .md-content > .md-content__inner { margin: 0; padding: 0; }
+/* Material's sidebar-aware margin rule outranks a plain reset, hence !important. */
+.md-main__inner > .md-content > .md-content__inner { margin: 0 !important; padding: 0 !important; }
+.md-content__inner::before { display: none; }
+.md-footer { display: none; }
 h1.post-title, h1 { display: none !important; }
 </style>
-<iframe id="playground-frame" title="Luau playground" style="width:100%;height:calc(100dvh - 64px);border:none;display:block;"></iframe>
+<iframe id="playground-frame" title="Luau playground" style="width:100%;height:calc(100dvh - 2.4rem);border:none;display:block;"></iframe>
 <script>
   const frame = document.getElementById("playground-frame");
   frame.src = "../playground.html" + location.search;

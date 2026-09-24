@@ -1,6 +1,6 @@
 -- Bot API type definitions for luau-lsp autocomplete
 
-export type BenchFuncs = { [string]: () -> any }
+export type BenchFuncs = { [string]: (...any) -> ...any }
 export type BenchResults = {
     [string]: {
         Mean: number,
@@ -11,8 +11,8 @@ export type BenchResults = {
     },
 }
 export type BenchFuncsWithParams = {
-    ParameterGenerator: () -> any,
-    Functions: { [string]: (profile: any, ...any) -> any },
+    ParameterGenerator: () -> ...any,
+    Functions: { [string]: (profile: any, ...any) -> ...any },
 }
 export type PlotOptions = {
     offset: Vector2?,
@@ -22,7 +22,7 @@ export type PlotOptions = {
     isXFunction: boolean?,
     isParametric: boolean?,
     tRange: { number }?,
-    color: { Color3 } | Color3?,
+    color: ({ Color3 } | Color3)?,
     backgroundColor: Color3?,
     showAxes: boolean?,
     axesColor: Color3?,
@@ -39,16 +39,45 @@ export type PlotOptions = {
 export type GifOptions = {
     loop: number?,
 }
+export type DrawImageOptions = {
+    CombineType: EnumImageCombineType?,
+    ResamplerMode: EnumResamplerMode?,
+    PivotPoint: Vector2?,
+}
+export type TableStats = {
+    arrayS: number,
+    hashS: number,
+    estSize: number,
+    ["#"]: number,
+}
+export type DiscordButtonStyle = "Primary" | "Secondary" | "Success" | "Danger"
+export type DiscordButtonOptions = {
+    Label: string?,
+    Style: DiscordButtonStyle?,
+    Disabled: boolean?,
+    OwnerOnly: boolean?,
+    label: string?,
+    style: DiscordButtonStyle?,
+    disabled: boolean?,
+    ownerOnly: boolean?,
+}
+export type DiscordButton = {
+    Clicked: RBXScriptSignal<string, string>,
+    Event: RBXScriptSignal<string, string>,
+    Update: (self: DiscordButton, changes: DiscordButtonOptions) -> DiscordButton,
+    Destroy: (self: DiscordButton) -> (),
+}
+
 declare class Image
     Size: Vector2
-    function SetPixel(self, x: number, y: number, color: Color3, transparency: number, combineType: any?): ()
+    function SetPixel(self, x: number, y: number, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
     function GetPixel(self, x: number, y: number): (Color3, number)
     function Fill(self, color: Color3, transparency: number): ()
-    function DrawRectangle(self, position: Vector2, size: Vector2, color: Color3, transparency: number, combineType: any?): ()
-    function DrawLine(self, startPos: Vector2, endPos: Vector2, color: Color3, transparency: number, combineType: any?): ()
-    function DrawCircle(self, center: Vector2, radius: number, color: Color3, transparency: number, combineType: any?): ()
+    function DrawRectangle(self, position: Vector2, size: Vector2, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
+    function DrawLine(self, startPos: Vector2, endPos: Vector2, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
+    function DrawCircle(self, center: Vector2, radius: number, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
     function DrawText(self, text: string, position: Vector2, color: Color3, transparency: number, scale: number?): ()
-    function DrawImageTransformed(self, position: Vector2, scale: Vector2, rotation: number, sourceImage: Image, options: { CombineType: any?, ResamplerMode: any?, PivotPoint: Vector2? }?): ()
+    function DrawImageTransformed(self, position: Vector2, scale: Vector2, rotation: number, sourceImage: Image, options: DrawImageOptions?): ()
     function ReadPixelsBuffer(self, position: Vector2, size: Vector2): buffer
     function WritePixelsBuffer(self, position: Vector2, size: Vector2, pixelBuffer: buffer): ()
     function GetBuffer(self): buffer
@@ -83,21 +112,31 @@ end
 
 -- Simple value globals
 declare TIMEOUT: number
-declare OUTPUT_LOGS: boolean
+declare OUTPUT_LOGS: boolean | "LOG"
 declare TIMESTAMP: boolean
 declare native: boolean
 declare optimize: number
-declare user: { Name: string, UserId: number }
+declare GLOBAL: { [any]: any }
+declare user: {
+    Name: string,
+    UserId: number,
+}
 
 -- Global functions
-declare function colorstring(text: string, color: string): string
-declare function println(message: string, line: number?): number
-declare function log(text: string, color: string, newLine: boolean?): ()
+declare function colorstring(text: any, color: string?): string
+declare function println(message: any, line: number?): number
+declare function log(text: any, color: string?, newLine: boolean?): ()
 declare function bench(funcs: BenchFuncs | BenchFuncsWithParams, printMode: number?, iterations: number?, delayEveryXIter: number?): BenchResults
-declare function ask(prompt: string, contextId: string?): string
+declare function ask(prompt: string, contextId: (string | boolean)?): string
+declare function setenvkey(key: string, value: any): ()
+declare function firesignal(signal: RBXScriptSignal, ...: any): ()
+declare function fireevent(instance: Instance, eventName: string, ...: any): ()
+declare function runpy(code: string): any
+declare function newpy(): any
 
 -- Extended table library
 declare etable: {
+    stats: (tbl: { any }) -> TableStats,
     getAllocatedArraySize: (tbl: { any }) -> number,
     getAllocatedHashSize: (tbl: { any }) -> number,
     getTableMemorySize: (tbl: { any }, includeContents: boolean?) -> number,
@@ -159,17 +198,27 @@ declare etable: {
     every: <K, V>(tbl: { [K]: V }, filter: (key: K, value: V) -> boolean) -> boolean,
     some: <K, V>(tbl: { [K]: V }, filter: (key: K, value: V) -> boolean) -> boolean,
     toSet: <T>(tbl: { T }) -> { [T]: true },
+    prettyPrint: (tbl: { any }, indent: number?) -> string,
+    toCSV: (rows: { { any } }, delimiter: string?) -> string,
 }
 
 -- IO library (bot-specific, overrides standard io)
 declare io: {
-    followupnext: () -> (),
     write: (...any) -> (),
     read: () -> string,
-    writefile: (content: string | buffer, filename: string) -> boolean,
-    readfile: (file: string) -> (string, string),
+    writefile: (content: string | buffer, filename: string?) -> (),
+    readfile: (filename: string?) -> (string, string),
     getoutput: () -> string,
     clearoutput: () -> (),
+    -- Deprecated: use discord.followUpNext()
+    followupnext: () -> (),
+}
+
+-- Discord library (buttons only work for runs started from Discord)
+declare discord: {
+    isWeb: boolean,
+    button: (options: string | DiscordButtonOptions) -> DiscordButton,
+    followUpNext: () -> (),
 }
 
 -- Misc library
@@ -185,7 +234,7 @@ type ImageLib = {
     fromPng: (pngData: string) -> Image,
     toPng: (image: Image, outputLogs: boolean?) -> string,
     toGif: (frames: { Image }, frameDelays: { number }, options: GifOptions?, outputLogs: boolean?) -> string,
-    plotFunction: (func: (number) -> number, options: PlotOptions?) -> Image,
+    plotFunction: (func: (...number) -> ...any, options: PlotOptions?) -> Image,
 }
 declare Image: ImageLib
 
@@ -201,4 +250,70 @@ declare PacketSizeCounter: {
         PacketData: { any },
     }) -> number,
     GetDataByteSize: (data: any) -> number,
+}
+
+-- Lune-only libraries: using any of these runs the script on Lune instead of Roblox
+export type SerdeEncodeFormat = "json" | "jsonc" | "yaml" | "toml"
+export type SerdeCompressFormat = "brotli" | "gzip" | "lz4" | "zlib" | "zstd"
+export type SerdeHashAlgorithm = "md5" | "sha1" | "sha224" | "sha256" | "sha384" | "sha512" | "sha3-224" | "sha3-256" | "sha3-384" | "sha3-512" | "blake3"
+declare serde: {
+    encode: (format: SerdeEncodeFormat, value: any, pretty: boolean?) -> string,
+    decode: (format: SerdeEncodeFormat, encoded: string | buffer) -> any,
+    compress: (format: SerdeCompressFormat, source: string | buffer, level: number?) -> string,
+    decompress: (format: SerdeCompressFormat, source: string | buffer) -> string,
+    hash: (algorithm: SerdeHashAlgorithm, message: string | buffer) -> string,
+    hmac: (algorithm: SerdeHashAlgorithm, message: string | buffer, secret: string | buffer) -> string,
+}
+
+export type RegexMatch = {
+    start: number,
+    finish: number,
+    len: number,
+    text: string,
+}
+export type RegexCaptures = {
+    get: (self: RegexCaptures, index: number) -> RegexMatch?,
+    group: (self: RegexCaptures, name: string) -> RegexMatch?,
+    format: (self: RegexCaptures, format: string) -> string,
+}
+export type Regex = {
+    isMatch: (self: Regex, text: string) -> boolean,
+    find: (self: Regex, text: string) -> RegexMatch?,
+    captures: (self: Regex, text: string) -> RegexCaptures?,
+    split: (self: Regex, text: string) -> { string },
+    replace: (self: Regex, haystack: string, replacer: string) -> string,
+    replaceAll: (self: Regex, haystack: string, replacer: string) -> string,
+}
+declare regex: {
+    new: (pattern: string) -> Regex,
+}
+
+export type LuneDateTimeValues = {
+    year: number,
+    month: number,
+    day: number,
+    hour: number,
+    minute: number,
+    second: number,
+    millisecond: number?,
+}
+export type LuneDateTime = {
+    unixTimestamp: number,
+    unixTimestampMillis: number,
+    toIsoDate: (self: LuneDateTime) -> string,
+    toRfc3339: (self: LuneDateTime) -> string,
+    toRfc2822: (self: LuneDateTime) -> string,
+    formatLocalTime: (self: LuneDateTime, formatString: string?, locale: string?) -> string,
+    formatUniversalTime: (self: LuneDateTime, formatString: string?, locale: string?) -> string,
+    toLocalTime: (self: LuneDateTime) -> LuneDateTimeValues,
+    toUniversalTime: (self: LuneDateTime) -> LuneDateTimeValues,
+}
+declare datetime: {
+    now: () -> LuneDateTime,
+    fromUnixTimestamp: (unixTimestamp: number) -> LuneDateTime,
+    fromUniversalTime: (values: LuneDateTimeValues) -> LuneDateTime,
+    fromLocalTime: (values: LuneDateTimeValues) -> LuneDateTime,
+    fromIsoDate: (isoDate: string) -> LuneDateTime,
+    fromRfc3339: (rfc3339Date: string) -> LuneDateTime,
+    fromRfc2822: (rfc2822Date: string) -> LuneDateTime,
 }

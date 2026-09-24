@@ -15,6 +15,55 @@ html[data-playground-theme="light"] {
   --pg-border: #dce1ed;
   --pg-accent: #4f46e5;
 }
+/* Roblox Studio's default Script Editor colors (dark and light presets). */
+:root {
+  --code-text: #cccccc;
+  --code-gutter-text: #6e6e6e;
+  --code-cursor: #cccccc;
+  --code-selection: #0b5aaf;
+  --code-keyword: #f86d7c;
+  --code-builtin: #84d6f7;
+  --code-string: #adf195;
+  --code-number: #ffc600;
+  --code-bool: #ffc600;
+  --code-comment: #666666;
+  --code-operator: #cccccc;
+  --code-method: #fdfbac;
+  --code-property: #61a1f1;
+  --code-self: #f86d7c;
+}
+html[data-playground-theme="light"] {
+  --code-text: #000000;
+  --code-gutter-text: #8a8a8a;
+  --code-cursor: #000000;
+  --code-selection: #6ea1f1;
+  --code-keyword: #00007f;
+  --code-builtin: #7f0000;
+  --code-string: #7f007f;
+  --code-number: #007f7f;
+  --code-bool: #007f7f;
+  --code-comment: #007f09;
+  --code-operator: #7f7f00;
+  --code-method: #0074bd;
+  --code-property: #485c8e;
+  --code-self: #00007f;
+}
+#editor-wrapper .cm-s-studio.CodeMirror { color: var(--code-text) !important; }
+.cm-s-studio .CodeMirror-linenumber { color: var(--code-gutter-text); }
+.cm-s-studio .CodeMirror-cursor { border-left-color: var(--code-cursor); }
+.cm-s-studio .CodeMirror-selected, .cm-s-studio.CodeMirror-focused .CodeMirror-selected { background: var(--code-selection); }
+.cm-s-studio .CodeMirror-line::selection, .cm-s-studio .CodeMirror-line > span::selection, .cm-s-studio .CodeMirror-line > span > span::selection { background: var(--code-selection); }
+/* Later rules win where the Lua mode and the Luau overlay both style a token. */
+.cm-s-studio span.cm-luau-op { color: var(--code-operator); }
+.cm-s-studio span.cm-luau-prop { color: var(--code-property); }
+.cm-s-studio span.cm-luau-call { color: var(--code-method); }
+.cm-s-studio span.cm-luau-global, .cm-s-studio span.cm-builtin { color: var(--code-builtin); }
+.cm-s-studio span.cm-keyword, .cm-s-studio span.cm-luau-kw { color: var(--code-keyword); }
+.cm-s-studio span.cm-luau-self { color: var(--code-self); }
+.cm-s-studio span.cm-luau-bool { color: var(--code-bool); }
+.cm-s-studio span.cm-number { color: var(--code-number); }
+.cm-s-studio span.cm-string { color: var(--code-string); }
+.cm-s-studio span.cm-comment { color: var(--code-comment); }
 body { height: 100dvh; }
 .toolbar { padding: 14px 20px; gap: 10px; background: var(--pg-bg); }
 .ui-icon { width: 16px; height: 16px; flex: 0 0 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
@@ -186,6 +235,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--pg-accent);
   #hist-sheet-header { flex-wrap: wrap; }
   #hist-sheet-header button, #hist-sheet-header label, .hist-del { min-height: 44px; min-width: 44px; justify-content: center; }
   #copyToolBtn, .bytecode-options select, .bytecode-options > summary { min-height: 44px; }
+  .CodeMirror-hints { font-size: 14px !important; max-height: min(260px, 40dvh) !important; }
+  .CodeMirror-hint { padding: 9px 12px !important; }
+  .cm-hint-detail { max-width: 40vw; }
 }
 @media (max-width: 359px) {
   .toolbar { padding-inline: 6px; }
