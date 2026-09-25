@@ -1395,6 +1395,7 @@
       <div id="consoleResults" class="console-results" role="tabpanel" aria-labelledby="consoleTab">
         <div id="files" aria-label="Generated files"></div>
         <div id="output" role="log" aria-label="Program output"></div>
+        <div id="scriptButtons" class="script-buttons" role="group" aria-label="Script buttons" hidden></div>
       </div>
       <div id="toolResults" class="tool-results" role="tabpanel" aria-labelledby="bytecodeTab" hidden>
         <details id="bytecodeOptions" class="bytecode-options">
@@ -4103,6 +4104,45 @@ declare myGlobal: MyClass'></textarea>
     function setRunning(running) {
       runBtn.style.display = running ? "none" : "inline-flex";
       stopBtn.style.display = running ? "inline-flex" : "none";
+      // Buttons belong to one run, like a Discord response's components.
+      renderScriptButtons([]);
+    }
+
+    // ── discord.button ──
+    const scriptButtonsEl = document.getElementById("scriptButtons");
+    function renderScriptButtons(buttons) {
+      scriptButtonsEl.replaceChildren(...buttons.map(button => {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = `script-button script-button-${String(button.style).toLowerCase()}`;
+        el.textContent = button.label;
+        el.disabled = !!button.disabled;
+        el.dataset.disabled = String(!!button.disabled);
+        el.addEventListener("click", () => clickScriptButton(button.id, el));
+        return el;
+      }));
+      scriptButtonsEl.hidden = buttons.length === 0;
+    }
+
+    async function clickScriptButton(buttonId, el) {
+      if (!currentToken) return;
+      el.disabled = true; // until the request settles, so a double tap is one click
+      try {
+        const res = await fetch(`${SERVER}/button/${currentToken}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ buttonId }),
+        });
+        if (!res.ok) {
+          let message = `Click failed (${res.status})`;
+          try { message = (await res.json()).error || message; } catch { }
+          setStatus(message);
+        }
+      } catch {
+        setStatus("Could not reach the server");
+      } finally {
+        el.disabled = el.dataset.disabled === "true";
+      }
     }
 
     const IMAGE_TYPES = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
@@ -4428,6 +4468,9 @@ local function __playground_entry(...)
         _serverNum = serverNum;
         setStatus(`Server #${serverNum}`);
         setOutput(content);
+      });
+      es.addEventListener("buttons", e => {
+        renderScriptButtons(JSON.parse(e.data).buttons || []);
       });
       es.addEventListener("file", e => {
         const { name, type, content } = JSON.parse(e.data);

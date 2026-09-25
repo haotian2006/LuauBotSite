@@ -1,11 +1,11 @@
 
 # Discord
 
-Discord-specific APIs are available only for executions started from Discord. 
+Discord-specific APIs for the response a script is running in. `discord.button` also works in the [playground](../playground.md), where buttons appear under the console output. `discord.isWeb` is `true` for playground runs.
 
 ### `discord.followUpNext()`
 
-Sends the next output as a follow-up response instead of editing the original response.
+Sends the next output as a follow-up response instead of editing the original response. Does nothing in the playground.
 
 In a Discord guild, the follow-up is ephemeral. Outside a guild, it is sent as a DM.
 

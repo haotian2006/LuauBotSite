@@ -214,7 +214,7 @@ declare io: {
     followupnext: () -> (),
 }
 
--- Discord library (buttons only work for runs started from Discord)
+-- Discord library (buttons also work in the playground)
 declare discord: {
     isWeb: boolean,
     button: (options: string | DiscordButtonOptions) -> DiscordButton,

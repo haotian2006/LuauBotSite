@@ -178,15 +178,31 @@ html[data-playground-theme="light"] #editor-wrapper.file-drag-over::after { back
 #editor-wrapper .CodeMirror-gutters { background: var(--pg-editor); border: 0; }
 .CodeMirror-linenumber { color: var(--pg-muted-2); }
 .editor-footer { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; border-top: 1px solid var(--pg-border); color: var(--pg-muted); font-size: 11px; background: var(--pg-surface); }
+/* discord.button: attached under the output like a Discord message's components,
+   and pinned to the bottom of the console once the output is taller than it. */
+.script-buttons { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 18px 16px; background: var(--pg-surface); }
+.script-buttons::before { content: ""; position: absolute; left: 0; right: 0; top: -16px; height: 16px; background: linear-gradient(transparent, var(--pg-surface)); pointer-events: none; }
+.script-button { min-height: 32px; padding: 2px 16px; border: 0; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s; }
+.script-button:disabled { opacity: .5; cursor: not-allowed; }
+.script-button-primary { background: #5865f2; }
+.script-button-primary:hover:not(:disabled) { background: #4752c4; }
+.script-button-secondary { background: #4e5058; }
+.script-button-secondary:hover:not(:disabled) { background: #6d6f78; }
+html[data-playground-theme="light"] .script-button-secondary { background: #6d6f78; }
+html[data-playground-theme="light"] .script-button-secondary:hover:not(:disabled) { background: #4e5058; }
+.script-button-success { background: #248046; }
+.script-button-success:hover:not(:disabled) { background: #1a6334; }
+.script-button-danger { background: #da373c; }
+.script-button-danger:hover:not(:disabled) { background: #a12828; }
 .console-pane .input-row { order: 3; border-top: 1px solid var(--pg-border); border-bottom: 0; }
-.console-results { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
+.console-results { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; background: var(--pg-surface); }
 #files { gap: 8px; padding: 12px; border-top: 0; border-bottom: 1px solid var(--pg-border); }
 #files .file-item { width: fit-content; max-width: 100%; min-width: 0; }
 #files .file-link { display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-size: 14px; line-height: 1.5; min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
 #files .file-link span { min-width: 0; }
 #files .file-item img { width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; border-radius: 3px; }
 #closePreviewBtn { position: absolute; top: 16px; right: 16px; background: var(--pg-surface); color: var(--pg-fg); border: 1px solid var(--pg-border); }
-.console-results #output { flex: 1 0 auto; min-height: 0; overflow: visible; }
+.console-results #output { flex: 0 0 auto; min-height: 0; overflow: visible; }
 .input-controls { padding: 12px; }
 #inputBox { min-width: 0; padding: 9px 10px; border-radius: 6px; }
 #output { min-height: 0; padding: 18px; font-size: 13px; }
@@ -224,6 +240,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--pg-accent);
   .file-tab .file-name-input { font-size: 16px; }
   .editor-footer { display: none; }
   .result-tab { min-height: 44px; padding-inline: 8px; }
+  .script-buttons { padding: 0 10px 10px; }
+  .script-button { min-height: 44px; }
   .input-controls { padding: 6px; }
   #inputBox { font-size: 16px; min-height: 44px; }
   #sendBtn, #attachBtn { flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; justify-content: center; }
