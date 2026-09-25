@@ -4155,14 +4155,18 @@ declare myGlobal: MyClass'></textarea>
       css: 'text/css', js: 'text/javascript', md: 'text/plain', csv: 'text/csv',
     };
 
+    // A script that rewrites a file (e.g. a frame per loop) replaces its entry.
     function addFileLink(name, type, base64) {
       const t = type.toLowerCase();
       const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: MIME[t] || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
+      const existing = Array.from(filesEl.children).find(el => el.dataset.fileName === name);
 
       const container = document.createElement("div");
       container.className = "file-item";
+      container.dataset.fileName = name;
+      container.dataset.url = url;
       const a = document.createElement("a");
       a.href = url; a.className = "file-link";
       const label = document.createElement("span");
@@ -4179,6 +4183,7 @@ declare myGlobal: MyClass'></textarea>
           previewTrigger = a;
           lightboxImg.src = url;
           lightboxImg.alt = name;
+          lightbox.dataset.fileName = name;
           lightbox.classList.add("open");
           closePreviewBtn.focus();
         });
@@ -4190,7 +4195,15 @@ declare myGlobal: MyClass'></textarea>
         a.download = name;
         container.appendChild(a);
       }
-      filesEl.appendChild(container);
+      if (!existing) {
+        filesEl.appendChild(container);
+        return;
+      }
+      // An open preview of this file keeps playing with the new frames.
+      if (lightbox.classList.contains("open") && lightbox.dataset.fileName === name) lightboxImg.src = url;
+      if (previewTrigger && existing.contains(previewTrigger)) previewTrigger = container.querySelector("a");
+      existing.replaceWith(container);
+      URL.revokeObjectURL(existing.dataset.url);
     }
 
     const timestampCheck = document.getElementById("timestampCheck");
@@ -4474,7 +4487,9 @@ local function __playground_entry(...)
       });
       es.addEventListener("file", e => {
         const { name, type, content } = JSON.parse(e.data);
-        _pendingFiles.push({ name, type, content });
+        const saved = _pendingFiles.findIndex(file => file.name === name);
+        if (saved >= 0) _pendingFiles[saved] = { name, type, content };
+        else _pendingFiles.push({ name, type, content });
         addFileLink(name, type, content);
       });
       es.addEventListener("done", e => {
