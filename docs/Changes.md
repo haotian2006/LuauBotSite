@@ -1,5 +1,14 @@
 # Updates
 
+## 10/9/26
+
+- Added `Image.fromInstance` to render workspace, models, ViewportFrames and UI into an image.
+- Added `Image.fromAsset` to download Roblox image assets, and `Image.measureText`.
+- Added `io.writeimage` to write an Image (png), a list of Images (gif) or a rendered Instance in one call.
+- `DrawText` now draws anti-aliased text in any size, with fonts, wrapping, alignment and outlines.
+- Added `io.import` to build GitHub repositories (Rojo rules) and release `.rbxm` files into instances.
+- `require` now works on modules that return `nil`, and waits for modules still loading in another thread.
+
 ## 8/25/26
 
 - Refactored code base to be a proper project rather then a single file.

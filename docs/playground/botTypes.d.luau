@@ -44,6 +44,24 @@ export type DrawImageOptions = {
     ResamplerMode: EnumResamplerMode?,
     PivotPoint: Vector2?,
 }
+export type TextOptions = {
+    Size: number?,
+    Font: EnumFont?,
+    Bold: boolean?,
+    Align: ("Left" | "Center" | "Right" | EnumTextXAlignment)?,
+    MaxWidth: number?,
+    LineHeight: number?,
+    StrokeColor: Color3?,
+    StrokeThickness: number?,
+    StrokeTransparency: number?,
+}
+export type FromInstanceOptions = {
+    Size: Vector2?,
+    Camera: (Camera | CFrame)?,
+    FieldOfView: number?,
+    Background: (Color3 | false)?,
+    LightDirection: Vector3?,
+}
 export type TableStats = {
     arrayS: number,
     hashS: number,
@@ -76,7 +94,7 @@ declare class Image
     function DrawRectangle(self, position: Vector2, size: Vector2, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
     function DrawLine(self, startPos: Vector2, endPos: Vector2, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
     function DrawCircle(self, center: Vector2, radius: number, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
-    function DrawText(self, text: string, position: Vector2, color: Color3, transparency: number, scale: number?): ()
+    function DrawText(self, text: string, position: Vector2, color: Color3, transparency: number?, options: (number | TextOptions)?): Vector2
     function DrawImageTransformed(self, position: Vector2, scale: Vector2, rotation: number, sourceImage: Image, options: DrawImageOptions?): ()
     function ReadPixelsBuffer(self, position: Vector2, size: Vector2): buffer
     function WritePixelsBuffer(self, position: Vector2, size: Vector2, pixelBuffer: buffer): ()
@@ -207,6 +225,8 @@ declare io: {
     write: (...any) -> (),
     read: () -> string,
     writefile: (content: string | buffer, filename: string?) -> (),
+    writeimage: (value: Image | { Image } | Instance, filename: string?, options: { [string]: any }?) -> string,
+    import: (url: string) -> Instance,
     readfile: (filename: string?) -> (string, string),
     getoutput: () -> string,
     clearoutput: () -> (),
@@ -232,6 +252,9 @@ declare misc: {
 type ImageLib = {
     new: (size: Vector2) -> Image,
     fromPng: (pngData: string) -> Image,
+    fromAsset: (id: number | string, size: number?) -> Image,
+    fromInstance: (root: Instance, options: FromInstanceOptions?) -> Image,
+    measureText: (text: string, options: TextOptions?) -> Vector2,
     toPng: (image: Image, outputLogs: boolean?) -> string,
     toGif: (frames: { Image }, frameDelays: { number }, options: GifOptions?, outputLogs: boolean?) -> string,
     plotFunction: (func: (...number) -> ...any, options: PlotOptions?) -> Image,

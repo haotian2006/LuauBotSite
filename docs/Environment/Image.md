@@ -8,7 +8,27 @@ A library to create images similar to the [EditableImage](https://create.roblox.
 Creates a new Image object with the specified size.
 
 ### `fromPng(pngData:string): Image`
-Creates a new Image object by decoding the provided PNG data string.
+Creates a new Image object by decoding the provided PNG data string. You can also pass an `http(s)://` URL to download the PNG.
+
+### `fromAsset(id:number|string, size:number?): Image`
+Downloads a Roblox image asset (`123`, `"rbxassetid://123"` or a `roblox.com/asset/?id=` link) and returns it as an Image. `size` resizes it to fit within `size` pixels (max 1024).
+
+### `fromInstance(root:Instance, options:{}?): Image`
+Renders Roblox instances into an Image.
+
+- **3D**: `workspace` (uses `workspace.CurrentCamera`), a Model, Part, Folder or ViewportFrame. Models and parts are framed automatically.
+- **UI**: a ScreenGui or any GuiObject. Supports UICorner, UIStroke, UIGradient, layouts, images and text.
+
+`options`: `Size: Vector2`, `Camera: Camera | CFrame`, `FieldOfView: number`, `Background: Color3 | false`, `LightDirection: Vector3`.
+
+```lua
+local part = Instance.new("Part")
+part.Anchored = true
+part.Parent = workspace
+workspace.CurrentCamera.CFrame = CFrame.lookAt(Vector3.new(6, 6, 10), part.Position)
+io.writefile(Image.toPng(Image.fromInstance(workspace)), "scene.png")
+```
+
 
 ### `toPng(image:Image,outputLogs:boolean?): string`
 Encodes the Image object as a raw string encoded as a png. If `outputLogs` is true, logs will be printed during the encoding process.
@@ -128,25 +148,22 @@ Draws a line from `startPos` to `endPos` with the specified color and transparen
 ### `DrawCircle(center: Vector2, radius: number, color: Color3, transparency: number, combineType: Enum.ImageCombineType?)`
 Draws a circle with the specified center, radius, color, and transparency. The optional [combineType](https://create.roblox.com/docs/reference/engine/enums/ImageCombineType) parameter determines how the new color is combined with the existing colors in the circle area. Default is `Enum.ImageCombineType.Overwrite`.
 
-### `DrawText(text: string, position: Vector2, color: Color3, transparency: number, scale: number?)`
-Renders the specified text at the given position with the specified color, transparency, and scale.
+### `DrawText(text: string, position: Vector2, color: Color3, transparency: number?, options: number | {}?): Vector2`
+Renders anti-aliased text and returns its size.
 
-- The `scale` parameter adjusts the size of the text. It accepts non-integer values (for example, `1.5`) and will render anti-aliased text using bilinear sampling.
-- Note: non-integer scales may result in slightly blurry text/unreadable.
-- Invalid characters will be ignored.
+- Passing a number keeps the old `scale` behaviour: capitals are about `5 * scale` pixels tall with `position` at their top-left.
+- Passing a table: `Size` (like TextSize, default 14), `Font` (an `Enum.Font`; sets weight and width), `Bold`, `Align` (`"Left"`, `"Center"`, `"Right"`), `MaxWidth` (wraps), `LineHeight`, `StrokeColor`, `StrokeThickness`, `StrokeTransparency`. `position` is the top-left of the first line.
 
 Example:
 
 ```lua
-local img = Image.new(Vector2.new(300, 100))
+local img = Image.new(Vector2.new(300, 120))
 img:Fill(Color3.new(1, 1, 1), 0)
-img:DrawText("Scale 1.0", Vector2.new(10, 10), Color3.new(0, 0, 0), 0, 1)
-img:DrawText("Scale 1.5", Vector2.new(10, 30), Color3.new(0, 0, 0), 0, 1.5)
-img:DrawText("Scale 2.0", Vector2.new(10, 55), Color3.new(0, 0, 0), 0, 2)
-img:DrawText("Scale 2.25", Vector2.new(10, 80), Color3.new(0, 0, 0), 0, 2.25)
+img:DrawText("Scale 2", Vector2.new(10, 10), Color3.new(0, 0, 0), 0, 2)
+img:DrawText("Size 24", Vector2.new(10, 30), Color3.new(0, 0, 0), 0, { Size = 24 })
+img:DrawText("Bold outline", Vector2.new(10, 70), Color3.new(1, 0.8, 0), 0, { Size = 26, Bold = true, StrokeColor = Color3.new(0, 0, 0), StrokeThickness = 2 })
 
-local png = Image.toPng(img, true)
-io.writefile(png, "png")
+io.writefile(Image.toPng(img), "text.png")
 ```
 
 ### `DrawImageTransformed(position: Vector2, scale: Vector2, rotation: number, sourceImage: any, options: {}?)`

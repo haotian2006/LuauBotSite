@@ -15,4 +15,3 @@ misc.calculate("pq", "~p v q", "p ^ q", "p -> q", "p <-> q")
 ### `uwuify(text:string):string`
 Hi
 
-
