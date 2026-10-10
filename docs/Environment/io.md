@@ -59,17 +59,24 @@ io.writeimage(workspace, "scene", { Size = Vector2.new(320, 180) })
 ```
 
 ### `import(url:string):Instance`
-Builds a GitHub repository into an Instance, following Rojo's file rules.
+Builds a GitHub repository or a Wally package into an Instance.
 
 - `github.com/<owner>/<repo>`: builds `default.project.json`, or `src/` if there isn't one.
 - `.../tree/<branch>/<path>` or `.../blob/<branch>/<path>`: builds that folder or file.
-- `.../releases/download/<tag>/<file>.rbxm`: loads the release model.
+- `.../releases/download/<tag>/<file>.rbxm`
+- `wally:<scope>/<name>@<version>` 
 
 !!!warning
     Scripts don't run when imported
 ```lua
 local Chrono = io.import("https://github.com/Parihsz/Chrono")
 local api = require(Chrono)
+```
+
+Wally example:
+```lua
+local Knit = require(io.import("wally:sleitnick/knit@1.7"))
+local Signal = require(io.import("https://wally.run/package/sleitnick/signal?version=2.0.1"))
 ```
 
 ### `readfile(file:string): (string,string)`
