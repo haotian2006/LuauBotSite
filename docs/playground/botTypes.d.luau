@@ -40,15 +40,15 @@ export type GifOptions = {
     loop: number?,
 }
 export type DrawImageOptions = {
-    CombineType: EnumImageCombineType?,
-    ResamplerMode: EnumResamplerMode?,
+    CombineType: Enum.ImageCombineType?,
+    ResamplerMode: Enum.ResamplerMode?,
     PivotPoint: Vector2?,
 }
 export type TextOptions = {
     Size: number?,
-    Font: EnumFont?,
+    Font: Enum.Font?,
     Bold: boolean?,
-    Align: ("Left" | "Center" | "Right" | EnumTextXAlignment)?,
+    Align: ("Left" | "Center" | "Right" | Enum.TextXAlignment)?,
     MaxWidth: number?,
     LineHeight: number?,
     StrokeColor: Color3?,
@@ -86,14 +86,14 @@ export type DiscordButton = {
     Destroy: (self: DiscordButton) -> (),
 }
 
-declare class Image
+declare extern type Image with
     Size: Vector2
-    function SetPixel(self, x: number, y: number, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
+    function SetPixel(self, x: number, y: number, color: Color3, transparency: number, combineType: Enum.ImageCombineType?): ()
     function GetPixel(self, x: number, y: number): (Color3, number)
     function Fill(self, color: Color3, transparency: number): ()
-    function DrawRectangle(self, position: Vector2, size: Vector2, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
-    function DrawLine(self, startPos: Vector2, endPos: Vector2, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
-    function DrawCircle(self, center: Vector2, radius: number, color: Color3, transparency: number, combineType: EnumImageCombineType?): ()
+    function DrawRectangle(self, position: Vector2, size: Vector2, color: Color3, transparency: number, combineType: Enum.ImageCombineType?): ()
+    function DrawLine(self, startPos: Vector2, endPos: Vector2, color: Color3, transparency: number, combineType: Enum.ImageCombineType?): ()
+    function DrawCircle(self, center: Vector2, radius: number, color: Color3, transparency: number, combineType: Enum.ImageCombineType?): ()
     function DrawText(self, text: string, position: Vector2, color: Color3, transparency: number?, options: (number | TextOptions)?): Vector2
     function DrawImageTransformed(self, position: Vector2, scale: Vector2, rotation: number, sourceImage: Image, options: DrawImageOptions?): ()
     function ReadPixelsBuffer(self, position: Vector2, size: Vector2): buffer

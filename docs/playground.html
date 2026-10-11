@@ -6,16 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Luau Runner</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
-  <!-- Start type downloads before the parser-blocking editor CDN scripts. -->
-  <link rel="preload" href="playground/globalTypes.d.luau" as="fetch" crossorigin>
-  <link rel="preload" href="playground/botTypes.d.luau" as="fetch" crossorigin>
+  <!-- Start the language server (wasm + type downloads) before the parser-blocking editor CDN scripts. -->
+  <script src="playground/lsp-client.js"></script>
+  <script src="playground/imports.js"></script>
   <script>
-    // The worker starts downloading/compiling WASM immediately. It only sends
-    // messages after init, once the main script has installed its handlers.
     try {
-      window.playgroundTypeWorker = new Worker("playground/luau-lsp.worker.js");
+      window.playgroundLsp = new LuauLspClient();
     } catch { /* Retry during initialization if early startup is unavailable. */ }
   </script>
+  <!-- Same font request as the docs pages, so the browser reuses it. -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/lua/lua.min.js"></script>
@@ -43,10 +44,10 @@
   </script>
   <style>
     .CodeMirror-hints {
-      background: #161b22 !important;
-      border: 1px solid #30363d !important;
-      border-radius: 6px !important;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, .5) !important;
+      background: var(--pg-surface) !important;
+      border: 1px solid var(--pg-border) !important;
+      border-radius: var(--pg-radius-sm) !important;
+      box-shadow: var(--pg-elevation) !important;
       font-family: "JetBrains Mono", "Fira Code", Consolas, monospace !important;
       font-size: 12.5px !important;
       padding: 4px 0 !important;
@@ -54,18 +55,18 @@
     }
 
     .CodeMirror-hint {
-      color: #c9d1d9 !important;
+      color: var(--pg-fg) !important;
       padding: 3px 12px !important;
       border-radius: 0 !important;
     }
 
     .CodeMirror-hint-active {
-      background: #21262d !important;
-      color: #58a6ff !important;
+      background: var(--pg-surface-2) !important;
+      color: var(--pg-accent) !important;
     }
 
     .CodeMirror-hint-active .cm-hint-detail {
-      color: #6e7681 !important;
+      color: var(--pg-muted-2) !important;
     }
 
     .cm-hint-deprecated {
@@ -74,7 +75,7 @@
     }
 
     .cm-hint-detail {
-      color: #484f58;
+      color: var(--pg-muted-2);
       font-size: 11px;
       margin-left: 8px;
       float: right;
@@ -111,10 +112,10 @@
     }
 
     .CodeMirror-lint-tooltip {
-      background: #1c2128 !important;
-      border: 1px solid #30363d !important;
-      color: #c9d1d9 !important;
-      border-radius: 6px !important;
+      background: var(--pg-surface) !important;
+      border: 1px solid var(--pg-border) !important;
+      color: var(--pg-fg) !important;
+      border-radius: var(--pg-radius-sm) !important;
       font: 12px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace !important;
       padding: 5px 10px !important;
       max-width: 480px !important;
@@ -129,7 +130,7 @@
 
     body {
       background: #0f1117;
-      color: #c9d1d9;
+      color: var(--pg-fg);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       display: flex;
       flex-direction: column;
@@ -144,8 +145,8 @@
       flex-wrap: wrap;
       gap: 6px 8px;
       padding: 6px 10px;
-      background: #161b22;
-      border-bottom: 1px solid #21262d;
+      background: var(--pg-surface);
+      border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
     }
 
@@ -159,7 +160,7 @@
     .toolbar-title {
       font-size: 13px;
       font-weight: 600;
-      color: #8b949e;
+      color: var(--pg-muted);
       letter-spacing: .04em;
       text-transform: uppercase;
       margin-right: 4px;
@@ -174,7 +175,7 @@
       font-weight: 500;
       cursor: pointer;
       border: none;
-      border-radius: 6px;
+      border-radius: var(--pg-radius-sm);
       transition: background .15s, opacity .15s;
     }
 
@@ -183,12 +184,12 @@
     }
 
     #runBtn {
-      background: #238636;
+      background: var(--pg-primary);
       color: #fff;
     }
 
     #runBtn:hover {
-      background: #2ea043;
+      background: var(--pg-primary-hover);
     }
 
     #stopBtn {
@@ -202,13 +203,13 @@
     }
 
     #sendBtn {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      background: var(--pg-surface-2);
+      color: var(--pg-fg);
+      border: 1px solid var(--pg-border);
     }
 
     #sendBtn:hover {
-      background: #30363d;
+      background: var(--pg-hover);
     }
 
     .lint-toggle {
@@ -216,30 +217,30 @@
       align-items: center;
       gap: 5px;
       font-size: 12px;
-      color: #8b949e;
+      color: var(--pg-muted);
       cursor: pointer;
       user-select: none;
     }
 
     .lint-toggle input {
       cursor: pointer;
-      accent-color: #388bfd;
+      accent-color: var(--pg-primary);
     }
 
     .lint-toggle:hover {
-      color: #c9d1d9;
+      color: var(--pg-fg);
     }
 
     #shareBtn, #exportAllBtn, #importFilesBtn {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      background: var(--pg-surface-2);
+      color: var(--pg-fg);
+      border: 1px solid var(--pg-border);
       font-size: 12px;
       padding: 3px 10px;
     }
 
     #shareBtn:hover, #exportAllBtn:hover, #importFilesBtn:hover {
-      background: #30363d;
+      background: var(--pg-hover);
     }
 
     #exportAllBtn, #importFilesBtn {
@@ -247,15 +248,15 @@
     }
 
     #settingsBtn {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      background: var(--pg-surface-2);
+      color: var(--pg-fg);
+      border: 1px solid var(--pg-border);
       font-size: 12px;
       padding: 3px 10px;
     }
 
     #settingsBtn:hover {
-      background: #30363d;
+      background: var(--pg-hover);
     }
 
     /* ── Settings popover ── */
@@ -263,10 +264,10 @@
       display: none;
       position: fixed;
       z-index: 300;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
+      background: var(--pg-surface);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius);
+      box-shadow: var(--pg-elevation);
       width: 200px;
       flex-direction: column;
       overflow: hidden;
@@ -278,12 +279,12 @@
 
     #settings-popover-header {
       padding: 8px 12px 6px;
-      border-bottom: 1px solid #21262d;
+      border-bottom: 1px solid var(--pg-border);
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #8b949e;
+      color: var(--pg-muted);
       flex-shrink: 0;
     }
 
@@ -298,19 +299,19 @@
       align-items: center;
       padding: 5px 12px;
       font-size: 13px;
-      color: #c9d1d9;
+      color: var(--pg-fg);
       gap: 8px;
       cursor: pointer;
       user-select: none;
     }
 
     .settings-row:hover {
-      background: #1c2128;
+      background: var(--pg-surface);
     }
 
     .settings-divider {
       height: 1px;
-      background: #21262d;
+      background: var(--pg-surface-2);
       margin: 4px 0;
     }
 
@@ -321,20 +322,20 @@
 
     #smLabel {
       font-size: 13px;
-      color: #c9d1d9;
+      color: var(--pg-fg);
     }
 
     #smLabel.loaded {
-      color: #58a6ff;
+      color: var(--pg-accent);
     }
 
     #smStatus {
       font-size: 11px;
-      color: #6e7681;
+      color: var(--pg-muted-2);
     }
 
     #smStatus.loaded {
-      color: #58a6ff;
+      color: var(--pg-accent);
     }
 
     /* ── Sourcemap modal ── */
@@ -360,10 +361,10 @@
       transform: translate(-50%, -50%);
       width: min(640px, 92vw);
       height: min(480px, 80vh);
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, .7);
+      background: var(--pg-surface);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius);
+      box-shadow: var(--pg-elevation);
       flex-direction: column;
       overflow: hidden;
     }
@@ -377,19 +378,19 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 14px 8px;
-      border-bottom: 1px solid #21262d;
+      border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #8b949e;
+      color: var(--pg-muted);
     }
 
     #smModalClose {
       background: none;
       border: none;
-      color: #6e7681;
+      color: var(--pg-muted-2);
       font-size: 18px;
       padding: 0 4px;
       cursor: pointer;
@@ -397,14 +398,14 @@
     }
 
     #smModalClose:hover {
-      color: #c9d1d9;
+      color: var(--pg-fg);
       background: none;
     }
 
     #sm-editor {
       flex: 1;
-      background: #0d1117;
-      color: #c9d1d9;
+      background: var(--pg-input);
+      color: var(--pg-fg);
       border: none;
       outline: none;
       resize: none;
@@ -418,31 +419,31 @@
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      border-top: 1px solid #21262d;
+      border-top: 1px solid var(--pg-border);
       flex-shrink: 0;
     }
 
     #smSaveBtn {
-      background: #238636;
+      background: var(--pg-primary);
       color: #fff;
       font-size: 12px;
       padding: 4px 14px;
     }
 
     #smSaveBtn:hover {
-      background: #2ea043;
+      background: var(--pg-primary-hover);
     }
 
     #smResetBtn {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      background: var(--pg-surface-2);
+      color: var(--pg-fg);
+      border: 1px solid var(--pg-border);
       font-size: 12px;
       padding: 4px 14px;
     }
 
     #smResetBtn:hover {
-      background: #30363d;
+      background: var(--pg-hover);
     }
 
     #sm-error,
@@ -475,10 +476,10 @@
       transform: translate(-50%, -50%);
       width: min(640px, 92vw);
       height: min(480px, 80vh);
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, .7);
+      background: var(--pg-surface);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius);
+      box-shadow: var(--pg-elevation);
       flex-direction: column;
       overflow: hidden;
     }
@@ -492,19 +493,19 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 14px 8px;
-      border-bottom: 1px solid #21262d;
+      border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #8b949e;
+      color: var(--pg-muted);
     }
 
     #defsModalClose {
       background: none;
       border: none;
-      color: #6e7681;
+      color: var(--pg-muted-2);
       font-size: 18px;
       padding: 0 4px;
       cursor: pointer;
@@ -512,14 +513,14 @@
     }
 
     #defsModalClose:hover {
-      color: #c9d1d9;
+      color: var(--pg-fg);
       background: none;
     }
 
     #defs-editor {
       flex: 1;
-      background: #0d1117;
-      color: #c9d1d9;
+      background: var(--pg-input);
+      color: var(--pg-fg);
       border: none;
       outline: none;
       resize: none;
@@ -533,54 +534,54 @@
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      border-top: 1px solid #21262d;
+      border-top: 1px solid var(--pg-border);
       flex-shrink: 0;
     }
 
     #defsSaveBtn {
-      background: #238636;
+      background: var(--pg-primary);
       color: #fff;
       font-size: 12px;
       padding: 4px 14px;
     }
 
     #defsSaveBtn:hover {
-      background: #2ea043;
+      background: var(--pg-primary-hover);
     }
 
     #defsResetBtn {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      background: var(--pg-surface-2);
+      color: var(--pg-fg);
+      border: 1px solid var(--pg-border);
       font-size: 12px;
       padding: 4px 14px;
     }
 
     #defsResetBtn:hover {
-      background: #30363d;
+      background: var(--pg-hover);
     }
 
     #defsLabel {
       font-size: 13px;
-      color: #c9d1d9;
+      color: var(--pg-fg);
     }
 
     #defsLabel.loaded {
-      color: #58a6ff;
+      color: var(--pg-accent);
     }
 
     #defsStatus {
       font-size: 11px;
-      color: #6e7681;
+      color: var(--pg-muted-2);
     }
 
     #defsStatus.loaded {
-      color: #58a6ff;
+      color: var(--pg-accent);
     }
 
     #status {
       font-size: 12px;
-      color: #6e7681;
+      color: var(--pg-muted-2);
       font-family: monospace;
       white-space: nowrap;
     }
@@ -603,15 +604,15 @@
 
     /* ── History button (desktop) ── */
     #hist-popover-btn {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      background: var(--pg-surface-2);
+      color: var(--pg-fg);
+      border: 1px solid var(--pg-border);
       font-size: 12px;
       padding: 3px 10px;
     }
 
     #hist-popover-btn:hover {
-      background: #30363d;
+      background: var(--pg-hover);
     }
 
     /* ── History floating popover ── */
@@ -619,10 +620,10 @@
       display: none;
       position: fixed;
       z-index: 300;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
+      background: var(--pg-surface);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius);
+      box-shadow: var(--pg-elevation);
       width: 240px;
       max-height: 60vh;
       flex-direction: column;
@@ -638,7 +639,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 8px 10px 6px;
-      border-bottom: 1px solid #21262d;
+      border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
     }
 
@@ -647,7 +648,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #8b949e;
+      color: var(--pg-muted);
     }
 
     #history-list {
@@ -660,11 +661,11 @@
       display: flex;
       align-items: stretch;
       cursor: pointer;
-      border-bottom: 1px solid #21262d;
+      border-bottom: 1px solid var(--pg-border);
     }
 
     .hist-item:hover .hist-body {
-      background: #1c2128;
+      background: var(--pg-surface);
     }
 
     .hist-body {
@@ -677,7 +678,7 @@
     .hist-label {
       font-size: 11px;
       font-family: monospace;
-      color: #c9d1d9;
+      color: var(--pg-fg);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -685,7 +686,7 @@
 
     .hist-time {
       font-size: 10px;
-      color: #6e7681;
+      color: var(--pg-muted-2);
       margin-top: 2px;
     }
 
@@ -693,7 +694,7 @@
       flex-shrink: 0;
       background: none;
       border: none;
-      color: #6e7681;
+      color: var(--pg-muted-2);
       padding: 0 8px;
       font-size: 14px;
       cursor: pointer;
@@ -710,7 +711,7 @@
     #history-empty {
       padding: 12px 10px;
       font-size: 11px;
-      color: #6e7681;
+      color: var(--pg-muted-2);
       text-align: center;
     }
 
@@ -736,9 +737,9 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: #161b22;
-      border-top: 1px solid #30363d;
-      border-radius: 12px 12px 0 0;
+      background: var(--pg-surface);
+      border-top: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius) var(--pg-radius) 0 0;
       z-index: 201;
       max-height: 60vh;
       display: flex;
@@ -756,7 +757,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 14px 8px;
-      border-bottom: 1px solid #21262d;
+      border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
     }
 
@@ -765,13 +766,13 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .05em;
-      color: #8b949e;
+      color: var(--pg-muted);
     }
 
     #hist-sheet-close {
       background: none;
       border: none;
-      color: #6e7681;
+      color: var(--pg-muted-2);
       font-size: 18px;
       padding: 0 4px;
       cursor: pointer;
@@ -779,7 +780,7 @@
     }
 
     #hist-sheet-close:hover {
-      color: #c9d1d9;
+      color: var(--pg-fg);
       background: none;
     }
 
@@ -823,18 +824,18 @@
         left: 0;
         right: 0;
         z-index: 150;
-        background: #161b22;
-        border-top: 1px solid #30363d;
+        background: var(--pg-surface);
+        border-top: 1px solid var(--pg-border);
         padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
         font-size: 12px;
-        color: #8b949e;
+        color: var(--pg-muted);
         cursor: pointer;
         user-select: none;
         transition: color .15s;
       }
 
       #hist-bottom-tab:hover {
-        color: #c9d1d9;
+        color: var(--pg-fg);
       }
 
       #hist-bottom-tab svg {
@@ -853,7 +854,7 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
-      border-bottom: 1px solid #21262d;
+      border-bottom: 1px solid var(--pg-border);
     }
 
     #editor-wrapper .CodeMirror {
@@ -874,8 +875,8 @@
       display: flex;
       flex-direction: column;
       gap: 0;
-      background: #161b22;
-      border-bottom: 1px solid #21262d;
+      background: var(--pg-surface);
+      border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
     }
 
@@ -888,10 +889,10 @@
 
     #inputBox {
       flex: 1;
-      background: #0d1117;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
-      border-radius: 6px;
+      background: var(--pg-input);
+      color: var(--pg-fg);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius-sm);
       padding: 5px 10px;
       font: 13px monospace;
       outline: none;
@@ -899,7 +900,7 @@
     }
 
     #inputBox:focus {
-      border-color: #388bfd;
+      border-color: var(--pg-primary);
     }
 
     #inputBox::placeholder {
@@ -927,15 +928,15 @@
     }
 
     .input-row.runlocal-disabled #inputBox::placeholder {
-      color: #5b626b;
+      color: var(--pg-muted-2);
       text-decoration: line-through;
     }
 
     #attachBtn {
-      background: #21262d;
-      color: #8b949e;
-      border: 1px solid #30363d;
-      border-radius: 6px;
+      background: var(--pg-surface-2);
+      color: var(--pg-muted);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius-sm);
       padding: 5px 9px;
       cursor: pointer;
       font-size: 15px;
@@ -945,8 +946,8 @@
     }
 
     #attachBtn:hover {
-      background: #30363d;
-      color: #c9d1d9;
+      background: var(--pg-hover);
+      color: var(--pg-fg);
     }
 
     #fileQueue {
@@ -964,12 +965,12 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      background: #21262d;
-      border: 1px solid #30363d;
-      border-radius: 6px;
+      background: var(--pg-surface-2);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius-sm);
       padding: 3px 8px;
       font-size: 12px;
-      color: #c9d1d9;
+      color: var(--pg-fg);
       max-width: 220px;
     }
 
@@ -982,7 +983,7 @@
     .file-chip-remove {
       background: none;
       border: none;
-      color: #8b949e;
+      color: var(--pg-muted);
       cursor: pointer;
       padding: 0 0 0 2px;
       font-size: 14px;
@@ -997,12 +998,12 @@
     /* ── Output ── */
     #output {
       flex: 1;
-      background: #0d1117;
+      background: var(--pg-input);
       padding: 14px 16px;
       overflow-y: auto;
       white-space: pre-wrap;
       font: 13px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
-      color: #c9d1d9;
+      color: var(--pg-fg);
     }
 
     #output::-webkit-scrollbar {
@@ -1014,8 +1015,8 @@
     }
 
     #output::-webkit-scrollbar-thumb {
-      background: #30363d;
-      border-radius: 3px;
+      background: var(--pg-hover);
+      border-radius: var(--pg-radius-sm);
     }
 
     /* ── Files ── */
@@ -1024,8 +1025,8 @@
       flex-wrap: wrap;
       gap: 8px;
       padding: 8px 10px;
-      background: #161b22;
-      border-top: 1px solid #21262d;
+      background: var(--pg-surface);
+      border-top: 1px solid var(--pg-border);
       flex-shrink: 0;
     }
 
@@ -1043,26 +1044,26 @@
     .file-item img {
       max-width: 220px;
       max-height: 160px;
-      border-radius: 6px;
-      border: 1px solid #30363d;
+      border-radius: var(--pg-radius-sm);
+      border: 1px solid var(--pg-border);
       cursor: pointer;
       object-fit: contain;
-      background: #0d1117;
+      background: var(--pg-input);
       transition: border-color .15s;
     }
 
     .file-item img:hover {
-      border-color: #388bfd;
+      border-color: var(--pg-primary);
     }
 
     a.file-link {
-      background: #21262d;
-      color: #58a6ff;
+      background: var(--pg-surface-2);
+      color: var(--pg-accent);
       padding: 4px 10px;
-      border-radius: 6px;
+      border-radius: var(--pg-radius-sm);
       text-decoration: none;
       font-size: 12px;
-      border: 1px solid #30363d;
+      border: 1px solid var(--pg-border);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1070,7 +1071,7 @@
     }
 
     a.file-link:hover {
-      background: #30363d;
+      background: var(--pg-hover);
     }
 
     /* ── Signature help tooltip ── */
@@ -1078,13 +1079,13 @@
       display: none;
       position: absolute;
       z-index: 50;
-      background: #1c2128;
-      border: 1px solid #30363d;
-      border-radius: 6px;
+      background: var(--pg-surface);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius-sm);
       padding: 5px 10px;
       font: 12.5px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace;
-      color: #c9d1d9;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, .5);
+      color: var(--pg-fg);
+      box-shadow: var(--pg-elevation);
       max-width: min(480px, calc(100vw - 16px));
       white-space: pre-wrap;
       overflow-wrap: anywhere;
@@ -1092,11 +1093,11 @@
     }
 
     #sig-help .sig-type {
-      color: #79c0ff;
+      color: var(--code-builtin);
     }
 
     #sig-help .sig-detail {
-      color: #8b949e;
+      color: var(--pg-muted);
       font-size: 11.5px;
     }
 
@@ -1105,17 +1106,17 @@
       display: none;
       position: fixed;
       z-index: 60;
-      background: #1c2128;
-      border: 1px solid #30363d;
-      border-radius: 6px;
+      background: var(--pg-surface);
+      border: 1px solid var(--pg-border);
+      border-radius: var(--pg-radius-sm);
       padding: 5px 10px;
       font: 12px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace;
-      color: #79c0ff;
+      color: var(--code-builtin);
       max-width: min(480px, calc(100vw - 16px));
       white-space: pre-wrap;
       overflow-wrap: anywhere;
       pointer-events: none;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, .5);
+      box-shadow: var(--pg-elevation);
     }
 
     /* ── Lightbox ── */
@@ -1139,8 +1140,8 @@
       max-width: 90vw;
       max-height: 90vh;
       object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
+      border-radius: var(--pg-radius);
+      box-shadow: var(--pg-elevation);
     }
 
     @media (max-width: 540px) {
@@ -1173,35 +1174,6 @@
     }
   </style>
   <style>
-    :root {
-      --pg-bg: #0f1117;
-      --pg-fg: #c9d1d9;
-      --pg-surface: #161b22;
-      --pg-surface-2: #21262d;
-      --pg-input: #0d1117;
-      --pg-editor: #282a36;
-      --pg-border: #30363d;
-      --pg-muted: #8b949e;
-      --pg-muted-2: #6e7681;
-      --pg-hover: #30363d;
-      --pg-shadow: rgba(0, 0, 0, .6);
-      color-scheme: dark;
-    }
-
-    html[data-playground-theme="light"] {
-      --pg-bg: #f6f8fc;
-      --pg-fg: #24292f;
-      --pg-surface: #ffffff;
-      --pg-surface-2: #eef2f6;
-      --pg-input: #ffffff;
-      --pg-editor: #f6f8fc;
-      --pg-border: #d0d7de;
-      --pg-muted: #57606a;
-      --pg-muted-2: #6e7781;
-      --pg-hover: #d0d7de;
-      --pg-shadow: rgba(31, 35, 40, .18);
-      color-scheme: light;
-    }
 
     body {
       background: var(--pg-bg);
@@ -1302,7 +1274,7 @@
     .CodeMirror-hints {
       background: var(--pg-surface) !important;
       border-color: var(--pg-border) !important;
-      box-shadow: 0 8px 24px var(--pg-shadow) !important;
+      box-shadow: var(--pg-elevation) !important;
     }
 
     .CodeMirror-hint {
@@ -1311,7 +1283,7 @@
 
     .CodeMirror-hint-active {
       background: var(--pg-surface-2) !important;
-      color: #0969da !important;
+      color: var(--pg-accent) !important;
     }
 
     .CodeMirror-hint-active .cm-hint-detail {
@@ -1324,7 +1296,7 @@
       background: var(--pg-surface) !important;
       border-color: var(--pg-border) !important;
       color: var(--pg-fg) !important;
-      box-shadow: 0 4px 16px var(--pg-shadow) !important;
+      box-shadow: var(--pg-elevation) !important;
     }
   </style>
   <link rel="stylesheet" href="playground/playground.css">
@@ -1447,11 +1419,11 @@
   <div id="settings-popover">
     <div id="settings-popover-header"><span>Settings</span></div>
     <div id="settings-popover-body">
-      <label class="lint-toggle settings-row" title="Toggle type linter">
+      <label class="lint-toggle settings-row" title="Show type errors and lint warnings (syntax errors always show)">
         <input type="checkbox" id="lintCheck" />
         <span>Linter</span>
       </label>
-      <label class="lint-toggle settings-row" title="Use new type solver (more accurate but experimental)">
+      <label class="lint-toggle settings-row" title="Use Luau&#39;s new type solver (turn off for the old one)">
         <input type="checkbox" id="solverCheck" />
         <span>New Solver</span>
       </label>
@@ -1585,647 +1557,218 @@ declare myGlobal: MyClass'></textarea>
   </div>
   <div id="sig-help"></div>
   <div id="hover-tip"></div>
+  <div id="completion-doc"></div>
+  <div id="import-popup" role="dialog" aria-label="io.import download"></div>
 
   <script>
-    // ── Luau WASM Worker ──
-    let luauWorker = null;
-    let staticReady = false; // static maps parsed — enables Roblox/bot/stdlib completions
-    let workerReady = false; // WASM worker ready — enables user-code type inference
-    let defsReady = false; // WASM definitions loaded — enables Roblox diagnostics
-    let smActive = !!localStorage.getItem("luau_sourcemap");
-    let smTree = {}; // name → [childName, ...] built from sourcemap JSON for JS-side completions
-    let smClassOf = {}; // name → className from sourcemap (e.g. "ReplicatedStorage" → "ReplicatedStorage")
-    let pendingRequests = new Map();
-
-    // Build flat name→children and name→className maps from the sourcemap JSON tree so JS can
-    // complete game.Foo, game.Foo.Bar, and resolve local x = game.Foo to its Roblox class.
-    function buildSmTree(json) {
-      smTree = {}; smClassOf = {};
-      if (!json) return;
-      try {
-        const root = JSON.parse(json);
-        function walk(node) {
-          // Record className for every named node
-          if (node.name && node.className) smClassOf[node.name] = node.className;
-          if (!node.children || !node.children.length) return;
-          const childNames = node.children.map(c => c.name);
-          smTree[node.name] = smTree[node.name]
-            ? [...new Set([...smTree[node.name], ...childNames])]
-            : childNames;
-          for (const child of node.children) walk(child);
-        }
-        if (root.className === "DataModel") {
-          smTree["game"] = (root.children || []).map(c => c.name);
-          for (const child of root.children || []) walk(child);
-        }
-      } catch (e) { console.warn("[sm] failed to parse sourcemap:", e); }
-    }
-    buildSmTree(localStorage.getItem("luau_sourcemap"));
-    let reqId = 0;
-
-    function workerRequest(msg, timeoutMs = 30000) {
-      return new Promise((resolve, reject) => {
-        const id = ++reqId;
-        pendingRequests.set(id, resolve);
-        luauWorker.postMessage({ ...msg, requestId: id });
-        if (timeoutMs) setTimeout(() => {
-          if (pendingRequests.has(id)) {
-            pendingRequests.delete(id);
-            reject(new Error("timeout"));
-          }
-        }, timeoutMs);
-      });
-    }
-
-    // Other modules are registered by their require name so require("file1") is typed.
-    // main.luau is skipped: the WASM already uses "main" for the open buffer.
-    let syncedSourcesKey = null;
-    function syncWorkspaceSources() {
-      if (!workerReady) return;
-      const others = workspaceFiles
-        .map((file, index) => ({ name: file.name, doc: file.doc, index }))
-        .filter(file => file.index !== 0 && file.index !== activeFileIndex);
-      const key = others.map(file => `${file.name}\0${file.doc.changeGeneration()}`).join("\0") + `\0${activeFileIndex}`;
-      if (key === syncedSourcesKey) return;
-      syncedSourcesKey = key;
-      workerRequest({ type: "clear_sources" }).catch(() => { });
-      for (const file of others) {
-        workerRequest({ type: "set_source", name: file.name, code: file.doc.getValue() }).catch(() => { });
-      }
-    }
-
-    function lspRequest(msg) {
-      syncWorkspaceSources();
-      return workerRequest(msg);
-    }
-
-    function lspReady() {
-      return workerReady && defsReady;
-    }
-
-    // ── Roblox static type maps (parsed from globalTypes.d.luau) ──
-    let classMembers = {};  // className   → sorted string[]
-    let globalMembers = {}; // globalName  → sorted string[] (for "x." completions)
-    let allGlobals = []; // all known Roblox global names (for top-level completion)
-    let sigsOf = {}; // typeName    → { memberName → raw declaration string }
-    let globalTypeOf = {}; // globalName  → class/table typeName (for sig lookup)
-    let funcSigs = {}; // funcName    → declaration string (for hover on globals)
-    let creatableInstances = []; // from --#METADATA# CREATABLE_INSTANCES
-    let serviceNames = []; // from --#METADATA# SERVICES
+    // ── Language server (playground/lsp-client.js → lsp.worker.js → wasm/luau-lsp.wasm) ──
+    const lsp = window.playgroundLsp || new LuauLspClient();
     // Globals the bot expects scripts to assign, e.g. TIMEOUT = 30
     const BOT_SETTABLE_GLOBALS = new Set(["TIMEOUT", "OUTPUT_LOGS", "TIMESTAMP"]);
 
-    function resetStaticMaps() {
-      classMembers = {};
-      globalMembers = {};
-      allGlobals = [];
-      sigsOf = {};
-      globalTypeOf = {};
-      funcSigs = {};
+    // Type loading shouldn't overwrite run results such as "Local · Stopped".
+    const TYPE_STATUSES = new Set(["", "Loading types..."]);
+    function setTypeStatus(text) {
+      const statusEl = document.getElementById("status");
+      if (TYPE_STATUSES.has(statusEl.textContent)) statusEl.textContent = text;
+    }
+    if (!lsp.ready) setTypeStatus("Loading types...");
+    lsp.onReady = () => {
+      setTypeStatus("");
+      editor.performLint();
+    };
+
+    // Definitions, the solver and custom types only apply to a freshly started server.
+    function restartLsp() {
+      setTypeStatus("Loading types...");
+      completionCache = null;
+      lsp.restart();
     }
 
-    function parseGlobalTypes(src) {
-      const rawClasses = {};        // className → { parent, members[], sigs{} }
-      const tableGlobals = {};      // varName → string[]
-      const tableGlobalSigs = {};   // varName → { memberName → sigLine }
-      const classTypedGlobals = {}; // varName → className
-      const typeAliases = new Set(); // type aliases (not real globals)
-      const funcGlobals = [];
-
-      let curClass = null;
-      let curTable = null;
-
-      for (const line of src.split('\n')) {
-        const trimmed = line.trim();
-
-        // ── Inside class body ──
-        if (curClass) {
-          if (trimmed === 'end') { curClass = null; continue; }
-          const func = line.match(/^\s+function\s+(\w+)\s*\(/);
-          const prop = line.match(/^\s+(\w+)\s*:/);
-          if (func) {
-            rawClasses[curClass].members.push(func[1]);
-            rawClasses[curClass].sigs[func[1]] = trimmed;
-          } else if (prop && prop[1] !== 'function') {
-            rawClasses[curClass].members.push(prop[1]);
-            rawClasses[curClass].sigs[prop[1]] = trimmed;
-          }
-          continue;
-        }
-
-        // ── Inside table global body ──
-        if (curTable) {
-          if (trimmed.startsWith('}')) { curTable = null; continue; } // handles "} & {..." intersections
-          const key = line.match(/^\s+(\w+)\s*:/);
-          if (key) {
-            tableGlobals[curTable].push(key[1]);
-            if (!tableGlobalSigs[curTable]) tableGlobalSigs[curTable] = {};
-            tableGlobalSigs[curTable][key[1]] = trimmed.replace(/,$/, '');
-          }
-          continue;
-        }
-
-        // ── Top-level ──
-        const classM = line.match(/^declare (?:class|extern type) (\w+)(?:\s+extends\s+(\w+))?/);
-        if (classM) {
-          const cName = classM[1], cParent = classM[2] || null;
-          rawClasses[cName] = { parent: cParent, members: [], sigs: {} };
-          // Inline single-line class: "declare class Foo extends Bar end" — no body to parse
-          if (!/\bend\s*$/.test(line)) curClass = cName;
-          continue;
-        }
-
-        const funcM = line.match(/^declare function (\w+)/);
-        if (funcM) {
-          funcGlobals.push(funcM[1]);
-          funcSigs[funcM[1]] = trimmed.replace(/^declare /, "");
-          continue;
-        }
-
-        const cgM = line.match(/^declare (\w+)\s*:\s*([A-Z]\w*)\s*$/);
-        if (cgM) { classTypedGlobals[cgM[1]] = cgM[2]; continue; }
-
-        // Simple value globals: declare x: number / boolean / string / etc.
-        const svM = line.match(/^declare (\w+)\s*:\s*\w/);
-        if (svM && !line.includes('{')) { funcGlobals.push(svM[1]); continue; }
-
-        const tgM = line.match(/^declare (\w+)\s*:\s*\{/);
-        if (tgM) {
-          curTable = tgM[1];
-          tableGlobals[curTable] = [];
-          if (/\}/.test(line.slice(line.indexOf('{') + 1))) curTable = null;
-          continue;
-        }
-
-        // type ALIAS = { ... } — capture for class-typed global resolution (e.g. ENUM_LIST)
-        const typeAliasM = line.match(/^type (\w+)\s*=\s*\{/);
-        if (typeAliasM) {
-          curTable = typeAliasM[1];
-          typeAliases.add(curTable);
-          if (!tableGlobals[curTable]) tableGlobals[curTable] = [];
-          if (/\}/.test(line.slice(line.indexOf('{') + 1))) curTable = null;
-          continue;
-        }
+    const solverCheck = document.getElementById("solverCheck");
+    const robloxDefsCheck = document.getElementById("robloxDefsCheck");
+    const botDefsCheck = document.getElementById("botDefsCheck");
+    {
+      const options = LuauLspClient.savedOptions();
+      solverCheck.checked = options.newSolver;
+      robloxDefsCheck.checked = options.roblox;
+      botDefsCheck.checked = options.bot;
+      botDefsCheck.disabled = !options.roblox;
+    }
+    solverCheck.addEventListener("change", () => {
+      localStorage.setItem("luau_solver", solverCheck.checked ? "1" : "0");
+      restartLsp();
+    });
+    robloxDefsCheck.addEventListener("change", () => {
+      localStorage.setItem("luau_no_roblox", robloxDefsCheck.checked ? "0" : "1");
+      // Bot types depend on Roblox types (Color3, Vector2, etc.)
+      botDefsCheck.disabled = !robloxDefsCheck.checked;
+      if (!robloxDefsCheck.checked) {
+        botDefsCheck.checked = false;
+        localStorage.setItem("luau_no_bot", "1");
       }
+      restartLsp();
+    });
+    botDefsCheck.addEventListener("change", () => {
+      localStorage.setItem("luau_no_bot", botDefsCheck.checked ? "0" : "1");
+      restartLsp();
+    });
 
-      // Build class member lists + sig maps with inheritance
-      const memoM = {}, memoS = {};
-      function build(name, seen = new Set()) {
-        if (name in memoM) return;
-        if (seen.has(name) || !rawClasses[name]) {
-          memoM[name] = []; memoS[name] = {}; return;
-        }
-        seen.add(name);
-        const { parent, members, sigs } = rawClasses[name];
-        if (parent) build(parent, new Set(seen));
-        const inh = memoM[parent] || [];
-        const inhS = memoS[parent] || {};
-        memoM[name] = [...new Set([...inh, ...members])].sort();
-        memoS[name] = { ...inhS, ...sigs };
-      }
-      for (const n of Object.keys(rawClasses)) {
-        build(n);
-        classMembers[n] = memoM[n];
-        sigsOf[n] = memoS[n];
-      }
+    // ── Autocomplete (textDocument/completion) ──
+    // The server returns every candidate for the context, so one response serves the whole word.
+    let completionCache = null; // { key, items }
 
-      // Table globals (skip pure type aliases — they're not real globals)
-      for (const [name, members] of Object.entries(tableGlobals)) {
-        if (typeAliases.has(name)) continue;
-        globalMembers[name] = [...members].sort();
-        sigsOf[name] = tableGlobalSigs[name] || {};
-      }
-
-      // Class-typed globals — resolve through classMembers or tableGlobals (e.g. declare Enum: ENUM_LIST)
-      for (const [name, typeName] of Object.entries(classTypedGlobals)) {
-        if (classMembers[typeName]) globalMembers[name] = classMembers[typeName];
-        else if (tableGlobals[typeName]) globalMembers[name] = [...new Set(tableGlobals[typeName])].sort();
-        globalTypeOf[name] = typeName;
-      }
-
-      allGlobals = [...new Set([
-        ...allGlobals,
-        ...Object.keys(classTypedGlobals),
-        ...Object.keys(tableGlobals).filter(n => !typeAliases.has(n)),
-        ...funcGlobals,
-      ])].sort();
-
-      console.log('[luau] classes:', Object.keys(classMembers).length,
-        '| globals:', allGlobals.length,
-        '| with members:', Object.keys(globalMembers).length);
+    function completionWordRange(line, ch, inString) {
+      const isWordChar = inString ? c => !/["'`]/.test(c) : c => /\w/.test(c);
+      let start = ch, end = ch;
+      while (start > 0 && isWordChar(line[start - 1])) start--;
+      while (end < line.length && isWordChar(line[end])) end++;
+      return [start, end];
     }
 
-
-    (async function initWorker() {
-      try {
-        luauWorker = window.playgroundTypeWorker || new Worker("playground/luau-lsp.worker.js");
-
-        // Type loading shouldn't overwrite run results such as "Local · Stopped".
-        const TYPE_STATUSES = new Set(["", "Loading types...", "Loading custom definitions...", "Loading sourcemap...", "Reloading definitions..."]);
-        const setTypeStatus = text => { if (TYPE_STATUSES.has(statusEl.textContent)) statusEl.textContent = text; };
-        const handleWorkerMessage = (e) => {
-          const { requestId, ...data } = e.data;
-          if (data.type === "ready") { workerReady = true; syncedSourcesKey = null; setTypeStatus("Loading types..."); return; }
-          if (data.type === "definitions_ready") {
-            defsReady = true;
-            if (typeof editor !== "undefined") editor.performLint();
-
-            // Chain: load persisted custom defs → load persisted sourcemap → clear status
-            const customDefs = localStorage.getItem("luau_custom_defs");
-            const storedSm = localStorage.getItem("luau_sourcemap");
-
-            let chain = Promise.resolve();
-            if (customDefs) {
-              setTypeStatus("Loading custom definitions...");
-              chain = chain.then(() => workerRequest({ type: "add_definitions", name: "@custom", source: customDefs }));
-            }
-            if (storedSm) {
-              chain = chain.then(() => {
-                setTypeStatus("Loading sourcemap...");
-                return workerRequest({ type: "set_sourcemap", json: storedSm });
-              });
-            }
-            chain
-              .then(() => setTypeStatus(""))
-              .catch(() => setTypeStatus(""));
-            return;
-          }
-          const cb = pendingRequests.get(requestId);
-          if (cb) { pendingRequests.delete(requestId); cb(data); }
-        };
-        const attachWorker = worker => {
-          luauWorker = worker;
-          worker.onmessage = handleWorkerMessage;
-          worker.onerror = (e) => console.warn("Luau worker error:", e);
-        };
-        attachWorker(luauWorker);
-
-        const [rawTypes, botDefs] = await Promise.all([
-          fetch("playground/globalTypes.d.luau").then(r => r.text()),
-          fetch("playground/botTypes.d.luau").then(r => r.text()).catch(() => ""),
-        ]);
-
-        // Parse metadata (CREATABLE_INSTANCES, SERVICES) before stripping
-        const metaMatch = rawTypes.match(/^--#METADATA#(.+)/);
-        if (metaMatch) {
-          try {
-            const meta = JSON.parse(metaMatch[1].trim());
-            creatableInstances = (meta.CREATABLE_INSTANCES || []).sort();
-            serviceNames = (meta.SERVICES || []).sort();
-          } catch { }
-        }
-
-        // Keep the original metadata for WASM's MagicTypeLookup.
-        const strippedRoblox = rawTypes.replace(/^--#METADATA#[^\n]*\n?/, "");
-
-        window._robloxDefs = rawTypes;
-        window._botDefs = botDefs;
-
-        const solverCheck = document.getElementById("solverCheck");
-        const robloxDefsCheck = document.getElementById("robloxDefsCheck");
-        const botDefsCheck = document.getElementById("botDefsCheck");
-
-        solverCheck.checked = localStorage.getItem("luau_solver") === "1";
-        robloxDefsCheck.checked = localStorage.getItem("luau_no_roblox") !== "1";
-        botDefsCheck.checked = localStorage.getItem("luau_no_bot") !== "1";
-
-        solverCheck.addEventListener("change", () => {
-          localStorage.setItem("luau_solver", solverCheck.checked ? "1" : "0");
-          statusEl.textContent = "Switching solver...";
-          workerRequest({ type: "set_solver", solver: solverCheck.checked ? 1 : 0 })
-            .then(() => { statusEl.textContent = ""; if (lintCheck.checked) editor.performLint(); })
-            .catch(() => { statusEl.textContent = ""; });
-        });
-
-        // Rebuild definitions based on toggles and send full init to worker.
-        // Exposed on window so modal handlers outside this IIFE can trigger reinit.
-        window.sendInitToWorker = sendInitToWorker;
-        function rebuildStaticMaps() {
-          resetStaticMaps();
-          if (robloxDefsCheck.checked) parseGlobalTypes(strippedRoblox);
-          if (botDefsCheck.checked && botDefs) parseGlobalTypes(botDefs);
-          const customDefs = localStorage.getItem("luau_custom_defs");
-          if (customDefs) parseGlobalTypes(customDefs);
-          staticReady = true;
-        }
-        function sendInitToWorker() {
-          const defs = robloxDefsCheck.checked ? window._robloxDefs : "";
-          const extra = [];
-          if (botDefsCheck.checked && window._botDefs)
-            extra.push({ name: "@bot", source: window._botDefs });
-          luauWorker.postMessage({
-            type: "init",
-            definitions: defs,
-            extraDefinitions: extra,
-            solver: solverCheck.checked ? 1 : 0,
-            requestId: 0,
-          });
-          // Parse the main-thread fallback maps while WASM loads the definitions.
-          rebuildStaticMaps();
-        }
-
-        // WASM can't be interrupted mid-run, so stopping a local run replaces the worker.
-        window.restartTypeWorker = () => {
-          luauWorker.terminate();
-          for (const resolve of pendingRequests.values()) resolve({ type: "error", error: "Worker restarted" });
-          pendingRequests.clear();
-          workerReady = false;
-          defsReady = false;
-          attachWorker(new Worker("playground/luau-lsp.worker.js"));
-          sendInitToWorker();
-        };
-
-        robloxDefsCheck.addEventListener("change", () => {
-          localStorage.setItem("luau_no_roblox", robloxDefsCheck.checked ? "0" : "1");
-          // Bot types depend on Roblox types (Color3, Vector2, etc.)
-          if (!robloxDefsCheck.checked) {
-            botDefsCheck.checked = false;
-            botDefsCheck.disabled = true;
-            localStorage.setItem("luau_no_bot", "1");
-          } else {
-            botDefsCheck.disabled = false;
-          }
-          defsReady = false;
-          statusEl.textContent = "Reloading definitions...";
-          sendInitToWorker();
-        });
-        botDefsCheck.addEventListener("change", () => {
-          localStorage.setItem("luau_no_bot", botDefsCheck.checked ? "0" : "1");
-          defsReady = false;
-          statusEl.textContent = "Reloading definitions...";
-          sendInitToWorker();
-        });
-        // Disable bot toggle if roblox is off on load
-        if (!robloxDefsCheck.checked) botDefsCheck.disabled = true;
-
-        sendInitToWorker();
-      } catch (e) { console.warn("Luau WASM unavailable:", e); }
-    })();
-
-    // ── CM5 async hint helper ──
-    const PRIMITIVE_TYPES = ["any", "boolean", "buffer", "never", "nil", "number", "string", "thread", "unknown", "vector"];
+    function sortCompletionItems(items) {
+      return items.slice().sort((a, b) =>
+        (a.sortText ?? a.label).localeCompare(b.sortText ?? b.label) || a.label.localeCompare(b.label));
+    }
 
     // Prefix matches first, then (for 2+ chars) names that contain the typed text.
-    function filterByWord(items, word) {
+    function filterCompletions(items, word) {
       if (!word) return items;
       const lower = word.toLowerCase();
       const prefix = [], inner = [];
       for (const item of items) {
-        const index = item.text.toLowerCase().indexOf(lower);
+        const index = (item.filterText || item.label).toLowerCase().indexOf(lower);
         if (index === 0) prefix.push(item);
         else if (index > 0 && lower.length > 1) inner.push(item);
       }
       return prefix.concat(inner);
     }
 
-    function isShadowed(name, code) {
-      return new RegExp(`\\blocal\\s+[\\w\\s,]*\\b${name}\\b`).test(code);
+    function lspRange(range) {
+      return { from: LuauLspClient.fromLsp(range.start), to: LuauLspClient.fromLsp(range.end) };
     }
 
-    function staticHints(ctx) {
-      const { line, cur, charPrev, isDot, hasSepInToken, word, tokenStr, sepIdx, hadMemberTarget, code } = ctx;
-      const beforeColon = charPrev === ':' ? line.slice(0, cur.ch - 1) : null;
-      const isAnnotColon = beforeColon !== null && /\blocal\s+\w+\s*$/.test(beforeColon);
-      const isAnnotWord = !isDot && !hasSepInToken && word.length > 0
-        && /\blocal\s+\w+\s*:\s*\w+$/.test(line.slice(0, cur.ch));
-      if (isAnnotColon || isAnnotWord) {
-        const classNames = Object.keys(classMembers).filter(n => !PRIMITIVE_TYPES.includes(n)).sort();
-        return filterByWord([...PRIMITIVE_TYPES, ...classNames].map(text => ({ text })), word);
-      }
-
-      if (!hadMemberTarget) return filterByWord(allGlobals.map(text => ({ text })), word);
-
-      let memberObject = hasSepInToken ? tokenStr.slice(0, sepIdx) : null;
-      if (!memberObject) {
-        const match = line.slice(0, cur.ch).match(/(\w+)\s*[.:]\s*\w*$/);
-        memberObject = match ? match[1] : null;
-      }
-      if (!memberObject) return [];
-      const shadowed = isShadowed(memberObject, code);
-      // Global tables win over same-named classes (Instance.new vs Instance methods).
-      if (!shadowed && globalMembers[memberObject]) {
-        const sigs = sigsOf[memberObject] || sigsOf[globalTypeOf[memberObject]] || {};
-        return filterByWord(globalMembers[memberObject].map(text => ({ text, detail: sigs[text] || "" })), word);
-      }
-      const typeName = resolveStaticMemberType(memberObject, code, !shadowed);
-      if (!typeName) return [];
-      return filterByWord(classMembers[typeName].map(text => ({ text, detail: sigsOf[typeName]?.[text] || "" })), word);
+    function applyCompletion(cm, item, from, to) {
+      const edit = item.textEdit;
+      const range = edit ? lspRange(edit.range || edit.replace) : { from, to };
+      let text = edit ? edit.newText : (item.insertText ?? item.label);
+      // Picking a function before an existing "(" shouldn't produce foo()().
+      if (/^\s*\(/.test(cm.getLine(range.to.line).slice(range.to.ch))) text = text.replace(/\(.*$/s, "");
+      const indent = cm.getLine(range.from.line).match(/^\s*/)[0];
+      text = text.replace(/\n(\t*)/g, (_, tabs) => "\n" + indent + " ".repeat(tabs.length * cm.getOption("indentUnit")));
+      const { text: plain, select } = item.insertTextFormat === 2
+        ? LuauLspClient.expandSnippet(text)
+        : { text, select: [text.length, text.length] };
+      cm.operation(() => {
+        // Bookmarks keep every edit's range valid while the others change the text around it.
+        const extra = (item.additionalTextEdits || []).map(e => {
+          const r = lspRange(e.range);
+          return [cm.setBookmark(r.from, { insertLeft: true }), cm.setBookmark(r.to), e.newText];
+        });
+        const start = cm.setBookmark(range.from, { insertLeft: true });
+        cm.replaceRange(plain, range.from, range.to, "complete");
+        for (const [a, b, newText] of extra) {
+          cm.replaceRange(newText, a.find(), b.find(), "complete");
+          a.clear();
+          b.clear();
+        }
+        const base = cm.indexFromPos(start.find());
+        start.clear();
+        cm.setSelection(cm.posFromIndex(base + select[0]), cm.posFromIndex(base + select[1]));
+      });
     }
 
-    function hintFromPair(p) {
-      const detail = (p.detail || "").trim();
-      const insertText = p.insertText || "";
-      const hasCallableInsertText = insertText === `${p.text}()` || /^\w+\(\$\d*\)$/.test(insertText);
-      const isFunctionPrefix = detail.startsWith("(function)") || detail.startsWith("(method)");
-      const isBareFunctionType = (detail.startsWith("(") || detail.startsWith("<")) && detail.includes("->");
-      const isStaticFunction = detail.startsWith("function ") || /^\w+:\s*\(\(/.test(detail);
-      const isFunc = hasCallableInsertText || isFunctionPrefix || isBareFunctionType || isStaticFunction;
-      const obj = {
-        text: p.text,
+    function completionHint(item, from, to) {
+      const detail = (item.labelDetails?.description || item.detail || "").replace(/^@checked /, "");
+      return {
+        text: item.label,
+        item,
         render(el) {
-          if (p.deprecated) el.classList.add("cm-hint-deprecated");
+          if (item.deprecated || item.tags?.includes(1)) el.classList.add("cm-hint-deprecated");
           const name = document.createElement("span");
-          name.textContent = p.text;
+          name.textContent = item.label + (item.labelDetails?.detail || "");
           el.appendChild(name);
           if (detail) {
-            // Strip "(function) foo: " / "(method) foo: " LSP kind prefix if present
-            const sig = detail
-              .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*[^:]+:\s*/, "")
-              .replace(/^\((?:function|method|class|module|variable|property|field|constructor)\)\s*/, "");
             const det = document.createElement("span");
             det.className = "cm-hint-detail";
-            det.textContent = sig.length > 48 ? sig.slice(0, 48) + "…" : sig;
+            det.textContent = detail.length > 48 ? detail.slice(0, 48) + "…" : detail;
             el.appendChild(det);
           }
-        }
+        },
+        hint: cm => applyCompletion(cm, item, from, to),
       };
-      // Auto-insert "()" with cursor placed inside for callable completions
-      if (isFunc) {
-        obj.hint = function (cm, data) {
-          // Reuse an existing call instead of producing foo()().
-          if (/^\s*\(/.test(cm.getLine(data.to.line).slice(data.to.ch))) {
-            cm.replaceRange(p.text, data.from, data.to, "complete");
-            return;
-          }
-          const plain = (insertText || `${p.text}()`).replace(/\$\d*/g, "");
-          cm.replaceRange(plain, data.from, data.to, "complete");
-          const openParen = plain.indexOf("(");
-          const closeParen = plain.lastIndexOf(")");
-          if (openParen !== -1 && closeParen > openParen) {
-            cm.setCursor(CodeMirror.Pos(data.from.line, data.from.ch + openParen + 1));
-          }
-        };
-      }
-      return obj;
+    }
+
+    // Documentation for the highlighted completion, beside the list when there is room.
+    const completionDoc = document.getElementById("completion-doc");
+    function hideCompletionDocs() { completionDoc.style.display = "none"; }
+    function showCompletionDocs(completion, element) {
+      const docs = completion.item?.documentation;
+      const markdown = typeof docs === "string" ? docs : docs?.value;
+      const list = element.parentElement?.getBoundingClientRect();
+      if (!markdown?.trim() || !list) { hideCompletionDocs(); return; }
+      completionDoc.innerHTML = LuauLspClient.renderMarkdown(markdown, 1);
+      completionDoc.style.display = "block";
+      const width = completionDoc.offsetWidth;
+      const left = list.right + 4 + width <= innerWidth - 8 ? list.right + 4
+        : list.left - 4 - width >= 8 ? list.left - 4 - width : null;
+      if (left === null) { hideCompletionDocs(); return; }
+      completionDoc.style.left = left + "px";
+      completionDoc.style.top = Math.max(8, Math.min(list.top, innerHeight - completionDoc.offsetHeight - 8)) + "px";
     }
 
     function luauHint(cm, callback) {
-      if (!staticReady) { callback(null); return; }
+      const doc = cm.getDoc();
       const cur = cm.getCursor();
       const token = cm.getTokenAt(cur);
-      if (token.type && /\bcomment\b/.test(token.type)) { callback(null); return; }
+      if (!lsp.uriOf(doc) || (token.type && /\bcomment\b/.test(token.type))) { callback(null); return; }
       const line = cm.getLine(cur.line);
-      const code = cm.getValue();
-      const charPrev = line.charAt(cur.ch - 1);
-
-      // ── String enum completions: Instance.new("Part") / GetService("Workspace") ──
-      if (token.type === "string" || (token.type && token.type.startsWith("string"))) {
-        const lineText = line.slice(0, cur.ch);
-        // Partial text typed so far inside the string; the overlay can split string tokens,
-        // so find the opening quote on the line instead of trusting token.start.
-        const partial = lineText.match(/["'`]([^"'`]*)$/)?.[1] ?? "";
-        const fromPos = CodeMirror.Pos(cur.line, cur.ch - partial.length);
-        const suffix = line.slice(cur.ch).match(/^[^"'`]*/)[0];
-        const toPos = CodeMirror.Pos(cur.line, cur.ch + suffix.length);
-        const staticStrings = (names) => filterByWord(names.map(text => ({ text })), partial);
-
-        // require("file1") / require"file1" — other workspace files by their run-time name
-        if (/\brequire\s*\(?\s*["'`][^"'`]*$/.test(lineText)) {
-          const modules = workspaceFiles
-            .map((file, index) => ({ text: index === 0 ? "main" : file.name, index }))
-            .filter(file => file.index !== activeFileIndex)
-            .map(({ text }) => text);
-          const list = staticStrings(modules);
-          if (list.length > 0) { callback({ list, from: fromPos, to: toPos }); return; }
-        }
-
-        if (/Instance\.new\s*\(\s*["']\w*$/.test(lineText) && creatableInstances.length > 0) {
-          const list = staticStrings(creatableInstances);
-          if (list.length > 0) { callback({ list, from: fromPos, to: toPos }); return; }
-        }
-
-        if (/[:\.]GetService\s*\(\s*["']\w*$/.test(lineText) && serviceNames.length > 0) {
-          const list = staticStrings(serviceNames);
-          if (list.length > 0) { callback({ list, from: fromPos, to: toPos }); return; }
-        }
-
-        // FindFirstChild / WaitForChild / FindFirstDescendant — show sourcemap children
-        const childCallMatch = lineText.match(/(\w+)\s*[:.]\s*(?:FindFirstChild|WaitForChild|FindFirstDescendant)\s*\(\s*["']\w*$/);
-        if (childCallMatch && smTree[childCallMatch[1]]?.length) {
-          const list = staticStrings([...smTree[childCallMatch[1]]].sort());
-          if (list.length > 0) { callback({ list, from: fromPos, to: toPos }); return; }
-        }
-
-        // Fall through to WASM — it knows union/literal types from context (e.g. a: "A"|"B")
-        if (!workerReady) { callback(null); return; }
-        lspRequest({ type: "autocomplete", code, line: cur.line, col: cur.ch })
-          .then(data => {
-            const raw = data.result;
-            // WASM returns items with kind=12 (Value) for string literal completions
-            const allItems = raw?.items ?? (Array.isArray(raw) ? raw : []);
-            const labels = allItems
-              .filter(p => p.kind === 12 || typeof p === "string")
-              .map(p => ({ text: typeof p === "string" ? p : (p.label ?? "") }))
-              .filter(p => p.text);
-            const list = filterByWord(labels, partial);
-            callback(list.length ? { list, from: fromPos, to: toPos } : null);
-          })
-          .catch(() => callback(null));
+      const [start, end] = completionWordRange(line, cur.ch, !!token.type && /\bstring\b/.test(token.type));
+      const from = CodeMirror.Pos(cur.line, start);
+      const to = CodeMirror.Pos(cur.line, end);
+      const word = line.slice(start, cur.ch);
+      const show = items => {
+        const list = filterCompletions(items, word).slice(0, 200).map(item => completionHint(item, from, to));
+        if (!list.length) { callback(null); return; }
+        const result = { list, from, to };
+        CodeMirror.on(result, "select", showCompletionDocs);
+        CodeMirror.on(result, "close", hideCompletionDocs);
+        callback(result);
+      };
+      // Playground modules are required by file name; luau-lsp would suggest "./name" paths,
+      // which the bot resolves from the script's parent instead.
+      if (/\brequire\s*\(?\s*["'`][^"'`]*$/.test(line.slice(0, cur.ch))) {
+        show(workspaceFiles
+          .map((file, index) => ({ label: index === 0 ? "main" : file.name, detail: "module", index }))
+          .filter(item => item.index !== activeFileIndex));
         return;
       }
-
-      const isDot = charPrev === "." || charPrev === ":";
-      const tokenStr = token.string.slice(0, cur.ch - token.start);
-      const sepIdx = Math.max(tokenStr.lastIndexOf("."), tokenStr.lastIndexOf(":"));
-      const hasSepInToken = sepIdx > 0;
-      const word = isDot ? "" : hasSepInToken ? tokenStr.slice(sepIdx + 1) : /^\w+$/.test(tokenStr) ? tokenStr : "";
-      const from = CodeMirror.Pos(cur.line, isDot || !word ? cur.ch : hasSepInToken ? token.start + sepIdx + 1 : token.start);
-      const suffix = line.slice(cur.ch).match(/^\w*/)[0];
-      const to = CodeMirror.Pos(cur.line, cur.ch + suffix.length);
-      // Whether this is a member-access context (game., x., etc.)
-      const hadMemberTarget = isDot || hasSepInToken
-        || /\w\s*[.:]\s*$/.test(line.slice(0, token.start));
-      const ctx = { line, cur, charPrev, isDot, hasSepInToken, word, tokenStr, sepIdx, hadMemberTarget, code };
-
-      const serveStatic = () => {
-        const pairs = staticHints(ctx);
-        callback(pairs.length ? { list: pairs.map(hintFromPair), from, to } : null);
-      };
-
-      // WASM handles type inference (locals, shadowing, generics); static maps cover the load window.
-      if (!lspReady()) { serveStatic(); return; }
-      lspRequest({ type: "autocomplete", code, line: cur.line, col: cur.ch })
-        .then(data => {
-          const raw = data.result;
-          let pairs = [];
-          if (raw?.items) {
-            for (const e of raw.items) {
-              const text = typeof e === "string" ? e : (e.label ?? e.name ?? e.insertText ?? "");
-              let detail = "";
-              let deprecated = false;
-              let insertText = "";
-              if (typeof e === "object") {
-                deprecated = !!e.deprecated;
-                insertText = e.insertText ?? "";
-                const ld = e.labelDetails;
-                if (ld?.detail || ld?.description) {
-                  detail = [ld.detail, ld.description].filter(Boolean).join(" ");
-                } else {
-                  detail = e.detail ?? "";
-                }
-              }
-              if (text) pairs.push({ text, detail, deprecated, insertText });
-            }
-          } else if (Array.isArray(raw)) {
-            pairs = raw.map(e => ({ text: typeof e === "string" ? e : (e.label ?? e.name ?? ""), detail: "", deprecated: false, insertText: "" }));
-          } else if (raw) {
-            pairs = Object.keys(raw.entries ?? raw).map(k => ({ text: k, detail: "", deprecated: false, insertText: "" }));
-          }
-
-          // Detect deprecated-by-convention: if both "foo" and "Foo" exist,
-          // the camelCase variant is the deprecated Roblox alias.
-          if (hadMemberTarget) {
-            const nameSet = new Set(pairs.map(p => p.text));
-            for (const p of pairs) {
-              if (!p.deprecated && /^[a-z]/.test(p.text) && nameSet.has(p.text[0].toUpperCase() + p.text.slice(1))) p.deprecated = true;
-            }
-          }
-
-          // Sort: non-deprecated first, then deprecated. Within each group,
-          // PascalCase before camelCase (so GetService beats getService).
-          pairs.sort((a, b) => {
-            if (a.deprecated !== b.deprecated) return a.deprecated ? 1 : -1;
-            if (a.text.toLowerCase() === b.text.toLowerCase()) {
-              const aUpper = a.text[0] === a.text[0].toUpperCase();
-              const bUpper = b.text[0] === b.text[0].toUpperCase();
-              if (aUpper !== bUpper) return aUpper ? -1 : 1;
-            }
-            return a.text.localeCompare(b.text);
-          });
-          pairs = filterByWord(pairs, word);
-
-          if (pairs.length === 0) { serveStatic(); return; }
-          callback({ list: pairs.map(hintFromPair), from, to });
+      const key = `${lsp.uriOf(doc)}:${cur.line}:${start}:${line.slice(0, start)}`;
+      if (completionCache?.key === key) { show(completionCache.items); return; }
+      lsp.completion(doc, cur)
+        .then(items => {
+          completionCache = { key, items: sortCompletionItems(items) };
+          show(completionCache.items);
         })
-        .catch(e => { console.error("[autocomplete] error:", e); serveStatic(); });
+        .catch(() => callback(null));
     }
     luauHint.async = true;
     CodeMirror.registerHelper("hint", "luau", luauHint);
 
-    // ── Async lint helper (uses luau_get_diagnostics from WASM) ──
-    function luauLint(code, callback) {
-      if (!defsReady) { callback([]); return; }  // wait for Roblox defs, avoids false "Unknown global" errors
-      lspRequest({ type: "diagnostics", code })
-        .then(data => {
-          const diags = (data.result || [])
-            .filter(d => {
-              const unknownType = d.message.match(/Unknown type '(\w+)'/);
-              if (unknownType && (classMembers[unknownType[1]] || globalMembers[unknownType[1]])) return false;
-              const unknownGlobal = d.message.match(/Unknown global '(\w+)'/);
-              if (unknownGlobal && allGlobals.includes(unknownGlobal[1])) return false;
-              const overwritten = d.message.match(/Built-in global '(\w+)' is overwritten/);
-              if (overwritten && BOT_SETTABLE_GLOBALS.has(overwritten[1]) && allGlobals.includes(overwritten[1])) return false;
-              return true;
-            })
-            .map(d => ({
-              from: CodeMirror.Pos(d.range.start.line, d.range.start.character),
-              to: CodeMirror.Pos(d.range.end.line, d.range.end.character),
-              message: d.message,
-              severity: d.severity === 1 ? "error" : d.severity === 2 ? "warning" : "info",
-            }));
-          callback(diags);
-        })
-        .catch(() => callback([]));
+    // ── Lint (textDocument/diagnostic) ──
+    const LINT_SEVERITY = { 1: "error", 2: "warning", 3: "info", 4: "info" };
+    function luauLint(code, callback, options, cm) {
+      if (!lsp.uriOf(cm.getDoc())) { callback([]); return; }
+      lsp.diagnostics(cm.getDoc())
+        .then(items => callback(items
+          .filter(d => lintCheck.checked || d.code === "SyntaxError" || d.message.startsWith("SyntaxError:"))
+          .filter(d => !BOT_SETTABLE_GLOBALS.has(d.message.match(/Built-in global '(\w+)' is overwritten/)?.[1]))
+          .map(d => ({
+            ...lspRange(d.range),
+            message: d.message,
+            severity: LINT_SEVERITY[d.severity] || "info",
+          }))))
+        .catch(() => { /* superseded by a newer lint */ });
     }
     CodeMirror.registerHelper("lint", "luau", luauLint);
 
@@ -2445,23 +1988,13 @@ declare myGlobal: MyClass'></textarea>
     });
 
     // ── Linter toggle (persisted) ──
+    // Syntax errors always show; the toggle adds type errors and lint warnings (see luauLint).
     const lintCheck = document.getElementById("lintCheck");
-    const LINT_CFG = { async: true, getAnnotations: luauLint, delay: 600 };
     lintCheck.checked = localStorage.getItem("luau_linter") === "1";
-    if (lintCheck.checked) {
-      editor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers"]);
-      editor.setOption("lint", LINT_CFG);
-    }
+    editor.setOption("lint", { async: true, getAnnotations: luauLint, delay: 600 });
     lintCheck.addEventListener("change", () => {
       localStorage.setItem("luau_linter", lintCheck.checked ? "1" : "0");
-      if (lintCheck.checked) {
-        editor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers"]);
-        editor.setOption("lint", LINT_CFG);
-      } else {
-        editor.setOption("lint", false);
-        editor.setOption("gutters", ["CodeMirror-linenumbers"]);
-        editor.clearGutter("CodeMirror-lint-markers");
-      }
+      editor.performLint();
     });
 
     // ── Share link: compress+base64url encode/decode ──
@@ -2514,14 +2047,171 @@ declare myGlobal: MyClass'></textarea>
       };
     }
 
+    // The server knows each file by the name scripts require it with.
+    function syncLspDocuments() {
+      lsp.syncDocuments(workspaceFiles.map((file, index) => ({ name: index === 0 ? "main" : file.name, doc: file.doc })));
+    }
+
     function saveWorkspace() {
       clearTimeout(saveTimer);
+      syncLspDocuments();
+      scanImports();
+      refreshImportMarks();
       try {
         localStorage.setItem(WORKSPACE_KEY, JSON.stringify(snapshotWorkspace()));
         localStorage.setItem("luau_code", workspaceFiles[0].doc.getValue());
       } catch {
         document.getElementById("status").textContent = "Could not save files locally";
       }
+    }
+
+    // ── io.import packages (playground/imports.js) ──
+    // A call whose package isn't downloaded gets a yellow underline; hovering or tapping it offers
+    // the download. Nothing is fetched until the user picks one, and specs whose types they loaded
+    // load again on later visits.
+    const importPopup = document.getElementById("import-popup");
+    const IMPORTS_KEY = "luau_imports_approved";
+    const importState = new Map(); // spec → { status: "idle" | "loading" | "loaded" | "error", tree?, error?, downloading? }
+    let importSpecs = [];
+    let importPopupSpec = null;
+    let importPopupTimer = null;
+    let importMarkTimer = null;
+
+    function approvedImports() {
+      try { return new Set(JSON.parse(localStorage.getItem(IMPORTS_KEY)) || []); } catch { return new Set(); }
+    }
+
+    function scanImports() {
+      const specs = [...new Set(workspaceFiles.flatMap(file => LuauImports.findSpecs(file.doc.getValue())))];
+      if (specs.join("\n") === importSpecs.join("\n")) return;
+      importSpecs = specs;
+      const approved = approvedImports();
+      for (const spec of specs) if (approved.has(spec) && !importState.has(spec)) loadImportTypes(spec);
+    }
+
+    function setImportState(spec, state) {
+      importState.set(spec, state);
+      refreshImportMarks();
+      if (importPopupSpec === spec) renderImportPopup();
+    }
+
+    function refreshImportMarks(doc = editor.getDoc()) {
+      for (const mark of doc.getAllMarks()) if (mark.importSpec) mark.clear();
+      for (const call of LuauImports.findCalls(doc.getValue())) {
+        const status = importState.get(call.spec)?.status ?? "idle";
+        const mark = doc.markText(doc.posFromIndex(call.start), doc.posFromIndex(call.end), {
+          className: `cm-import cm-import-${status}`,
+          attributes: { "data-import": call.spec },
+        });
+        mark.importSpec = call.spec;
+      }
+    }
+
+    async function loadImportTypes(spec) {
+      setImportState(spec, { status: "loading" });
+      try {
+        const tree = await LuauImports.build(spec);
+        const approved = approvedImports();
+        approved.add(spec);
+        localStorage.setItem(IMPORTS_KEY, JSON.stringify([...approved]));
+        setImportState(spec, { status: "loaded", tree });
+        lsp.setImports([...importState].filter(([, s]) => s.status === "loaded").map(([s, { tree }]) => ({ spec: s, tree })));
+        completionCache = null;
+        editor.performLint();
+      } catch (err) {
+        setImportState(spec, { status: "error", error: err.message });
+      }
+    }
+
+    async function downloadImportModel(spec) {
+      const state = importState.get(spec) ?? { status: "idle" };
+      setImportState(spec, { ...state, downloading: true, error: undefined });
+      try {
+        const tree = await LuauImports.build(spec);
+        const url = URL.createObjectURL(new Blob([LuauImports.toRbxm(tree)], { type: "application/octet-stream" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${tree.name}.rbxm`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setImportState(spec, { ...state, downloading: false });
+      } catch (err) {
+        setImportState(spec, { ...state, downloading: false, error: err.message });
+      }
+    }
+
+    function renderImportPopup() {
+      const spec = importPopupSpec;
+      const state = importState.get(spec) ?? { status: "idle" };
+      const title = document.createElement("code");
+      title.textContent = spec;
+      const parts = [title];
+      const message = document.createElement("div");
+      message.className = "import-message";
+      if (state.error) {
+        message.textContent = state.error;
+        message.classList.add("is-error");
+      } else if (state.status === "loading") {
+        message.textContent = "Downloading…";
+      } else if (state.status !== "loaded") {
+        message.textContent = "Not downloaded, so autocomplete doesn't know this package's types.";
+      }
+      if (message.textContent) parts.push(message);
+      const actions = document.createElement("div");
+      actions.className = "import-actions";
+      const action = (label, onClick, disabled = false) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.disabled = disabled;
+        button.addEventListener("click", onClick);
+        actions.appendChild(button);
+      };
+      if (state.status !== "loaded") {
+        action(state.status === "error" ? "Retry types" : "Download types", () => loadImportTypes(spec), state.status === "loading");
+      }
+      action(state.downloading ? "Downloading…" : "Download .rbxm", () => downloadImportModel(spec), !!state.downloading);
+      parts.push(actions);
+      importPopup.replaceChildren(...parts);
+    }
+
+    function showImportPopup(spec, anchor) {
+      clearTimeout(importPopupTimer);
+      if (importPopupSpec === spec && importPopup.style.display === "block") return;
+      importPopupSpec = spec;
+      renderImportPopup();
+      importPopup.style.display = "block";
+      const rect = anchor.getBoundingClientRect();
+      const width = importPopup.offsetWidth, height = importPopup.offsetHeight;
+      importPopup.style.left = Math.max(8, Math.min(rect.left, innerWidth - width - 8)) + "px";
+      importPopup.style.top = (rect.bottom + 4 + height <= innerHeight - 8 ? rect.bottom + 4 : Math.max(8, rect.top - height - 4)) + "px";
+    }
+
+    function hideImportPopup() {
+      clearTimeout(importPopupTimer);
+      importPopupSpec = null;
+      importPopup.style.display = "none";
+    }
+
+    // Leaves time to move from the underlined call onto the popup's buttons.
+    function hideImportPopupSoon() {
+      clearTimeout(importPopupTimer);
+      importPopupTimer = setTimeout(hideImportPopup, 300);
+    }
+
+    // For the hover handler: true while the pointer is on an io.import call or its popup.
+    function handleImportPointer(target) {
+      const call = target.closest?.(".cm-import");
+      if (call) {
+        showImportPopup(call.dataset.import, call);
+        return true;
+      }
+      if (importPopup.contains(target)) {
+        clearTimeout(importPopupTimer);
+        return true;
+      }
+      if (importPopupSpec) hideImportPopupSoon();
+      return false;
     }
 
     function renderFileTabs() {
@@ -2559,6 +2249,7 @@ declare myGlobal: MyClass'></textarea>
       removeAllFilesBtn.hidden = workspaceFiles.length === 1;
       document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[activeFileIndex].name;
       if (runUiReady) syncRunLocalUi();
+      syncLspDocuments();
       refreshToolView();
     }
 
@@ -2793,13 +2484,8 @@ declare myGlobal: MyClass'></textarea>
         // Restore roblox/bot type toggles
         applyTypeToggles(state);
         // Restore shared sourcemap and custom definitions
-        if (state.sm) {
-          localStorage.setItem("luau_sourcemap", state.sm);
-          buildSmTree(state.sm);
-          applySmLoaded(true);
-          if (workerReady) workerRequest({ type: "set_sourcemap", json: state.sm }).catch(() => { });
-        }
-        if (state.cd) { localStorage.setItem("luau_custom_defs", state.cd); applyDefsLoaded(true); reloadDefinitions(); }
+        if (state.sm) setSourcemap(state.sm);
+        if (state.cd) { localStorage.setItem("luau_custom_defs", state.cd); applyDefsLoaded(true); restartLsp(); }
         try {
           const target = (window.parent !== window) ? window.parent.history : history;
           target.replaceState(null, "", location.pathname.replace(/playground\.html$/, "playground/"));
@@ -2882,45 +2568,31 @@ declare myGlobal: MyClass'></textarea>
     smModalClose.addEventListener("click", closeSmModal);
     smBackdrop.addEventListener("click", closeSmModal);
 
+    // Empty clears it. The server rereads sourcemap.json in place, no restart needed.
+    function setSourcemap(json) {
+      if (json) localStorage.setItem("luau_sourcemap", json);
+      else localStorage.removeItem("luau_sourcemap");
+      applySmLoaded(!!json);
+      lsp.setSourcemap(json);
+      editor.performLint();
+    }
+
     smSaveBtn.addEventListener("click", () => {
       const json = smEditor.value.trim();
-      if (!json) {
-        // Empty = clear
-        localStorage.removeItem("luau_sourcemap");
-        applySmLoaded(false);
-        closeSmModal();
-        return;
+      if (json) {
+        try { JSON.parse(json); } catch (err) {
+          smErrorEl.textContent = "Invalid JSON: " + err.message;
+          return;
+        }
       }
-      try { JSON.parse(json); } catch (err) {
-        smErrorEl.textContent = "Invalid JSON: " + err.message;
-        return;
-      }
-      localStorage.setItem("luau_sourcemap", json);
-      smActive = true;
-      buildSmTree(json);
-      applySmLoaded(true);
+      setSourcemap(json);
       closeSmModal();
-      if (workerReady) {
-        statusEl.textContent = "Loading sourcemap...";
-        workerRequest({ type: "set_sourcemap", json })
-          .then(() => { statusEl.textContent = ""; if (lintCheck.checked) editor.performLint(); })
-          .catch(() => { statusEl.textContent = ""; });
-      }
     });
 
     smResetBtn.addEventListener("click", () => {
       smEditor.value = "";
       smErrorEl.textContent = "";
-      localStorage.removeItem("luau_sourcemap");
-      smActive = false;
-      buildSmTree(null);
-      applySmLoaded(false);
-      if (workerReady) {
-        statusEl.textContent = "Clearing sourcemap...";
-        workerRequest({ type: "set_sourcemap", json: null })
-          .then(() => { statusEl.textContent = ""; if (lintCheck.checked) editor.performLint(); })
-          .catch(() => { statusEl.textContent = ""; });
-      }
+      setSourcemap(null);
     });
 
     document.addEventListener("keydown", e => {
@@ -2964,18 +2636,10 @@ declare myGlobal: MyClass'></textarea>
     defsModalClose.addEventListener("click", closeDefsModal);
     defsBackdrop.addEventListener("click", closeDefsModal);
 
-    // Re-adding @custom keeps the old declarations, so any definition change needs a full reinit.
-    function reloadDefinitions() {
-      if (!window.sendInitToWorker) return; // the first init reads localStorage itself
-      defsReady = false;
-      statusEl.textContent = "Reloading definitions...";
-      window.sendInitToWorker();
-    }
-
     // Applies saved type toggles (share links, history), reloading definitions only on change.
+    // The solver stays a personal choice: links made before it became the default all say "old".
     function applyTypeToggles(state) {
       const toggles = [
-        ["s", "solverCheck", "luau_solver", false],
         ["r", "robloxDefsCheck", "luau_no_roblox", true],
         ["b", "botDefsCheck", "luau_no_bot", true],
       ];
@@ -2999,13 +2663,13 @@ declare myGlobal: MyClass'></textarea>
         localStorage.removeItem("luau_custom_defs");
         applyDefsLoaded(false);
         closeDefsModal();
-        reloadDefinitions();
+        restartLsp();
         return;
       }
       localStorage.setItem("luau_custom_defs", source);
       applyDefsLoaded(true);
       closeDefsModal();
-      reloadDefinitions();
+      restartLsp();
     });
 
     defsResetBtn.addEventListener("click", () => {
@@ -3013,7 +2677,7 @@ declare myGlobal: MyClass'></textarea>
       defsErrorEl.textContent = "";
       localStorage.removeItem("luau_custom_defs");
       applyDefsLoaded(false);
-      reloadDefinitions();
+      restartLsp();
     });
 
     // ── Format button ──
@@ -3249,7 +2913,7 @@ declare myGlobal: MyClass'></textarea>
 
       // ── Auto-trigger autocomplete ──
       // Mobile keyboards can deliver whole words at once, so look at the last char.
-      if (cm.state.completionActive || !staticReady) return;
+      if (cm.state.completionActive) return;
       const last = inserted.slice(-1);
       const isDot = inserted === "." || inserted === ":";
       const isWord = /^[a-zA-Z_]$/.test(last) && !/\s/.test(inserted);
@@ -3291,101 +2955,44 @@ declare myGlobal: MyClass'></textarea>
       return null;
     }
 
-    // Resolve a static Roblox signature for obj.name / obj:name
-    // Checks local patterns first so local shadows (e.g. local game: ReplicatedStorage) win.
-    function resolveStaticSig(cm, obj, name) {
-      let resolvedType = null;
-      const code = cm.getValue();
-      const patterns = [
-        [/\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
-        [/\blocal\s+(\w+)\s*:\s*(\w+)/g, (m) => classMembers[m[2]] ? m[2] : null],
-        [/\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm, (m) => globalMembers[m[2]] ? (globalTypeOf[m[2]] || m[2]) : null],
-        [/\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g, (m) => classMembers[m[2]] ? m[2] : null],
-        [/\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm, (m) => { const c = smClassOf[m[2]] || m[2]; return classMembers[c] ? c : null; }],
-      ];
-      for (const [re, resolve] of patterns) {
-        for (const m of code.matchAll(re)) {
-          if (m[1] === obj) { const t = resolve(m); if (t) { resolvedType = t; break; } }
-        }
-        if (resolvedType) break;
-      }
-      // Fall back to globals only if no local shadow found
-      if (!resolvedType && globalMembers[obj] && !isShadowed(obj, code)) resolvedType = globalTypeOf[obj] || obj;
-      if (resolvedType && name) return (sigsOf[resolvedType] || {})[name] || null;
-      if (!resolvedType && obj === name && funcSigs[name] && !isShadowed(name, code)) return funcSigs[name];
-      return null;
+    function markdownText(content) {
+      return typeof content === "string" ? content : content?.value || "";
     }
 
-    function staticSigFor(cm, paren) {
-      const tok = cm.getTokenAt(CodeMirror.Pos(paren.line, paren.parenCol));
-      if (!tok || !tok.string.trim()) return null;
-      const parts = tok.string.split(/[.:]/);
-      const name = parts[parts.length - 1];
-      let obj = parts.length > 1 ? parts[0] : null;
-      if (!obj) {
-        const m = cm.getLine(paren.line).slice(0, tok.start).match(/(\w+)\s*[.:]\s*$/);
-        obj = m ? m[1] : name;
-      }
-      return resolveStaticSig(cm, obj, name);
+    // First paragraph of a doc comment, skipping code blocks and rules.
+    function docSummary(markdown) {
+      return markdown.replace(/```[\s\S]*?```/g, "").split(/\n\s*\n|\n-{3,}\n/).map(p => p.trim()).find(p => p && !/^-+$/.test(p)) || "";
     }
 
-    // Spans of each top-level parameter inside the label's first (...) group.
-    function signatureParamSpans(label) {
-      const open = label.indexOf("(");
-      if (open < 0) return [];
-      const spans = [];
-      let depth = 0, start = open + 1;
-      for (let i = open + 1; i < label.length; i++) {
-        const c = label[i];
-        if (c === "(" || c === "{" || c === "[") depth++;
-        else if (c === ")" || c === "}" || c === "]") {
-          if (depth === 0) { if (label.slice(start, i).trim()) spans.push([start, i]); break; }
-          depth--;
-        } else if (c === "," && depth === 0) { spans.push([start, i]); start = i + 1; }
-      }
-      return spans.map(([a, b]) => {
-        while (label[a] === " ") a++;
-        return [a, b];
-      });
-    }
-
-    function renderSignature(r) {
-      const sig = r.signatures[r.activeSignature || 0];
+    // luau-lsp labels parameters with [start, end) offsets into the signature label.
+    function renderSignature(help) {
+      const sig = help.signatures[help.activeSignature || 0];
       const label = sig.label || "";
-      const activeIdx = sig.activeParameter ?? r.activeParameter ?? 0;
-      const spans = signatureParamSpans(label);
-      let span = spans[Math.min(activeIdx, spans.length - 1)];
-      const param = sig.parameters?.[activeIdx]?.label;
-      if (typeof param === "string") {
-        const at = label.indexOf(param, label.indexOf("("));
-        if (at >= 0) span = [at, at + param.length];
+      const param = sig.parameters?.[sig.activeParameter ?? help.activeParameter ?? 0];
+      let span = Array.isArray(param?.label) ? param.label : null;
+      if (typeof param?.label === "string") {
+        const at = label.indexOf(param.label, label.indexOf("("));
+        if (at >= 0) span = [at, at + param.label.length];
       }
-      if (!span) return `<span class="sig-type">${escHtml(label)}</span>`;
-      return `<span class="sig-type">${escHtml(label.slice(0, span[0]))}<b style="color:#ffa657">${escHtml(label.slice(span[0], span[1]))}</b>${escHtml(label.slice(span[1]))}</span>`;
+      let html = span
+        ? `<span class="sig-type">${escHtml(label.slice(0, span[0]))}<b style="color:#ffa657">${escHtml(label.slice(span[0], span[1]))}</b>${escHtml(label.slice(span[1]))}</span>`
+        : `<span class="sig-type">${escHtml(label)}</span>`;
+      const docs = docSummary(markdownText(param?.documentation)) || docSummary(markdownText(sig.documentation));
+      if (docs) html += `<div class="sig-detail">${LuauLspClient.renderMarkdown(docs)}</div>`;
+      return html;
     }
 
     let sigRequestId = 0;
     function updateSigHelp(cm) {
-      if (!staticReady && !workerReady) return;
-      const paren = findOpenParen(cm);
-      if (!paren) { hideSig(); return; }
+      if (!findOpenParen(cm) || !lsp.uriOf(cm.getDoc())) { hideSig(); return; }
       const requestId = ++sigRequestId;
-      const showStatic = () => {
-        const staticSig = staticSigFor(cm, paren);
-        if (staticSig) showSigAt(`<span class="sig-type">${escHtml(staticSig)}</span>`, cm);
-        else hideSig();
-      };
-      // WASM knows active parameters and locals; the static maps cover the load window.
-      if (!lspReady()) { showStatic(); return; }
-      const cur = cm.getCursor();
-      lspRequest({ type: "signature_help", code: cm.getValue(), line: cur.line, col: cur.ch })
-        .then(data => {
+      lsp.signatureHelp(cm.getDoc(), cm.getCursor())
+        .then(help => {
           if (requestId !== sigRequestId) return;
-          const r = data.result;
-          if (!r?.signatures?.length) { showStatic(); return; }
-          showSigAt(renderSignature(r), cm);
+          if (help?.signatures?.length) showSigAt(renderSignature(help), cm);
+          else hideSig();
         })
-        .catch(() => { if (requestId === sigRequestId) showStatic(); });
+        .catch(() => { /* superseded by a newer request */ });
     }
 
     editor.on("keyup", function (cm, event) {
@@ -3403,6 +3010,7 @@ declare myGlobal: MyClass'></textarea>
     editor.on("blur", hideSig);
     editor.on("startCompletion", hideSig);
     editor.on("endCompletion", () => {
+      completionCache = null;
       // Picking a function leaves the cursor inside "()", so show its signature.
       setTimeout(() => {
         if (!editor.state.completionActive && editor.hasFocus() && findOpenParen(editor)) updateSigHelp(editor);
@@ -3412,71 +3020,6 @@ declare myGlobal: MyClass'></textarea>
     // ── Hover type tooltip ──
     const hoverTip = document.getElementById("hover-tip");
     let hoverTimer = null;
-
-    function resolveHoverType(tokenStr, code) {
-      // Skip static maps when Roblox types are disabled — let WASM handle it
-      if (document.getElementById("robloxDefsCheck") && !document.getElementById("robloxDefsCheck").checked)
-        return null;
-      // Check static maps first (instant, no WASM round-trip)
-      if (globalMembers[tokenStr]) return globalTypeOf[tokenStr] || tokenStr;
-      if (classMembers[tokenStr]) return tokenStr;
-      if (funcSigs[tokenStr]) return funcSigs[tokenStr];
-      // Resolve locals via same 5-case chain
-      const newRe = /\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g;
-      for (const m of code.matchAll(newRe)) {
-        if (m[1] === tokenStr && classMembers[m[2]]) return m[2];
-      }
-      const annotRe = /\blocal\s+(\w+)\s*:\s*(\w+)/g;
-      for (const m of code.matchAll(annotRe)) {
-        if (m[1] === tokenStr && classMembers[m[2]]) return m[2];
-      }
-      const assignRe = /\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm;
-      for (const m of code.matchAll(assignRe)) {
-        if (m[1] === tokenStr && globalMembers[m[2]]) return globalTypeOf[m[2]] || m[2];
-      }
-      const ctorRe = /\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g;
-      for (const m of code.matchAll(ctorRe)) {
-        if (m[1] === tokenStr && classMembers[m[2]]) return m[2];
-      }
-      return null;
-    }
-
-    function resolveStaticMemberType(obj, code, allowGlobal = true) {
-      // Skip static maps when Roblox types are disabled — let WASM handle it
-      if (document.getElementById("robloxDefsCheck") && !document.getElementById("robloxDefsCheck").checked)
-        return null;
-
-      if (typeof code !== "string")
-        return null;
-
-      let resolvedType = null;
-      const patterns = [
-        [/\blocal\s+(\w+)\s*=\s*Instance\.new\s*\(\s*["'](\w+)["']\s*\)/g, (m) => classMembers[m[2]] ? m[2] : null],
-        [/\blocal\s+(\w+)\s*:\s*(\w+)/g, (m) => classMembers[m[2]] ? m[2] : null],
-        [/\blocal\s+(\w+)\s*=\s*(\w+)\s*$/gm, (m) => globalMembers[m[2]] ? (globalTypeOf[m[2]] || m[2]) : null],
-        [/\blocal\s+(\w+)\s*=\s*(\w+)\.\w+\s*\(/g, (m) => classMembers[m[2]] ? m[2] : null],
-        [/\blocal\s+(\w+)\s*=\s*\w+\.(\w+)\s*$/gm, (m) => { const c = smClassOf[m[2]] || m[2]; return classMembers[c] ? c : null; }],
-      ];
-
-      for (const [re, resolve] of patterns) {
-        for (const m of code.matchAll(re)) {
-          if (m[1] === obj) {
-            const typeName = resolve(m);
-            if (typeName) {
-              resolvedType = typeName;
-              break;
-            }
-          }
-        }
-        if (resolvedType)
-          break;
-      }
-
-      if (!resolvedType && allowGlobal && globalMembers[obj])
-        resolvedType = globalTypeOf[obj] || obj;
-
-      return resolvedType && classMembers[resolvedType] ? resolvedType : null;
-    }
 
     let hoverToken = null;
     editor.on("change", () => hideHoverTip());
@@ -3546,10 +3089,33 @@ declare myGlobal: MyClass'></textarea>
       if (e.pointerType !== "mouse") hideHoverTip();
     });
 
+    // Touch has no hover, so tapping an io.import call opens its popup instead.
+    document.addEventListener("pointerup", e => {
+      if (e.pointerType === "mouse") return;
+      const call = e.target.closest?.(".cm-import");
+      if (call) showImportPopup(call.dataset.import, call);
+      else if (!importPopup.contains(e.target)) hideImportPopup();
+    });
+
+    editor.on("change", () => {
+      hideImportPopup();
+      clearTimeout(importMarkTimer);
+      importMarkTimer = setTimeout(() => refreshImportMarks(), 250);
+    });
+    editor.on("swapDoc", () => refreshImportMarks());
+    editor.on("scroll", hideImportPopup);
+
     document.addEventListener("pointermove", e => {
       if (e.pointerType !== "mouse") return;
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
+
+      if (handleImportPointer(e.target)) {
+        hoverTip.style.display = "none";
+        clearTimeout(hoverTimer);
+        hoverToken = null;
+        return;
+      }
 
       if (!editorWrapper.contains(e.target)) {
         hoverTip.style.display = "none";
@@ -3574,46 +3140,28 @@ declare myGlobal: MyClass'></textarea>
       hoverToken = tokenKey;
       clearTimeout(hoverTimer);
 
-      const code = editor.getValue();
+      hoverTip.style.display = "none";
+      if (!lsp.uriOf(editor.getDoc())) return;
 
-      function showTip(text) {
-        if (hoverToken !== tokenKey) return;
-        hoverTip.textContent = text;
-        hoverTip.style.display = "block";
-        hoverTip.style.left = (lastMouseX + 14) + "px";
-        hoverTip.style.top = (lastMouseY + 14) + "px";
-      }
-
-      // Show static type instantly (synchronous — no delay)
-      const staticType = resolveHoverType(token.string, code);
-      if (staticType) showTip(staticType);
-      else hoverTip.style.display = "none";
-
-      // WASM hover after short delay (richer type info from structured response)
-      if (!workerReady) return;
+      // Wait for the mouse to settle so sweeping across code doesn't queue a hover per token.
       hoverTimer = setTimeout(async () => {
         try {
           const midCol = Math.floor((token.start + token.end) / 2);
-          const data = await lspRequest({ type: "hover", code, line: pos.line, col: midCol });
+          const hover = await lsp.hover(editor.getDoc(), CodeMirror.Pos(pos.line, midCol));
           if (hoverToken !== tokenKey) return;
-          const r = data.result;
-          const hasError = r?.type?.includes("*error-type*") || r?.display?.includes("*error-type*");
-          // If WASM resolved to "any" but we have a better static type, keep static
-          const isAny = r?.type === "any" || r?.display?.endsWith(": any");
-          const isGenericInstance = r?.type === "Instance" || r?.display?.endsWith(": Instance");
-          if (staticType && (hasError || isAny || isGenericInstance)) {
-            showTip(staticType);
-          } else if (r && !hasError && !isAny && r.display) {
-            showTip(r.display);
-          } else if (r && !hasError && !isAny && r.type) {
-            showTip(token.string + ": " + r.type);
-          } else if (staticType) {
-            showTip(staticType);
-          } else {
-            hoverTip.style.display = "none";
-          }
-        } catch { /* silent */ }
-      }, 300);
+          const contents = hover?.contents;
+          const markdown = Array.isArray(contents)
+            ? contents.map(part => typeof part === "string" ? part : "```luau\n" + part.value + "\n```").join("\n\n")
+            : markdownText(contents);
+          if (!markdown.trim()) return;
+          // The type and description; Roblox's code samples don't fit a tooltip.
+          hoverTip.innerHTML = LuauLspClient.renderMarkdown(markdown, 1);
+          hoverTip.style.display = "block";
+          const width = hoverTip.offsetWidth, height = hoverTip.offsetHeight;
+          hoverTip.style.left = Math.max(8, Math.min(lastMouseX + 14, innerWidth - width - 8)) + "px";
+          hoverTip.style.top = (lastMouseY + 14 + height <= innerHeight - 8 ? lastMouseY + 14 : Math.max(8, lastMouseY - height - 8)) + "px";
+        } catch { /* superseded by a newer hover */ }
+      }, 250);
     });
 
     document.addEventListener("mouseleave", () => {
@@ -4059,7 +3607,6 @@ declare myGlobal: MyClass'></textarea>
 
     let currentToken = null;
     let es = null;
-    let localRunActive = false;
 
     const closePreviewBtn = document.getElementById("closePreviewBtn");
     let previewTrigger = null;
@@ -4509,7 +4056,7 @@ declare myGlobal: MyClass'></textarea>
     localRunCheck.checked = localStorage.getItem("luau_local_run") === "1";
 
     function syncRunLocalUi() {
-      const disabled = localRunCheck.checked && workspaceFiles.length === 1 && !currentToken;
+      const disabled = localRunCheck.checked && !currentToken;
       inputBox.disabled = disabled;
       sendBtn.disabled = disabled;
       attachBtn.disabled = disabled;
@@ -4653,6 +4200,55 @@ local function __playground_entry(...)
       return lines.join("\n") + "\nend; __playground_entry_results = table.pack(__playground_entry(...)); __playground_entry_running = false; return table.unpack(__playground_entry_results, 1, __playground_entry_results.n)";
     }
 
+    // ── Run Local (playground/run.worker.js → wasm/luau-run.wasm) ──
+    // Runs get their own worker, so Stop can terminate it without touching the language server.
+    let runWorker = null;
+    let localRun = null; // { resolve } while a run is going
+
+    function warmRunWorker() {
+      runWorker ??= new Worker("playground/run.worker.js");
+      return runWorker;
+    }
+    if (localRunCheck.checked) warmRunWorker();
+    localRunCheck.addEventListener("change", () => { if (localRunCheck.checked) warmRunWorker(); });
+
+    // Resolves true when the script finishes, false when it is stopped.
+    function runLocally(job, onOutput) {
+      return new Promise(resolve => {
+        const worker = warmRunWorker();
+        localRun = { resolve };
+        const finish = () => { localRun = null; resolve(true); };
+        worker.onmessage = ({ data }) => {
+          if (data.type === "output") onOutput(data.kind, data.text);
+          else if (data.type === "done") finish();
+        };
+        worker.onerror = event => {
+          onOutput("error", event.message || "Run Local failed to start");
+          runWorker?.terminate();
+          runWorker = null;
+          finish();
+        };
+        worker.postMessage({ type: "run", ...job, fflags: LuauLspClient.fflags });
+      });
+    }
+
+    function stopLocalRun() {
+      if (!localRun) return false;
+      runWorker.terminate();
+      runWorker = null;
+      localRun.resolve(false);
+      localRun = null;
+      warmRunWorker();
+      return true;
+    }
+
+    function appendLocalOutput(kind, text) {
+      outputEl.insertAdjacentHTML("beforeend", kind === "print" ? ansiToHtml(text)
+        : `<span style="color:${kind === "warn" ? "#e5c07b" : "#e06c75"}">${escHtml(text)}</span>`);
+      const results = outputEl.parentElement;
+      results.scrollTop = results.scrollHeight;
+    }
+
     runBtn.addEventListener("click", async () => {
       const runWorkspace = snapshotWorkspace();
       const entryIndex = activeFileIndex;
@@ -4676,40 +4272,25 @@ local function __playground_entry(...)
       }
 
       // ── Local WASM execution ──
-      if (localRunCheck.checked && workerReady && !moduleInput) {
+      if (localRunCheck.checked) {
         outputEl.innerHTML = "";
         filesEl.innerHTML = "";
         _pendingFiles = [];
         setStatus("Running locally...");
         setRunning(true);
-        localRunActive = true;
-        let elapsed = null;
-        try {
-          const t0 = performance.now();
-          // No timeout: a long run keeps going until it finishes or Stop replaces the worker.
-          const data = await workerRequest({ type: "run", code: raw }, 0);
-          if (!localRunActive) return;
-          elapsed = ((performance.now() - t0) / 1000).toFixed(4);
-          if (data.result) {
-            if (data.result.output) setOutput(data.result.output);
-            if (data.result.ok) {
-              setStatus(`Local · Done (${elapsed}s)`);
-            } else {
-              if (data.result.output) outputEl.innerHTML += "\n";
-              outputEl.innerHTML += `<span style="color:#e06c75">${escHtml(data.result.error || "Error")}</span>`;
-              setStatus(`Local · Error (${elapsed}s)`);
-            }
-          } else {
-            setStatus("Local · No result");
-          }
-        } catch (e) {
-          if (!localRunActive) return;
-          setStatus("Local · " + e.message);
-        }
-        localRunActive = false;
+        const t0 = performance.now();
+        let failed = false;
+        const job = { name: moduleFiles[0]?.name ?? "main", code: raw, modules: moduleFiles.slice(1) };
+        const finished = await runLocally(job, (kind, text) => {
+          failed ||= kind === "error";
+          appendLocalOutput(kind, text);
+        });
+        if (!finished) return; // stopped
+        const elapsed = ((performance.now() - t0) / 1000).toFixed(4);
+        setStatus(`Local · ${failed ? "Error" : "Done"} (${elapsed}s)`);
         setRunning(false);
         if (histRecordCheck.checked) {
-          pushHistory(raw, outputEl.innerHTML, _pendingFiles, null, elapsed != null ? +elapsed : null, true, runWorkspace);
+          pushHistory(raw, outputEl.innerHTML, _pendingFiles, null, +elapsed, true, runWorkspace);
         }
         return;
       }
@@ -5011,17 +4592,12 @@ local function __playground_entry(...)
       applyTypeToggles({ r: entry.r, b: entry.b });
       // Restore sourcemap and custom definitions if stored with this entry
       const entrySm = entry.sm || resolveEmbeddedText(entry, "sm");
-      if (entrySm) {
-        localStorage.setItem("luau_sourcemap", entrySm);
-        buildSmTree(entrySm);
-        applySmLoaded(true);
-        if (workerReady) workerRequest({ type: "set_sourcemap", json: entrySm }).catch(() => { });
-      }
+      if (entrySm) setSourcemap(entrySm);
       const entryCd = entry.cd || resolveEmbeddedText(entry, "cd");
       if (entryCd && entryCd !== localStorage.getItem("luau_custom_defs")) {
         localStorage.setItem("luau_custom_defs", entryCd);
         applyDefsLoaded(true);
-        reloadDefinitions();
+        restartLsp();
       }
       setStatus("Loaded from history");
     }
@@ -5158,9 +4734,7 @@ local function __playground_entry(...)
     let _pendingFiles = [];
 
     stopBtn.addEventListener("click", async () => {
-      if (localRunActive) {
-        localRunActive = false;
-        window.restartTypeWorker?.();
+      if (stopLocalRun()) {
         setStatus("Local · Stopped");
         setRunning(false);
         return;
