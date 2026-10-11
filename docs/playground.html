@@ -4263,6 +4263,32 @@ local function __playground_entry(...)
       results.scrollTop = results.scrollHeight;
     }
 
+    // A 429 from /run carries retryAfter (seconds): keep Run disabled and count down until then.
+    let runLimitTimer = null;
+    function waitOutRunLimit({ error, retryAfter }) {
+      clearInterval(runLimitTimer);
+      runBtn.disabled = true;
+      if (!(retryAfter > 0)) {
+        setStatus(error || "Rate limited");
+        setTimeout(() => { runBtn.disabled = false; }, 5000);
+        return;
+      }
+      const label = /^Rate limit/.test(error || "") ? "Rate limited" : "Couldn't start";
+      const until = Date.now() + retryAfter * 1000;
+      const tick = () => {
+        const left = Math.ceil((until - Date.now()) / 1000);
+        if (left > 0) {
+          setStatus(`${label} · try again in ${left}s`);
+          return;
+        }
+        clearInterval(runLimitTimer);
+        runBtn.disabled = false;
+        if (statusEl.textContent.startsWith(label)) setStatus("");
+      };
+      tick();
+      runLimitTimer = setInterval(tick, 1000);
+    }
+
     runBtn.addEventListener("click", async () => {
       const runWorkspace = snapshotWorkspace();
       const entryIndex = activeFileIndex;
@@ -4337,10 +4363,10 @@ local function __playground_entry(...)
 
       if (!res.ok) {
         if (res.status === 429) {
-          setStatus("Rate limited — max 30 runs/min");
+          let body = {};
+          try { body = await res.json(); } catch { }
           setRunning(false);
-          runBtn.disabled = true;
-          setTimeout(() => { runBtn.disabled = false; }, 5000);
+          waitOutRunLimit(body);
         } else {
           let msg;
           try { msg = (await res.json()).error; } catch { msg = await res.text(); }
