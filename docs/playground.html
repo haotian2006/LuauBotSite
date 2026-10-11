@@ -193,13 +193,13 @@
     }
 
     #stopBtn {
-      background: #b91c1c;
+      background: #c62828;
       color: #fff;
       display: none;
     }
 
     #stopBtn:hover {
-      background: #dc2626;
+      background: #d32f2f;
     }
 
     #sendBtn {
@@ -1308,18 +1308,18 @@
 <body>
 
   <div class="toolbar">
-    <button id="runBtn" title="Run selected file" aria-label="Run selected file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span class="button-label">Run</span></button>
-    <button id="stopBtn" title="Stop execution" aria-label="Stop execution"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg><span class="button-label">Stop</span></button>
+    <button id="runBtn" title="Run the open file" aria-label="Run the open file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span class="button-label">Run</span></button>
+    <button id="stopBtn" title="Stop the run" aria-label="Stop the run"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span class="button-label">Stop</span></button>
     <button id="fmtBtn" title="Format code (StyLua)" aria-label="Format code (StyLua)"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M8 10h12M8 15h8M4 20h16M2 10l3 2.5L2 15"/></svg><span class="button-label">Format</span></button>
     <div class="toolbar-opts" style="margin-left:auto">
-      <button id="exportAllBtn" type="button" title="Export all code files" aria-label="Export all code files"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg></button>
-      <button id="importFilesBtn" type="button" title="Import code files" aria-label="Import code files"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 17v3h16v-3"/></svg></button>
+      <button id="exportAllBtn" type="button" title="Download all files" aria-label="Download all files"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg></button>
+      <button id="importFilesBtn" type="button" title="Open files from your computer" aria-label="Open files from your computer"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 17v3h16v-3"/></svg></button>
       <input id="importFilesInput" type="file" multiple hidden aria-label="Code files to import" />
       <button id="settingsBtn" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="settings-popover"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="button-label">Settings</span></button>
-      <button id="shareBtn" title="Copy shareable link" aria-label="Copy shareable link"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 1)"/></svg><span class="button-label">Share</span></button>
-      <button id="hist-popover-btn" title="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg>History</button>
+      <button id="shareBtn" title="Copy a link to this code" aria-label="Copy a link to this code"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 15 6-6m-4-2.5 2-2a4.24 4.24 0 0 1 6 6l-2 2m-4 5-2 2a4.24 4.24 0 0 1-6-6l2-2"/></svg><span class="button-label">Share</span></button>
+      <button id="hist-popover-btn" title="Run history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg>History</button>
     </div>
-    <button id="hist-sheet-btn" title="Show history" aria-label="Show history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg></button>
+    <button id="hist-sheet-btn" title="Run history" aria-label="Run history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg></button>
     <span id="status" role="status"></span>
     <span id="actionNotice" role="status"></span>
     <span id="sourceNotice" role="alert"></span>
@@ -1330,7 +1330,7 @@
       <section id="editor-pane" class="editor-pane" aria-label="Code editor">
         <div class="pane-heading editor-heading">
           <div id="fileTabs" class="file-tabs" role="tablist" aria-label="Code files"></div>
-          <button id="addFileBtn" class="file-action" type="button" title="Add module" aria-label="Add module">+</button>
+          <button id="addFileBtn" class="file-action" type="button" title="Add module" aria-label="Add module"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
           <button id="removeAllFilesBtn" class="file-action" type="button" title="Remove all modules" aria-label="Remove all modules" hidden><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg><span class="button-label">Remove all</span></button>
           <div class="pane-actions editor-view-actions">
             <button id="showConsoleBtn" class="pane-view-button" type="button" title="Show console" aria-label="Show console" aria-controls="console-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 6 6 6-6 6m9 0h7"/></svg></button>
@@ -1338,7 +1338,7 @@
           </div>
         </div>
         <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
-        <div class="editor-footer"><span>Luau</span><span>Ctrl + Space for suggestions</span></div>
+        <div class="editor-footer"><span>Luau</span></div>
       </section>
       <div class="pane-splitter" role="separator" tabindex="0" aria-label="Resize editor and console" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75" aria-controls="console-pane"></div>
       <section id="console-pane" class="console-pane" aria-label="Console">
@@ -1425,24 +1425,24 @@
       </label>
       <label class="lint-toggle settings-row" title="Use Luau&#39;s new type solver (turn off for the old one)">
         <input type="checkbox" id="solverCheck" />
-        <span>New Solver</span>
+        <span>New solver</span>
       </label>
-      <label class="lint-toggle settings-row" title="Append TIMESTAMP flag">
+      <label class="lint-toggle settings-row" title="Show the time each line was printed (sets TIMESTAMP)">
         <input type="checkbox" id="timestampCheck" />
         <span>Timestamp</span>
       </label>
-      <label class="lint-toggle settings-row" title="Run code locally in WASM instead of on the server">
+      <label class="lint-toggle settings-row" title="Run in your browser instead of on a Roblox server. Plain Luau only, without Roblox APIs.">
         <input type="checkbox" id="localRunCheck" />
-        <span>Run Local</span>
+        <span>Run locally</span>
       </label>
       <div class="settings-divider"></div>
-      <label class="lint-toggle settings-row" title="Load Roblox globalTypes.d.luau definitions">
+      <label class="lint-toggle settings-row" title="Roblox&#39;s API for autocomplete and type checking">
         <input type="checkbox" id="robloxDefsCheck" checked />
-        <span>Roblox Types</span>
+        <span>Roblox types</span>
       </label>
-      <label class="lint-toggle settings-row" title="Load bot-specific type definitions">
+      <label class="lint-toggle settings-row" title="The bot&#39;s own APIs: discord, io, Image and more">
         <input type="checkbox" id="botDefsCheck" checked />
-        <span>Bot Types</span>
+        <span>Bot types</span>
       </label>
       <div class="settings-divider"></div>
       <div class="settings-row settings-sourcemap" id="smRow">
@@ -1460,7 +1460,7 @@
   <div id="defs-backdrop"></div>
   <div id="defs-modal">
     <div id="defs-modal-header">
-      <span>Custom Definitions (.d.luau)</span>
+      <span>Custom definitions (.d.luau)</span>
       <button id="defsModalClose">&#215;</button>
     </div>
     <textarea id="defs-editor" spellcheck="false" placeholder='-- Custom type definitions (loaded as @custom)
@@ -1471,7 +1471,7 @@ end
 declare myGlobal: MyClass'></textarea>
     <div id="defs-modal-footer">
       <button id="defsSaveBtn">Save</button>
-      <button id="defsResetBtn">Reset</button>
+      <button id="defsResetBtn">Clear</button>
       <span id="defs-error"></span>
     </div>
   </div>
@@ -1487,7 +1487,7 @@ declare myGlobal: MyClass'></textarea>
       placeholder='{"name":"Game","className":"DataModel","children":[]}'></textarea>
     <div id="sm-modal-footer">
       <button id="smSaveBtn">Save</button>
-      <button id="smResetBtn">Reset</button>
+      <button id="smResetBtn">Clear</button>
       <span id="sm-error"></span>
     </div>
   </div>

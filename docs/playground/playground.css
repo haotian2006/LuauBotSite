@@ -96,10 +96,11 @@ body { height: 100dvh; }
 .toolbar { padding: 14px 20px; gap: 10px; background: var(--pg-bg); }
 .ui-icon { width: 16px; height: 16px; flex: 0 0 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .toolbar button, #fmtBtn { min-height: 34px; border-radius: var(--pg-radius-sm); padding: 6px 12px; font-size: 12px; }
-#fmtBtn { background: var(--pg-surface); color: var(--pg-fg); border: 1px solid var(--pg-border); }
+#fmtBtn { background: var(--pg-surface-2); color: var(--pg-fg); border: 1px solid var(--pg-border); }
+#fmtBtn:hover { background: var(--pg-hover); }
 #fmtBtn.is-busy .ui-icon { animation: tool-spin 1s linear infinite; }
 #runBtn { background: var(--pg-primary); padding-inline: 20px; box-shadow: none; }
-#runBtn .ui-icon { fill: currentColor; }
+#runBtn .ui-icon, #stopBtn .ui-icon { fill: currentColor; }
 #runBtn:hover { background: var(--pg-primary-hover); }
 #status:empty { display: none; }
 #status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
@@ -330,7 +331,9 @@ html[data-playground-theme="light"] #editor-wrapper.screen-drag-over::after { ba
 #hover-tip p, #completion-doc p, #sig-help .sig-detail p { margin: 4px 0; font-family: var(--pg-font); white-space: normal; }
 #hover-tip .lsp-code, #completion-doc .lsp-code { margin: 2px 0; white-space: pre-wrap; color: var(--code-builtin); font: inherit; }
 #hover-tip hr, #completion-doc hr { margin: 6px 0; border: 0; border-top: 1px solid var(--pg-border); }
-#hover-tip code, #completion-doc code, #sig-help .sig-detail code { color: var(--code-builtin); }
+#hover-tip code, #completion-doc code, #sig-help .sig-detail code { color: var(--code-builtin); font-family: "JetBrains Mono", Consolas, monospace; font-size: .95em; }
+/* Diagnostics are sentences, so they read in the UI font like the rest of the tooltips. */
+.CodeMirror-lint-tooltip { font-family: var(--pg-font) !important; font-size: 12px !important; }
 /* Form controls don't inherit fonts; only code and console text stay monospace. */
 button, select, label, .file-tab .file-name, .file-tab .file-name-input, #status, .editor-footer, .pane-caption { font-family: var(--pg-font); }
 /* io.import calls: wavy underline while the package isn't downloaded, popup on hover or tap. */
