@@ -292,3 +292,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--pg-accent);
 .screen-tab { flex: 0 0 auto; padding: 4px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--pg-muted); font-size: 12px; white-space: nowrap; cursor: pointer; }
 .screen-tab:hover { color: var(--pg-fg); }
 .screen-tab[aria-selected="true"] { background: var(--pg-surface); color: var(--pg-fg); }
+#editor-wrapper.screen-drag-over::after { content: "Drop to open as a screen"; position: absolute; z-index: 5; inset: 12px; display: grid; place-items: center; padding: 20px; border: 2px dashed var(--pg-accent); border-radius: 10px; background: rgba(25, 30, 43, .92); color: var(--pg-fg); font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; }
+html[data-playground-theme="light"] #editor-wrapper.screen-drag-over::after { background: rgba(255, 255, 255, .94); }
+#screenFromPreviewBtn { position: absolute; top: 16px; right: 96px; background: var(--pg-surface); color: var(--pg-fg); border: 1px solid var(--pg-border); }

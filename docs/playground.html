@@ -1540,6 +1540,7 @@ declare myGlobal: MyClass'></textarea>
   </div>
 
   <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image preview">
+    <button id="screenFromPreviewBtn" type="button">Open as screen</button>
     <button id="closePreviewBtn" type="button" aria-label="Close image preview">Close</button>
     <img id="lightboxImg" alt="" />
   </div>
@@ -4192,8 +4193,9 @@ declare myGlobal: MyClass'></textarea>
       if (IMAGE_TYPES.has(t)) {
         const img = document.createElement("img");
         img.src = url; img.alt = "";
-        a.title = "Preview " + name;
+        a.title = "Preview " + name + " (drag onto the editor to open it as a screen)";
         a.prepend(img);
+        a.addEventListener("dragstart", e => e.dataTransfer.setData(SCREEN_DRAG, name));
         a.addEventListener("click", e => {
           e.preventDefault();
           previewTrigger = a;
@@ -4231,6 +4233,8 @@ declare myGlobal: MyClass'></textarea>
     const screens = new Map(); // name -> { url, win }
     const dismissedScreens = new Set();
     const screenSpots = new Map(); // name -> { left, top, width }, kept across runs
+    const pinnedScreens = new Set(); // images the user opened as screens; they keep opening on later runs
+    const SCREEN_DRAG = "application/x-luau-screen";
     let activeScreen = null;
     let screenExpanded = false;
     let topScreenZ = 60;
@@ -4406,8 +4410,64 @@ declare myGlobal: MyClass'></textarea>
       const screen = screens.get(name);
       if (screen?.win) rememberSpot(screen.win);
       dismissedScreens.add(name);
+      pinnedScreens.delete(name);
       renderScreens();
     }
+
+    const isScreenFile = name => SCREEN_FILE.test(name) || pinnedScreens.has(name) || screens.has(name);
+
+    // any image can be opened as a screen, including one that was closed; on desktop it lands at `point`
+    function openScreenFile(name, url, point) {
+      pinnedScreens.add(name);
+      dismissedScreens.delete(name);
+      if (point && !compactScreen.matches) {
+        const width = screenSpots.get(name)?.width ?? 300;
+        const spot = { left: point.x - width / 2, top: point.y - 16, width };
+        screenSpots.set(name, spot);
+        const win = screens.get(name)?.win;
+        if (win) {
+          win.root.style.left = `${clampTo(spot.left, 0, window.innerWidth - width)}px`;
+          win.root.style.top = `${clampTo(spot.top, 0, window.innerHeight - 40)}px`;
+          win.root.style.zIndex = String(++topScreenZ);
+        }
+      }
+      activeScreen = name;
+      showScreen(name, url);
+    }
+
+    // dragging an image from the file list onto the code: captured before CodeMirror pastes its link
+    const screenDropZone = document.getElementById("editor-wrapper");
+    const isScreenDrag = e => Array.from(e.dataTransfer?.types || []).includes(SCREEN_DRAG);
+    screenDropZone.addEventListener("dragover", e => {
+      if (!isScreenDrag(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "copy";
+      screenDropZone.classList.add("screen-drag-over");
+    }, true);
+    screenDropZone.addEventListener("dragleave", e => {
+      const bounds = screenDropZone.getBoundingClientRect();
+      if (e.clientX < bounds.left || e.clientX >= bounds.right || e.clientY < bounds.top || e.clientY >= bounds.bottom) {
+        screenDropZone.classList.remove("screen-drag-over");
+      }
+    });
+    screenDropZone.addEventListener("drop", e => {
+      if (!isScreenDrag(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      screenDropZone.classList.remove("screen-drag-over");
+      const name = e.dataTransfer.getData(SCREEN_DRAG);
+      const item = Array.from(filesEl.children).find(el => el.dataset.fileName === name);
+      if (item) openScreenFile(name, item.dataset.url, { x: e.clientX, y: e.clientY });
+    }, true);
+    document.addEventListener("dragend", () => screenDropZone.classList.remove("screen-drag-over"));
+
+    // touch screens can't drag, so the preview can open its image as a screen too
+    document.getElementById("screenFromPreviewBtn").addEventListener("click", () => {
+      const name = lightbox.dataset.fileName;
+      if (name) openScreenFile(name, lightboxImg.src);
+      closePreview();
+    });
 
     function setScreenExpanded(expanded) {
       for (const screen of screens.values()) if (screen.win) rememberSpot(screen.win);
@@ -4725,7 +4785,7 @@ local function __playground_entry(...)
         if (saved >= 0) _pendingFiles[saved] = { name, type, content };
         else _pendingFiles.push({ name, type, content });
         const url = addFileLink(name, type, content);
-        if (SCREEN_FILE.test(name)) showScreen(name, url);
+        if (isScreenFile(name)) showScreen(name, url);
       });
       es.addEventListener("done", e => {
         const { runtime } = JSON.parse(e.data);
