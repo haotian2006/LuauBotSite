@@ -2199,9 +2199,14 @@ declare myGlobal: MyClass'></textarea>
       importPopupTimer = setTimeout(hideImportPopup, 300);
     }
 
+    // A click on the call itself (to edit it) closes the popup until the pointer leaves the call.
+    let importPopupClosedOn = null;
+
     // For the hover handler: true while the pointer is on an io.import call or its popup.
     function handleImportPointer(target) {
       const call = target.closest?.(".cm-import");
+      if (call && call.dataset.import === importPopupClosedOn) return true;
+      importPopupClosedOn = null;
       if (call) {
         showImportPopup(call.dataset.import, call);
         return true;
@@ -2213,6 +2218,15 @@ declare myGlobal: MyClass'></textarea>
       if (importPopupSpec) hideImportPopupSoon();
       return false;
     }
+
+    document.addEventListener("pointerdown", e => {
+      if (!importPopupSpec || importPopup.contains(e.target)) return;
+      importPopupClosedOn = e.target.closest?.(".cm-import")?.dataset.import ?? null;
+      hideImportPopup();
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && importPopupSpec) hideImportPopup();
+    });
 
     function renderFileTabs() {
       fileTabs.replaceChildren();
