@@ -1544,6 +1544,17 @@ declare myGlobal: MyClass'></textarea>
     <img id="lightboxImg" alt="" />
   </div>
 
+  <div id="screenWindow" class="screen-window" role="dialog" aria-label="Screen" hidden>
+    <div class="screen-titlebar">
+      <span class="screen-title">screen.png</span>
+      <div class="screen-tabs" role="tablist" aria-label="Screens" hidden></div>
+      <button class="screen-btn screen-expand" type="button" title="Expand" aria-label="Expand screen" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+      <button class="screen-btn screen-close" type="button" title="Close" aria-label="Close screen"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="screen-body"><img alt="Screen" /></div>
+    <div id="screenButtons" class="screen-buttons" role="group" aria-label="Script buttons" hidden></div>
+  </div>
+
   <!-- Mobile history bottom sheet -->
   <div id="hist-sheet-backdrop"></div>
   <div id="hist-sheet">
@@ -4111,7 +4122,7 @@ declare myGlobal: MyClass'></textarea>
     // ── discord.button ──
     const scriptButtonsEl = document.getElementById("scriptButtons");
     function renderScriptButtons(buttons) {
-      scriptButtonsEl.replaceChildren(...buttons.map(button => {
+      const make = button => {
         const el = document.createElement("button");
         el.type = "button";
         el.className = `script-button script-button-${String(button.style).toLowerCase()}`;
@@ -4120,8 +4131,13 @@ declare myGlobal: MyClass'></textarea>
         el.dataset.disabled = String(!!button.disabled);
         el.addEventListener("click", () => clickScriptButton(button.id, el));
         return el;
-      }));
+      };
+      scriptButtonsEl.replaceChildren(...buttons.map(make));
       scriptButtonsEl.hidden = buttons.length === 0;
+      // the screen window carries a copy, so a game can be played without scrolling to the console
+      const screenButtons = document.getElementById("screenButtons");
+      screenButtons.replaceChildren(...buttons.map(make));
+      screenButtons.hidden = buttons.length === 0;
     }
 
     async function clickScriptButton(buttonId, el) {
@@ -4197,14 +4213,231 @@ declare myGlobal: MyClass'></textarea>
       }
       if (!existing) {
         filesEl.appendChild(container);
-        return;
+        return url;
       }
       // An open preview of this file keeps playing with the new frames.
       if (lightbox.classList.contains("open") && lightbox.dataset.fileName === name) lightboxImg.src = url;
       if (previewTrigger && existing.contains(previewTrigger)) previewTrigger = container.querySelector("a");
       existing.replaceWith(container);
       URL.revokeObjectURL(existing.dataset.url);
+      return url;
     }
+
+    // ── screens: a run that writes screen.png (or screen2.png, ...) gets live views over the editor.
+    // Desktop: one draggable widget per screen, the last one touched on top. Phone, or expanded:
+    // one window with a tab per screen.
+    const SCREEN_FILE = /^screen[ _-]?\d*\.(png|gif|jpe?g|webp)$/i;
+    const compactScreen = window.matchMedia("(max-width: 600px), (pointer: coarse)");
+    const screens = new Map(); // name -> { url, win }
+    const dismissedScreens = new Set();
+    const screenSpots = new Map(); // name -> { left, top, width }, kept across runs
+    let activeScreen = null;
+    let screenExpanded = false;
+    let topScreenZ = 60;
+    let dockTabsKey = "";
+
+    const clampTo = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+
+    // pixelated only when scaling up, so a 160x144 frame stays sharp and big images stay smooth
+    function syncScreenScaling(img) {
+      const box = img.getBoundingClientRect();
+      const scale = Math.min(box.width / (img.naturalWidth || 1), box.height / (img.naturalHeight || 1));
+      img.classList.toggle("pixelated", scale >= 1);
+    }
+
+    function rememberSpot(win) {
+      if (!win.name || win.root.hidden) return;
+      const rect = win.root.getBoundingClientRect();
+      screenSpots.set(win.name, { left: rect.left, top: rect.top, width: rect.width });
+    }
+
+    // drag by the title bar on desktop; the window stays inside the viewport
+    function enableScreenDrag(win) {
+      win.titlebar.addEventListener("pointerdown", e => {
+        if (compactScreen.matches || win.root.classList.contains("expanded") || e.button !== 0 || e.target.closest("button")) return;
+        const start = win.root.getBoundingClientRect();
+        const dx = e.clientX - start.left, dy = e.clientY - start.top;
+        win.titlebar.setPointerCapture(e.pointerId);
+        win.root.classList.add("dragging");
+        const move = ev => {
+          const rect = win.root.getBoundingClientRect();
+          win.root.style.left = `${clampTo(ev.clientX - dx, 0, window.innerWidth - rect.width)}px`;
+          win.root.style.top = `${clampTo(ev.clientY - dy, 0, window.innerHeight - 40)}px`;
+        };
+        const end = () => {
+          win.root.classList.remove("dragging");
+          win.titlebar.removeEventListener("pointermove", move);
+          win.titlebar.removeEventListener("pointerup", end);
+          win.titlebar.removeEventListener("pointercancel", end);
+          rememberSpot(win);
+        };
+        win.titlebar.addEventListener("pointermove", move);
+        win.titlebar.addEventListener("pointerup", end);
+        win.titlebar.addEventListener("pointercancel", end);
+      });
+    }
+
+    function makeScreenWindow(root, name) {
+      const win = {
+        root,
+        name,
+        title: root.querySelector(".screen-title"),
+        tabs: root.querySelector(".screen-tabs"),
+        img: root.querySelector(".screen-body img"),
+        expandBtn: root.querySelector(".screen-expand"),
+        closeBtn: root.querySelector(".screen-close"),
+        titlebar: root.querySelector(".screen-titlebar"),
+      };
+      win.img.addEventListener("load", () => syncScreenScaling(win.img));
+      new ResizeObserver(() => syncScreenScaling(win.img)).observe(win.img);
+      // the one last touched goes on top
+      root.addEventListener("pointerdown", () => { root.style.zIndex = String(++topScreenZ); });
+      enableScreenDrag(win);
+      return win;
+    }
+
+    const dock = makeScreenWindow(document.getElementById("screenWindow"), null);
+
+    // a desktop widget: the dock's markup without its tabs and buttons
+    function newScreenWidget(name) {
+      const root = dock.root.cloneNode(true);
+      root.classList.remove("expanded");
+      root.querySelector(".screen-tabs").remove();
+      root.querySelector(".screen-buttons").remove();
+      root.removeAttribute("id");
+      root.querySelectorAll("[id]").forEach(el => el.removeAttribute("id"));
+      root.setAttribute("aria-label", name);
+      document.body.appendChild(root);
+      const win = makeScreenWindow(root, name);
+      win.title.hidden = false;
+      win.title.textContent = name;
+      win.expandBtn.addEventListener("click", () => {
+        activeScreen = name;
+        setScreenExpanded(true);
+      });
+      win.closeBtn.addEventListener("click", () => closeScreen(name));
+      root.style.zIndex = String(++topScreenZ);
+      return win;
+    }
+
+    // new widgets cascade from the editor's top right, unless this screen had a spot before
+    function placeWidget(win, index) {
+      const spot = screenSpots.get(win.name);
+      const pane = document.getElementById("editor-pane").getBoundingClientRect();
+      const width = spot?.width ?? Math.max(220, Math.min(360, pane.width - 32));
+      const left = spot?.left ?? pane.right - width - 16 - index * 28;
+      const top = spot?.top ?? pane.top + 52 + index * 28;
+      win.root.style.width = `${width}px`;
+      win.root.style.left = `${clampTo(left, 0, window.innerWidth - width)}px`;
+      win.root.style.top = `${clampTo(top, 0, window.innerHeight - 40)}px`;
+    }
+
+    function placeDock() {
+      const pane = document.getElementById("editor-pane").getBoundingClientRect();
+      const width = Math.max(200, Math.min(pane.width, window.innerWidth) - 16);
+      dock.root.style.left = `${clampTo(pane.left + 8, 8, window.innerWidth - width - 8)}px`;
+      dock.root.style.top = `${Math.max(8, pane.top + 40)}px`;
+      dock.root.style.width = `${width}px`;
+      dock.root.style.height = "";
+    }
+
+    function renderScreens() {
+      const visible = [...screens.keys()].filter(name => !dismissedScreens.has(name));
+      if (!visible.includes(activeScreen)) activeScreen = visible[0] ?? null;
+      if (visible.length === 0) screenExpanded = false;
+      const docked = compactScreen.matches || screenExpanded;
+
+      visible.forEach((name, index) => {
+        const screen = screens.get(name);
+        if (!docked && !screen.win) {
+          screen.win = newScreenWidget(name);
+          placeWidget(screen.win, index);
+        }
+      });
+      for (const [name, screen] of screens) {
+        if (!screen.win) continue;
+        const show = !docked && !dismissedScreens.has(name);
+        screen.win.root.hidden = !show;
+        if (show && screen.win.img.src !== screen.url) screen.win.img.src = screen.url;
+      }
+
+      const showDock = docked && activeScreen !== null;
+      if (showDock && dock.root.hidden && compactScreen.matches && !screenExpanded) placeDock();
+      dock.root.hidden = !showDock;
+      dock.root.classList.toggle("expanded", showDock && screenExpanded);
+      dock.expandBtn.setAttribute("aria-pressed", String(screenExpanded));
+      dock.expandBtn.title = screenExpanded ? "Restore" : "Expand";
+      dock.expandBtn.setAttribute("aria-label", screenExpanded ? "Restore screen" : "Expand screen");
+      if (!showDock) return;
+
+      const url = screens.get(activeScreen).url;
+      if (dock.img.src !== url) dock.img.src = url;
+      dock.title.textContent = activeScreen;
+      dock.title.hidden = visible.length > 1;
+      dock.tabs.hidden = visible.length <= 1;
+      const key = visible.join("\n") + "\n>" + activeScreen;
+      if (key === dockTabsKey) return;
+      dockTabsKey = key;
+      dock.tabs.replaceChildren(...visible.map(name => {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "screen-tab";
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-selected", String(name === activeScreen));
+        tab.textContent = name.replace(/\.[^.]+$/, "");
+        tab.title = name;
+        tab.addEventListener("click", () => {
+          activeScreen = name;
+          renderScreens();
+        });
+        return tab;
+      }));
+    }
+
+    function showScreen(name, url) {
+      if (dismissedScreens.has(name)) return;
+      const screen = screens.get(name) || { url, win: null };
+      screen.url = url;
+      screens.set(name, screen);
+      renderScreens();
+    }
+
+    function closeScreen(name) {
+      const screen = screens.get(name);
+      if (screen?.win) rememberSpot(screen.win);
+      dismissedScreens.add(name);
+      renderScreens();
+    }
+
+    function setScreenExpanded(expanded) {
+      for (const screen of screens.values()) if (screen.win) rememberSpot(screen.win);
+      screenExpanded = expanded;
+      renderScreens();
+      requestAnimationFrame(() => syncScreenScaling(dock.img));
+    }
+
+    function resetScreen() {
+      for (const screen of screens.values()) {
+        if (!screen.win) continue;
+        rememberSpot(screen.win);
+        screen.win.root.remove();
+      }
+      screens.clear();
+      dismissedScreens.clear();
+      activeScreen = null;
+      screenExpanded = false;
+      dockTabsKey = "";
+      renderScreens();
+    }
+
+    dock.expandBtn.addEventListener("click", () => setScreenExpanded(!screenExpanded));
+    dock.closeBtn.addEventListener("click", () => {
+      if (activeScreen) closeScreen(activeScreen);
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && screenExpanded) setScreenExpanded(false);
+    });
+    compactScreen.addEventListener("change", renderScreens);
 
     const timestampCheck = document.getElementById("timestampCheck");
     const timestampRow = timestampCheck.closest("label");
@@ -4430,6 +4663,7 @@ local function __playground_entry(...)
 
       outputEl.innerHTML = "";
       filesEl.innerHTML = "";
+      resetScreen();
       setStatus(moduleInput ? "Starting modules on server..." : "Starting...");
       setRunning(true);
 
@@ -4490,7 +4724,8 @@ local function __playground_entry(...)
         const saved = _pendingFiles.findIndex(file => file.name === name);
         if (saved >= 0) _pendingFiles[saved] = { name, type, content };
         else _pendingFiles.push({ name, type, content });
-        addFileLink(name, type, content);
+        const url = addFileLink(name, type, content);
+        if (SCREEN_FILE.test(name)) showScreen(name, url);
       });
       es.addEventListener("done", e => {
         const { runtime } = JSON.parse(e.data);

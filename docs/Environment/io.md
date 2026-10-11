@@ -54,6 +54,8 @@ Writes an image file without converting it yourself, and returns the file name u
 
 The extension is added if `filename` doesn't have one; the default name is `image`.
 
+In the playground, an image named `screen` (or `screen2`, `screen3`, ...) opens in a live window over the editor that updates each time it's written.
+
 ```lua
 io.writeimage(workspace, "scene", { Size = Vector2.new(320, 180) })
 ```
