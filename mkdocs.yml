@@ -18,6 +18,7 @@ theme:
 
 repo_url: https://github.com/haotian2006/RluauRunnerV3
 repo_name: haotian2006/RluauRunnerV3
+copyright: Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.
 
 extra:
   generator: false
