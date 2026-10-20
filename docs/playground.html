@@ -1793,7 +1793,7 @@ declare myGlobal: MyClass'></textarea>
             // ".." is concatenation and "x: T" is an annotation, neither is member access.
             const isMember = /(?:^|[^.])\.\s*$/.test(before) || /[\w)\]]:$/.test(before);
             if (!isMember) {
-              if (word === "export" || (word === "type" && /^\s+[A-Za-z_]/.test(rest))) return "luau-kw";
+              if (word === "export" || ((word === "type" || word === "const") && /^\s+[A-Za-z_]/.test(rest))) return "luau-kw";
               if (word === "continue" && !/^\s*[(=.:\["'{]/.test(rest)) return "luau-kw";
               if (word === "true" || word === "false" || word === "nil") return "luau-bool";
               if (word === "self") return "luau-self";
