@@ -1,5 +1,6 @@
-site_name: Luau Runner
+site_name: Luwa
 site_url: https://rluwa.com/
+site_description: Luwa, a Luau runner Discord bot. Run Luau in a real Roblox server straight from Discord.
 theme:
   name: material
   favicon: images/favicon.png

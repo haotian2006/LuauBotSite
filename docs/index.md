@@ -1,6 +1,6 @@
-# Welcome
+# Luwa, a Luau runner Discord bot
 
-Luau Runner is an open sourced Discord bot that can compile Luau code and execute it in Roblox's environment meaning you would get access to Roblox's API directly from Discord.
+Luwa is an open sourced Discord bot that can compile Luau code and execute it in Roblox's environment meaning you would get access to Roblox's API directly from Discord.
 
 ---
 

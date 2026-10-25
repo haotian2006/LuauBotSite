@@ -1,10 +1,10 @@
 # Executing code
 
 ???+ warning
-    Because Luau Runner runs code in Roblox Studio on its own server, or with the execute code cloud api when Studio is busy, this means physics will not be simulated. RunService events are emulated.
+    Because Luwa runs code in Roblox Studio on its own server, or with the execute code cloud api when Studio is busy, this means physics will not be simulated. RunService events are emulated.
 
 
-Luau Runner has a few custom globals that you can use.
+Luwa has a few custom globals that you can use.
 
 You can get a typefile containing all the types [here](https://rluwa.com/playground/botTypes.d.luau).
 
