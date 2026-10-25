@@ -19,7 +19,7 @@ Renders Roblox instances into an Image.
 - **3D**: `workspace` (uses `workspace.CurrentCamera`), a Model, Part, Folder or ViewportFrame. Models and parts are framed automatically.
 - **UI**: a ScreenGui or any GuiObject. Supports UICorner, UIStroke, UIGradient, layouts, images and text.
 
-`options`: `Size: Vector2`, `Camera: Camera | CFrame`, `FieldOfView: number`, `Background: Color3 | false`, `LightDirection: Vector3`.
+`options`: `Size: Vector2`, `Camera: Camera | CFrame`, `FieldOfView: number`, `Background: Color3 | false`, `LightDirection: Vector3`, `AntiAliasing: boolean` (default `true`), `Materials: boolean` (`false` draws plain colors instead of material textures).
 
 ```lua
 local part = Instance.new("Part")
@@ -27,6 +27,19 @@ part.Anchored = true
 part.Parent = workspace
 workspace.CurrentCamera.CFrame = CFrame.lookAt(Vector3.new(6, 6, 10), part.Position)
 io.writefile(Image.toPng(Image.fromInstance(workspace)), "scene.png")
+```
+
+### `record(root:Instance, options:{}?): Recorder`
+Records `root` with `fromInstance` into a gif. It returns right away and records while your code keeps running.
+
+`options`: the `fromInstance` options, and `Duration` (seconds, default `3`, at most `30`), `FrameRate` (default `10`, at most `20`), `MaxFrames` (at most `256`), `Loop` (`0` loops forever), `Encode` (`false` gives the frames and delays instead of a gif).
+
+The recorder has `Status` (`"recording"`, `"done"` or `"failed"`), `FrameCount`, `Reason`, `Stop()` and `Wait(timeout?)`, which returns the gif (or `nil` and why).
+
+```lua
+local rec = Image.record(workspace, { Duration = 2 })
+local gif = rec:Wait()
+io.writefile(gif, "spin.gif")
 ```
 
 
@@ -53,7 +66,7 @@ local pngData = Image.toPng(img, true)
 io.writefile(pngData, "example.png")
 ```
 
-![Example Image](https://haotian2006.github.io/LuauBotSite/Environment/Image/example.png)
+![Example Image](https://rluwa.com/Environment/Image/example.png)
 
 ### `toGif(frames:{Image},frameDelays:{number},options: {},outputLogs:boolean?): string`
 Encodes multiple Image objects as a raw string encoded as a gif. `frameDelays` is an array of numbers representing the delay for each frame in seconds. `options` is a table that can contain the following optional fields:
@@ -86,7 +99,7 @@ local gifData = Image.toGif(frames_ball, durations_ball, nil, true)
 io.writefile(gifData, "ball.gif")
 ```
 
-![Example Image](https://haotian2006.github.io/LuauBotSite/Environment/Image/ball.gif)
+![Example Image](https://rluwa.com/Environment/Image/ball.gif)
 
 ### `plotFunction(function: (x:number) -> (...number), options:{}?) -> Image`
 **Params**:

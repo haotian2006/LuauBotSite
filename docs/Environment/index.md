@@ -1,14 +1,15 @@
 # Executing code
 
 ???+ warning
-    Because Luau Runner uses the execute code cloud api to run code, this means physics will not be simulated and some RunService events will not fire. These may be emulated in the future.
+    Because Luau Runner runs code in Roblox Studio on its own server, or with the execute code cloud api when Studio is busy, this means physics will not be simulated. RunService events are emulated.
+
 
 Luau Runner has a few custom globals that you can use.
 
-You can get a typefile containing all the types [here](https://github.com/haotian2006/LuauBotSite/blob/main/types.luau).
+You can get a typefile containing all the types [here](https://rluwa.com/playground/botTypes.d.luau).
 
 ### `TIMEOUT: number`
-The maximum time (in seconds) that a code execution is allowed to run before terminated. Defaults to 15 seconds. 
+The maximum time (in seconds) that a code execution is allowed to run before terminated. Defaults to 25 seconds. 
 
 ```lua
 TIMEOUT = 3 -- make sure it's not a local
@@ -18,7 +19,11 @@ end
 ```
 
 ???+ info
-    The maximum time a session can run for is 5 minutes before it shuts down.
+    The maximum time a session can run for is 5 minutes before it shuts down. In Studio a session lasts up to 4 minutes, and code still running when it ends stops with `Session ended.`
+
+### Limits
+- Each run can use the memory left of 1 GB, and at least 128 MB: `Memory limit exceeded`.
+- At most 8 files can be written, 10 MB each.
 
 
 
@@ -30,6 +35,19 @@ Should the time stamp be included when logging. If false it will not give a time
 
 ### `user:{Name:string,UserId:number}`
 A table containing information about the user who sent the code to be executed.
+
+### DataStores and MemoryStores
+`DataStoreService` and `MemoryStoreService` work in Discord, and what you save is kept between runs.
+
+- Your data is kept under your User ID, up to 1 MB.
+- Data that isn't used for 30 days is deleted. MemoryStore entries are deleted when they expire.
+- Code run in the play ground doesn't save anything.
+
+```lua
+local store = game:GetService("DataStoreService"):GetDataStore("scores")
+print(store:GetAsync("best")) -- nil the first time
+store:SetAsync("best", 42)
+```
 
 ### `ask(prompt:string,contextId:string?): string`
 
@@ -110,13 +128,13 @@ Is native code generation enabled. Should not be modified at runtime. Does not e
 ### `optimize: number`
 The optimization level that the script is running in. Should not be modified at runtime. Does not effect running code.
 
-### `runpy(code:string): pyruntime`
-Executes the given Python code and returns the runtime. This is missing a lot of features and is very basic currently.
-Check out the module [here](https://devforum.roblox.com/t/pylua-python-interpreter-in-luau/3672669).
+### Libraries
+These are available without requiring anything:
 
-### `newpy(): pyruntime`
-Creates a new Python environment. `input` links to `io.read()` and any prints or errors gets logged to the output.
+- [`discord`](discord.md): buttons and other things for the response.
+- [`table`](etable.md): the default table library with extra functions.
+- [`io`](io.md): input, output files, images and `import`.
+- [`misc`](misc.md): some random functions.
+- [`Image`](Image.md): create, edit and render images.
 
-
-??? warning
-    These were added for gimmicky purposes and are just here for fun.
+[Lune libraries](lune.md) like `@lune/fs` and `@lune/serde` can be required too.

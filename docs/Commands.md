@@ -3,7 +3,7 @@
 Here are the valid slash commands that you can use with the bot:
 
 - `/ping`: Responds with "Pong!"
-- `/compile`: Executes the given Luau code. Runs on Roblox by default; simple, self-contained scripts may instead run locally on [Lune](https://lune-org.github.io/docs) for a faster response.
+- `/compile`: Executes the given Luau code on Roblox.
 - `/help`: Brings them here
 - `/input`: sends inputs to io.read() when compiling code
 - `/hiddeninput`: sends inputs to io.read() without notifying the channel
@@ -69,8 +69,9 @@ Any raw output will go through a basic filter for slurs and swears. If the outpu
 
 ## Execution runtime
 
-`/compile` and `compileWOption` don't always run on Roblox. If the code is
-self-contained, and no other
-Roblox-only globals are used, it runs locally on [Lune](https://lune-org.github.io/docs)
-instead, which responds much faster than spinning up a Roblox session. You can tell if its running locally by the presence of a `Lune` in the server number. You can force lune execution by using the `--!lune` hot comment.
+`/compile` and `compileWOption` run in Roblox Studio on the bot's own server, which responds much faster than spinning up a Roblox session. You can tell where it ran by the server number: `Studio #N` for Studio, `Server #N` for the execute code cloud api, which is used when Studio is busy. Code no longer runs on Lune.
+
+## Cooldowns
+
+Code that crashes or overloads the bot gets a short cooldown, with `Failed to start. Try again in N seconds.` The play ground allows 10 runs a minute.
 

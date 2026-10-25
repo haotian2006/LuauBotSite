@@ -51,6 +51,7 @@ Writes an image file without converting it yourself, and returns the file name u
 - An `Image` is written as a `.png`.
 - A list of Images is written as a `.gif`. Options: `Delay` (seconds per frame, or a list of them; default `0.1`), `Loop` (`0` loops forever).
 - An Instance (`workspace`, a model, a ScreenGui, ...) is rendered with [`Image.fromInstance`](Image.md) first; `options` are passed to it.
+- A recording from [`Image.record`](Image.md) is written as a `.gif`. An Instance is recorded first if `options` has `Duration` or `FrameRate`.
 
 The extension is added if `filename` doesn't have one; the default name is `image`.
 
@@ -65,8 +66,11 @@ Builds a GitHub repository or a Wally package into an Instance.
 
 - `github.com/<owner>/<repo>`: builds `default.project.json`, or `src/` if there isn't one.
 - `.../tree/<branch>/<path>` or `.../blob/<branch>/<path>`: builds that folder or file.
-- `.../releases/download/<tag>/<file>.rbxm`
+- `.../releases/download/<tag>/<file>.rbxm` or `.../releases/latest/download/<file>.rbxm` (`.rbxmx` works too)
+- `raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>`
 - `wally:<scope>/<name>@<version>` 
+
+Only public repositories work, and a build is cached for 10 minutes. A repository can be up to 80 MB, with up to 5000 files (32 MB in all) and 4 MB per file.
 
 !!!warning
     Scripts don't run when imported

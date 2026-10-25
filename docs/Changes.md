@@ -1,9 +1,21 @@
 # Updates
 
+## 10/25/26
+
+- Renamed from luau runner to luwa.
+- Code now runs in Roblox Studio on the bot's own server.
+- Code no longer runs on Lune.
+- `DataStoreService` and `MemoryStoreService` now keep your data between runs in Discord.
+- Added memory and CPU limits for each run, and code cut off when its session ends stops with `Session ended.`
+- Added `Image.record` to record an Instance into a gif.
+- Lune libraries like `@lune/fs` and `@lune/serde` can be required.
+- Faster png and gif encoding.
+
+
 ## 10/9/26
 
 - Added `Image.fromInstance` to render workspace, models, ViewportFrames and UI into an image.
-- Added `Image.fromAsset` to download Roblox image assets, and `Image.measureText`.
+- Added `Image.fromAsset` to download Roblox image assets.
 - Added `io.writeimage` to write an Image (png), a list of Images (gif) or a rendered Instance in one call.
 - `DrawText` now draws anti-aliased text in any size, with fonts, wrapping, alignment and outlines.
 - Added `io.import` to build GitHub repositories (Rojo rules) and release `.rbxm` files into instances.

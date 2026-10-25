@@ -1,4 +1,5 @@
 site_name: Luau Runner
+site_url: https://rluwa.com/
 theme:
   name: material
   favicon: images/favicon.png
@@ -32,6 +33,7 @@ nav:
       - io: Environment/io.md
       - misc: Environment/misc.md
       - Image: Environment/Image.md
+      - lune: Environment/lune.md
   - Playground: playground.md
   - Tos: TOS.md
   - Privacy Policy: PrivacyPolicy.md

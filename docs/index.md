@@ -13,7 +13,7 @@ To use the bot, simply type one of the following commands in your Discord server
 
 You could also right click or hold a code block and click on `Apps` and select a command to execute the action.
 
-<a href="https://haotian2006.github.io/LuauBotSite/images/hello.png"><img src="https://haotian2006.github.io/LuauBotSite/images/hello.png" alt="image" border="0"></a>
+<a href="https://rluwa.com/images/hello.png"><img src="https://rluwa.com/images/hello.png" alt="image" border="0"></a>
 ---
 
 ## Security

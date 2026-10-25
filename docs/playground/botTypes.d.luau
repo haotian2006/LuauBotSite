@@ -149,8 +149,14 @@ declare function ask(prompt: string, contextId: (string | boolean)?): string
 declare function setenvkey(key: string, value: any): ()
 declare function firesignal(signal: RBXScriptSignal, ...: any): ()
 declare function fireevent(instance: Instance, eventName: string, ...: any): ()
-declare function runpy(code: string): any
-declare function newpy(): any
+declare _native: {
+    encodePng: (width: number, height: number, pixels: buffer | string, compression: number?) -> string,
+    encodeGif: (width: number, height: number, frames: { buffer | string }, delays: { number }, loops: number?) -> string,
+    convolveSeparable: (width: number, height: number, pixels: buffer, kernel: { number }) -> (),
+    convolve2D: (width: number, height: number, pixels: buffer, weights: { number }, size: number, divisor: number?, bias: number?) -> (),
+    clock: () -> number,
+    fnv1a: (data: string) -> string,
+}?
 
 -- Extended table library
 declare etable: {

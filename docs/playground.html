@@ -1782,8 +1782,30 @@ declare myGlobal: MyClass'></textarea>
       "NumberSequenceKeypoint", "ColorSequence", "ColorSequenceKeypoint", "PhysicalProperties", "Random",
       "DateTime", "Font", "Axes", "Faces", "RaycastParams", "OverlapParams", "PathWaypoint", "SharedTable",
     ]);
+    // Class words are context-sensitive, so a variable named "class" or "public" stays plain.
+    const CLASS_PREFIX = /^\s*(?:export\s+)?(?:open\s+)?$/;
+    const CLASS_START = /^\s*(?:export\s+)?(?:open\s+)?class\s+[A-Za-z_]/;
+    function classWordIsKeyword(word, before, rest) {
+      if (word === "class") return CLASS_PREFIX.test(before) && /^\s+[A-Za-z_]/.test(rest);
+      if (word === "open") return /^\s*(?:export\s+)?$/.test(before) && /^\s+class\s+[A-Za-z_]/.test(rest);
+      if (word === "extends") return /^\s*(?:export\s+)?(?:open\s+)?class\s+[A-Za-z_]\w*\s+$/.test(before);
+      if (word === "public") return /^\s*$/.test(before) && /^\s+[A-Za-z_]/.test(rest);
+      return false;
+    }
+
     CodeMirror.defineMode("luau", function (config) {
-      const lua = CodeMirror.getMode(config, "lua");
+      const baseLua = CodeMirror.getMode(config, "lua");
+      // The Lua mode indents after function/if/do; a class body needs the same, closed by its "end".
+      const lua = Object.assign({}, baseLua, {
+        token(stream, state) {
+          const style = baseLua.token(stream, state);
+          if (style === "variable" && stream.current() === "class" &&
+              CLASS_PREFIX.test(stream.string.slice(0, stream.start)) && CLASS_START.test(stream.string)) {
+            state.indentDepth++;
+          }
+          return style;
+        },
+      });
       return CodeMirror.overlayMode(lua, {
         token(stream) {
           if (stream.match(/^[A-Za-z_]\w*/)) {
@@ -1795,6 +1817,7 @@ declare myGlobal: MyClass'></textarea>
             if (!isMember) {
               if (word === "export" || ((word === "type" || word === "const") && /^\s+[A-Za-z_]/.test(rest))) return "luau-kw";
               if (word === "continue" && !/^\s*[(=.:\["'{]/.test(rest)) return "luau-kw";
+              if (classWordIsKeyword(word, before, rest)) return "luau-kw";
               if (word === "true" || word === "false" || word === "nil") return "luau-bool";
               if (word === "self") return "luau-self";
             }
@@ -1857,7 +1880,7 @@ declare myGlobal: MyClass'></textarea>
         Tab: cm => cm.execCommand("insertSoftTab"),
         "Ctrl-Space": cm => CodeMirror.showHint(cm, luauHint, { completeSingle: false }),
         "Enter": cm => {
-          // Auto-close Luau blocks: "do", "then", "function ... )" → insert end
+          // Auto-close Luau blocks: "do", "then", "function ... )", "class Name" → insert end
           const cur = cm.getCursor();
           const line = cm.getLine(cur.line);
           const typed = line.slice(0, cur.ch).trimEnd();
@@ -1867,7 +1890,8 @@ declare myGlobal: MyClass'></textarea>
           const opensBlock =
             /\bdo\s*$/.test(typed) ||
             /\bthen\s*$/.test(typed) ||
-            /\bfunction\b[^)]*\)\s*$/.test(typed);
+            /\bfunction\b[^)]*\)\s*$/.test(typed) ||
+            /^\s*(?:export\s+)?(?:open\s+)?class\s+[A-Za-z_]\w*(?:\s+extends\s+[A-Za-z_][\w.]*)?\s*$/.test(typed);
 
           if (opensBlock) {
             cm.replaceRange("\n" + inner + "\n" + indent + "end", CodeMirror.Pos(cur.line, cur.ch));
@@ -2154,7 +2178,7 @@ declare myGlobal: MyClass'></textarea>
       } else if (state.status === "loading") {
         message.textContent = "Downloading…";
       } else if (state.status !== "loaded") {
-        message.textContent = "Not downloaded, so autocomplete doesn't know this package's types.";
+        message.textContent = "Not downloaded, no types";
       }
       if (message.textContent) parts.push(message);
       const actions = document.createElement("div");
@@ -3192,7 +3216,7 @@ declare myGlobal: MyClass'></textarea>
     });
 
     // ── App ──
-    const SERVER = "https://luau.testdemo.win";
+    const SERVER = "https://api.rluwa.com";
     const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
     const TOOL_REFRESH_MS = 650; // Leave room under the 120 requests/minute limit.
     const TOOL_EDIT_DELAY_MS = 300;
