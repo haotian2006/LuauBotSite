@@ -1,0 +1,22 @@
+/* The header stays neutral so the logo carries the color; links and accents use the logo's blue. */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #ffffff;
+  --md-primary-fg-color--light: #ffffff;
+  --md-primary-fg-color--dark: #f5f6f8;
+  --md-primary-bg-color: rgba(0, 0, 0, .87);
+  --md-primary-bg-color--light: rgba(0, 0, 0, .54);
+  --md-accent-fg-color: #01579b;
+  --md-typeset-a-color: #0277bd;
+}
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: hsl(232 15% 18%);
+  --md-primary-fg-color--light: hsl(232 15% 22%);
+  --md-primary-fg-color--dark: hsl(232 15% 14%);
+  --md-primary-bg-color: hsla(232, 75%, 95%, .92);
+  --md-primary-bg-color--light: hsla(232, 75%, 95%, .6);
+  --md-accent-fg-color: #80d7ff;
+  --md-typeset-a-color: #4fc3f7;
+}
+.md-header { box-shadow: 0 1px 0 var(--md-default-fg-color--lightest); }
+[data-md-color-scheme="default"] .md-search__form { background-color: #0000000d; }
+[data-md-color-scheme="default"] .md-search__form:hover { background-color: #00000014; }

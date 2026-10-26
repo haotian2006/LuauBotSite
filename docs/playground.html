@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
   <script>
     (function () {
       function pickTheme() {
@@ -48,7 +49,7 @@
       border: 1px solid var(--pg-border) !important;
       border-radius: var(--pg-radius-sm) !important;
       box-shadow: var(--pg-elevation) !important;
-      font-family: "JetBrains Mono", "Fira Code", Consolas, monospace !important;
+      font-family: var(--pg-mono) !important;
       font-size: 12.5px !important;
       padding: 4px 0 !important;
       max-height: 220px !important;
@@ -66,7 +67,7 @@
     }
 
     .CodeMirror-hint-active .cm-hint-detail {
-      color: var(--pg-muted-2) !important;
+      color: var(--pg-muted) !important;
     }
 
     .cm-hint-deprecated {
@@ -75,7 +76,7 @@
     }
 
     .cm-hint-detail {
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
       font-size: 11px;
       margin-left: 8px;
       float: right;
@@ -85,7 +86,6 @@
       white-space: nowrap;
     }
 
-    /* ── Lint gutter + underlines ── */
     .CodeMirror-lint-markers {
       width: 16px;
     }
@@ -116,7 +116,7 @@
       border: 1px solid var(--pg-border) !important;
       color: var(--pg-fg) !important;
       border-radius: var(--pg-radius-sm) !important;
-      font: 12px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace !important;
+      font: 12px/1.5 var(--pg-mono) !important;
       padding: 5px 10px !important;
       max-width: 480px !important;
     }
@@ -129,7 +129,7 @@
     }
 
     body {
-      background: #0f1117;
+      background: var(--pg-bg);
       color: var(--pg-fg);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       display: flex;
@@ -138,7 +138,6 @@
       overflow: hidden;
     }
 
-    /* ── Toolbar ── */
     .toolbar {
       display: flex;
       align-items: center;
@@ -160,9 +159,7 @@
     .toolbar-title {
       font-size: 13px;
       font-weight: 600;
-      color: var(--pg-muted);
-      letter-spacing: .04em;
-      text-transform: uppercase;
+      color: var(--pg-fg);
       margin-right: 4px;
     }
 
@@ -217,7 +214,7 @@
       align-items: center;
       gap: 5px;
       font-size: 12px;
-      color: var(--pg-muted);
+      color: var(--pg-fg);
       cursor: pointer;
       user-select: none;
     }
@@ -232,9 +229,9 @@
     }
 
     #shareBtn, #exportAllBtn, #importFilesBtn {
-      background: var(--pg-surface-2);
+      background: transparent;
       color: var(--pg-fg);
-      border: 1px solid var(--pg-border);
+      border: 1px solid transparent;
       font-size: 12px;
       padding: 3px 10px;
     }
@@ -248,9 +245,9 @@
     }
 
     #settingsBtn {
-      background: var(--pg-surface-2);
+      background: transparent;
       color: var(--pg-fg);
-      border: 1px solid var(--pg-border);
+      border: 1px solid transparent;
       font-size: 12px;
       padding: 3px 10px;
     }
@@ -259,7 +256,6 @@
       background: var(--pg-hover);
     }
 
-    /* ── Settings popover ── */
     #settings-popover {
       display: none;
       position: fixed;
@@ -280,10 +276,8 @@
     #settings-popover-header {
       padding: 8px 12px 6px;
       border-bottom: 1px solid var(--pg-border);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .05em;
       color: var(--pg-muted);
       flex-shrink: 0;
     }
@@ -320,25 +314,28 @@
       cursor: pointer;
     }
 
+    button.settings-row {
+      width: 100%;
+      background: transparent;
+      font-weight: 400;
+      border-radius: 0;
+      text-align: left;
+    }
+
+    button.settings-row:focus-visible {
+      outline-offset: -2px;
+    }
+
     #smLabel {
       font-size: 13px;
       color: var(--pg-fg);
     }
 
-    #smLabel.loaded {
-      color: var(--pg-accent);
-    }
-
     #smStatus {
       font-size: 11px;
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
     }
 
-    #smStatus.loaded {
-      color: var(--pg-accent);
-    }
-
-    /* ── Sourcemap modal ── */
     #sm-backdrop {
       display: none;
       position: fixed;
@@ -380,17 +377,15 @@
       padding: 10px 14px 8px;
       border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .05em;
       color: var(--pg-muted);
     }
 
     #smModalClose {
       background: none;
       border: none;
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
       font-size: 18px;
       padding: 0 4px;
       cursor: pointer;
@@ -410,7 +405,7 @@
       outline: none;
       resize: none;
       padding: 12px 14px;
-      font: 12.5px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      font: 12.5px/1.6 var(--pg-mono);
       tab-size: 2;
     }
 
@@ -449,11 +444,11 @@
     #sm-error,
     #defs-error {
       font-size: 11px;
-      color: #f85149;
+      color: var(--ansi-31);
       margin-left: 4px;
     }
 
-    /* ── Custom definitions modal (same layout as sourcemap) ── */
+    /* Same layout as the sourcemap modal. */
     #defs-backdrop {
       display: none;
       position: fixed;
@@ -495,17 +490,15 @@
       padding: 10px 14px 8px;
       border-bottom: 1px solid var(--pg-border);
       flex-shrink: 0;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .05em;
       color: var(--pg-muted);
     }
 
     #defsModalClose {
       background: none;
       border: none;
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
       font-size: 18px;
       padding: 0 4px;
       cursor: pointer;
@@ -525,7 +518,7 @@
       outline: none;
       resize: none;
       padding: 12px 14px;
-      font: 12.5px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      font: 12.5px/1.6 var(--pg-mono);
       tab-size: 2;
     }
 
@@ -566,27 +559,17 @@
       color: var(--pg-fg);
     }
 
-    #defsLabel.loaded {
-      color: var(--pg-accent);
-    }
-
     #defsStatus {
       font-size: 11px;
-      color: var(--pg-muted-2);
-    }
-
-    #defsStatus.loaded {
-      color: var(--pg-accent);
+      color: var(--pg-muted);
     }
 
     #status {
       font-size: 12px;
-      color: var(--pg-muted-2);
-      font-family: monospace;
+      color: var(--pg-muted);
       white-space: nowrap;
     }
 
-    /* ── Layout ── */
     .body-row {
       display: flex;
       flex: 1;
@@ -602,11 +585,10 @@
       min-width: 0;
     }
 
-    /* ── History button (desktop) ── */
     #hist-popover-btn {
-      background: var(--pg-surface-2);
+      background: transparent;
       color: var(--pg-fg);
-      border: 1px solid var(--pg-border);
+      border: 1px solid transparent;
       font-size: 12px;
       padding: 3px 10px;
     }
@@ -615,7 +597,6 @@
       background: var(--pg-hover);
     }
 
-    /* ── History floating popover ── */
     #hist-popover {
       display: none;
       position: fixed;
@@ -643,12 +624,29 @@
       flex-shrink: 0;
     }
 
-    #hist-popover-header span {
-      font-size: 11px;
+    #hist-popover-header > span,
+    #hist-sheet-header > span {
+      font-size: 12px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .05em;
       color: var(--pg-muted);
+    }
+
+    .hist-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hist-header-actions .lint-toggle {
+      font-size: 11px;
+    }
+
+    .hist-header-actions button {
+      padding: 2px 6px;
+      background: var(--pg-surface-2);
+      color: var(--pg-fg);
+      font-size: 11px;
+      line-height: 1;
     }
 
     #history-list {
@@ -677,7 +675,7 @@
 
     .hist-label {
       font-size: 11px;
-      font-family: monospace;
+      font-family: var(--pg-mono);
       color: var(--pg-fg);
       white-space: nowrap;
       overflow: hidden;
@@ -686,7 +684,7 @@
 
     .hist-time {
       font-size: 10px;
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
       margin-top: 2px;
     }
 
@@ -694,7 +692,7 @@
       flex-shrink: 0;
       background: none;
       border: none;
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
       padding: 0 8px;
       font-size: 14px;
       cursor: pointer;
@@ -704,20 +702,26 @@
     }
 
     .hist-del:hover {
-      color: #f85149;
+      color: var(--ansi-31);
       background: none;
     }
 
     #history-empty {
       padding: 12px 10px;
       font-size: 11px;
-      color: var(--pg-muted-2);
+      color: var(--pg-fg);
       text-align: center;
     }
 
-    /* ── Mobile history bottom sheet ── */
     #hist-sheet-btn {
       display: none;
+      background: transparent;
+      color: var(--pg-fg);
+      border: 1px solid transparent;
+    }
+
+    #hist-sheet-btn:hover {
+      background: var(--pg-hover);
     }
 
     #hist-sheet-backdrop {
@@ -761,18 +765,10 @@
       flex-shrink: 0;
     }
 
-    #hist-sheet-header span {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      color: var(--pg-muted);
-    }
-
     #hist-sheet-close {
       background: none;
       border: none;
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
       font-size: 18px;
       padding: 0 4px;
       cursor: pointer;
@@ -790,11 +786,6 @@
       padding: 4px 0;
     }
 
-    #hist-sheet-btn {
-      display: none;
-    }
-
-    /* ── Mobile bottom history tab ── */
     #hist-bottom-tab {
       display: none;
     }
@@ -848,7 +839,6 @@
       }
     }
 
-    /* ── CodeMirror 5 editor ── */
     #editor-wrapper {
       flex: 1;
       min-height: 0;
@@ -860,8 +850,8 @@
     #editor-wrapper .CodeMirror {
       flex: 1;
       height: 100%;
-      background: #282a36;
-      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+      background: var(--pg-editor);
+      font-family: var(--pg-mono);
       font-size: 13.5px;
       line-height: 1.6;
     }
@@ -870,7 +860,6 @@
       height: 100%;
     }
 
-    /* ── Stdin row ── */
     .input-row {
       display: flex;
       flex-direction: column;
@@ -894,7 +883,7 @@
       border: 1px solid var(--pg-border);
       border-radius: var(--pg-radius-sm);
       padding: 5px 10px;
-      font: 13px monospace;
+      font: 13px var(--pg-mono);
       outline: none;
       transition: border-color .15s;
     }
@@ -904,7 +893,7 @@
     }
 
     #inputBox::placeholder {
-      color: #3d444d;
+      color: var(--pg-muted);
     }
 
     .input-row.runlocal-disabled {
@@ -928,13 +917,13 @@
     }
 
     .input-row.runlocal-disabled #inputBox::placeholder {
-      color: var(--pg-muted-2);
+      color: var(--pg-muted);
       text-decoration: line-through;
     }
 
     #attachBtn {
       background: var(--pg-surface-2);
-      color: var(--pg-muted);
+      color: var(--pg-fg);
       border: 1px solid var(--pg-border);
       border-radius: var(--pg-radius-sm);
       padding: 5px 9px;
@@ -955,6 +944,7 @@
       flex-wrap: wrap;
       gap: 6px;
       padding: 0 10px 8px;
+      background: var(--pg-surface);
     }
 
     #fileQueue:empty {
@@ -972,6 +962,10 @@
       font-size: 12px;
       color: var(--pg-fg);
       max-width: 220px;
+    }
+
+    .file-chip:hover {
+      background: var(--pg-hover);
     }
 
     .file-chip span {
@@ -992,17 +986,16 @@
     }
 
     .file-chip-remove:hover {
-      color: #f85149;
+      color: var(--ansi-31);
     }
 
-    /* ── Output ── */
     #output {
       flex: 1;
-      background: var(--pg-input);
+      background: var(--pg-surface);
       padding: 14px 16px;
       overflow-y: auto;
       white-space: pre-wrap;
-      font: 13px/1.6 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      font: 13px/1.6 var(--pg-mono);
       color: var(--pg-fg);
     }
 
@@ -1019,7 +1012,6 @@
       border-radius: var(--pg-radius-sm);
     }
 
-    /* ── Files ── */
     #files {
       display: flex;
       flex-wrap: wrap;
@@ -1074,7 +1066,6 @@
       background: var(--pg-hover);
     }
 
-    /* ── Signature help tooltip ── */
     #sig-help {
       display: none;
       position: absolute;
@@ -1083,7 +1074,7 @@
       border: 1px solid var(--pg-border);
       border-radius: var(--pg-radius-sm);
       padding: 5px 10px;
-      font: 12.5px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace;
+      font: 12.5px/1.5 var(--pg-mono);
       color: var(--pg-fg);
       box-shadow: var(--pg-elevation);
       max-width: min(480px, calc(100vw - 16px));
@@ -1101,7 +1092,6 @@
       font-size: 11.5px;
     }
 
-    /* ── Hover type tooltip ── */
     #hover-tip {
       display: none;
       position: fixed;
@@ -1110,8 +1100,8 @@
       border: 1px solid var(--pg-border);
       border-radius: var(--pg-radius-sm);
       padding: 5px 10px;
-      font: 12px/1.5 "JetBrains Mono", "Fira Code", Consolas, monospace;
-      color: var(--code-builtin);
+      font: 12px/1.5 var(--pg-mono);
+      color: var(--pg-fg);
       max-width: min(480px, calc(100vw - 16px));
       white-space: pre-wrap;
       overflow-wrap: anywhere;
@@ -1119,7 +1109,6 @@
       box-shadow: var(--pg-elevation);
     }
 
-    /* ── Lightbox ── */
     #lightbox {
       display: none;
       position: fixed;
@@ -1173,136 +1162,7 @@
       }
     }
   </style>
-  <style>
-
-    body {
-      background: var(--pg-bg);
-      color: var(--pg-fg);
-    }
-
-    .toolbar,
-    .input-row,
-    #fileQueue,
-    #files,
-    #output,
-    #settings-popover,
-    #hist-popover,
-    #hist-sheet,
-    #sm-modal,
-    #defs-modal {
-      background: var(--pg-surface) !important;
-      border-color: var(--pg-border) !important;
-      color: var(--pg-fg) !important;
-    }
-
-    .toolbar,
-    .input-row,
-    #files,
-    #output {
-      background-color: var(--pg-surface) !important;
-    }
-
-    #editor-wrapper {
-      border-bottom-color: var(--pg-border);
-    }
-
-    #editor-wrapper .CodeMirror {
-      background: var(--pg-editor) !important;
-      color: var(--pg-fg) !important;
-    }
-
-    #editor-wrapper .CodeMirror-gutters {
-      background: var(--pg-surface) !important;
-      border-right-color: var(--pg-border) !important;
-    }
-
-    #inputBox,
-    #sm-editor,
-    #defs-editor {
-      background: var(--pg-input) !important;
-      color: var(--pg-fg) !important;
-      border-color: var(--pg-border) !important;
-    }
-
-    .file-chip,
-    #attachBtn,
-    #sendBtn,
-    #shareBtn,
-    #settingsBtn,
-    #exportAllBtn,
-    #importFilesBtn,
-    #hist-popover-btn,
-    #hist-sheet-btn,
-    #hist-clear-btn,
-    #hist-sheet-clear {
-      background-color: var(--pg-surface-2) !important;
-      color: var(--pg-fg) !important;
-      border-color: var(--pg-border) !important;
-    }
-
-    .toolbar-title,
-    .lint-toggle,
-    .settings-row,
-    #smLabel,
-    #defsLabel,
-    .hist-label,
-    #history-empty {
-      color: var(--pg-fg) !important;
-    }
-
-    #status,
-    .hist-time,
-    #smStatus,
-    #defsStatus,
-    .cm-hint-detail,
-    #inputBox::placeholder {
-      color: var(--pg-muted) !important;
-    }
-
-    #shareBtn:hover,
-    #settingsBtn:hover,
-    #exportAllBtn:hover,
-    #importFilesBtn:hover,
-    #hist-popover-btn:hover,
-    #hist-sheet-btn:hover,
-    #attachBtn:hover,
-    #sendBtn:hover,
-    .file-chip:hover {
-      background-color: var(--pg-hover) !important;
-    }
-
-    .CodeMirror-hints {
-      background: var(--pg-surface) !important;
-      border-color: var(--pg-border) !important;
-      box-shadow: var(--pg-elevation) !important;
-    }
-
-    .CodeMirror-hint {
-      color: var(--pg-fg) !important;
-    }
-
-    .CodeMirror-hint-active {
-      background: var(--pg-surface-2) !important;
-      color: var(--pg-accent) !important;
-    }
-
-    .CodeMirror-hint-active .cm-hint-detail {
-      color: var(--pg-muted) !important;
-    }
-
-    .CodeMirror-lint-tooltip,
-    #sig-help,
-    #hover-tip {
-      background: var(--pg-surface) !important;
-      border-color: var(--pg-border) !important;
-      color: var(--pg-fg) !important;
-      box-shadow: var(--pg-elevation) !important;
-    }
-  </style>
   <link rel="stylesheet" href="playground/playground.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap">
 </head>
 
 <body>
@@ -1337,7 +1197,7 @@
             <button id="expandEditorBtn" class="pane-view-button" type="button" title="Expand editor" aria-label="Expand editor" aria-pressed="false" aria-controls="editor-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
           </div>
         </div>
-        <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
+        <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code" placeholder='print("Hello world")'></textarea></div>
         <div class="editor-footer"><span>Luau</span><span class="legal" title="Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.">Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.</span></div>
       </section>
       <div class="pane-splitter" role="separator" tabindex="0" aria-label="Resize editor and console" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75" aria-controls="console-pane"></div>
@@ -1413,9 +1273,8 @@
       </div>
       </section>
     </div>
-  </div><!-- /.body-row -->
+  </div>
 
-  <!-- Settings popover -->
   <div id="settings-popover">
     <div id="settings-popover-header"><span>Settings</span></div>
     <div id="settings-popover-body">
@@ -1445,23 +1304,22 @@
         <span>Bot types</span>
       </label>
       <div class="settings-divider"></div>
-      <div class="settings-row settings-sourcemap" id="smRow">
+      <button type="button" class="settings-row settings-sourcemap" id="smRow">
         <span id="smLabel">Sourcemap</span>
-        <span id="smStatus">—</span>
-      </div>
-      <div class="settings-row settings-sourcemap" id="defsRow">
+        <span id="smStatus">Not set</span>
+      </button>
+      <button type="button" class="settings-row settings-sourcemap" id="defsRow">
         <span id="defsLabel">Definitions</span>
-        <span id="defsStatus">—</span>
-      </div>
+        <span id="defsStatus">Not set</span>
+      </button>
     </div>
   </div>
 
-  <!-- Custom definitions modal -->
   <div id="defs-backdrop"></div>
-  <div id="defs-modal">
+  <div id="defs-modal" role="dialog" aria-modal="true" aria-labelledby="defs-modal-title">
     <div id="defs-modal-header">
-      <span>Custom definitions (.d.luau)</span>
-      <button id="defsModalClose">&#215;</button>
+      <span id="defs-modal-title">Custom definitions (.d.luau)</span>
+      <button id="defsModalClose" aria-label="Close">&#215;</button>
     </div>
     <textarea id="defs-editor" spellcheck="false" placeholder='-- Custom type definitions (loaded as @custom)
 declare class MyClass
@@ -1476,12 +1334,11 @@ declare myGlobal: MyClass'></textarea>
     </div>
   </div>
 
-  <!-- Sourcemap modal -->
   <div id="sm-backdrop"></div>
-  <div id="sm-modal">
+  <div id="sm-modal" role="dialog" aria-modal="true" aria-labelledby="sm-modal-title">
     <div id="sm-modal-header">
-      <span>Sourcemap JSON</span>
-      <button id="smModalClose">&#215;</button>
+      <span id="sm-modal-title">Sourcemap JSON</span>
+      <button id="smModalClose" aria-label="Close">&#215;</button>
     </div>
     <textarea id="sm-editor" spellcheck="false"
       placeholder='{"name":"Game","className":"DataModel","children":[]}'></textarea>
@@ -1492,18 +1349,15 @@ declare myGlobal: MyClass'></textarea>
     </div>
   </div>
 
-  <!-- Desktop history popover -->
   <div id="hist-popover">
     <div id="hist-popover-header">
       <span>History</span>
-      <div style="display:flex;align-items:center;gap:6px">
-        <label class="lint-toggle" id="hist-record-label" title="Record runs to history"
-          style="font-size:10px;color:#6e7681">
+      <div class="hist-header-actions">
+        <label class="lint-toggle" id="hist-record-label" title="Record runs to history">
           <input type="checkbox" id="histRecordCheck" />
           <span>Record</span>
         </label>
-        <button id="hist-clear-btn" title="Clear all history"
-          style="background:none;border:none;color:#6e7681;font-size:11px;padding:0;cursor:pointer;line-height:1">Clear</button>
+        <button id="hist-clear-btn" title="Clear all history">Clear</button>
       </div>
     </div>
     <div id="history-list">
@@ -1528,25 +1382,21 @@ declare myGlobal: MyClass'></textarea>
     <div id="screenButtons" class="screen-buttons" role="group" aria-label="Script buttons" hidden></div>
   </div>
 
-  <!-- Mobile history bottom sheet -->
   <div id="hist-sheet-backdrop"></div>
-  <div id="hist-sheet">
+  <div id="hist-sheet" role="dialog" aria-label="History">
     <div id="hist-sheet-header">
       <span>History</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <label class="lint-toggle" title="Record runs to history" style="font-size:10px;color:#6e7681">
+      <div class="hist-header-actions">
+        <label class="lint-toggle" title="Record runs to history">
           <input type="checkbox" id="histRecordCheckMobile" />
           <span>Record</span>
         </label>
-        <button id="hist-sheet-clear"
-          style="background:none;border:none;color:#6e7681;font-size:12px;padding:0;cursor:pointer;line-height:1">Clear
-          all</button>
-        <button id="hist-sheet-close">&#215;</button>
+        <button id="hist-sheet-clear">Clear all</button>
+        <button id="hist-sheet-close" aria-label="Close">&#215;</button>
       </div>
     </div>
     <div id="hist-sheet-list"></div>
   </div>
-  <!-- Mobile bottom history tab -->
   <div id="hist-bottom-tab">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
       stroke-linecap="round" stroke-linejoin="round">
@@ -1561,18 +1411,18 @@ declare myGlobal: MyClass'></textarea>
   <div id="import-popup" role="dialog" aria-label="io.import download"></div>
 
   <script>
-    // ── Language server (playground/lsp-client.js → lsp.worker.js → wasm/luau-lsp.wasm) ──
+    // Language server: playground/lsp-client.js → lsp.worker.js → wasm/luau-lsp.wasm.
     const lsp = window.playgroundLsp || new LuauLspClient();
     // Globals the bot expects scripts to assign, e.g. TIMEOUT = 30
     const BOT_SETTABLE_GLOBALS = new Set(["TIMEOUT", "OUTPUT_LOGS", "TIMESTAMP"]);
 
     // Type loading shouldn't overwrite run results such as "Local · Stopped".
-    const TYPE_STATUSES = new Set(["", "Loading types..."]);
+    const TYPE_STATUSES = new Set(["", "Loading types…"]);
     function setTypeStatus(text) {
       const statusEl = document.getElementById("status");
       if (TYPE_STATUSES.has(statusEl.textContent)) statusEl.textContent = text;
     }
-    if (!lsp.ready) setTypeStatus("Loading types...");
+    if (!lsp.ready) setTypeStatus("Loading types…");
     lsp.onReady = () => {
       setTypeStatus("");
       editor.performLint();
@@ -1580,7 +1430,7 @@ declare myGlobal: MyClass'></textarea>
 
     // Definitions, the solver and custom types only apply to a freshly started server.
     function restartLsp() {
-      setTypeStatus("Loading types...");
+      setTypeStatus("Loading types…");
       completionCache = null;
       lsp.restart();
     }
@@ -1614,7 +1464,7 @@ declare myGlobal: MyClass'></textarea>
       restartLsp();
     });
 
-    // ── Autocomplete (textDocument/completion) ──
+    // Autocomplete via textDocument/completion.
     // The server returns every candidate for the context, so one response serves the whole word.
     let completionCache = null; // { key, items }
 
@@ -1755,7 +1605,7 @@ declare myGlobal: MyClass'></textarea>
     luauHint.async = true;
     CodeMirror.registerHelper("hint", "luau", luauHint);
 
-    // ── Lint (textDocument/diagnostic) ──
+    // Lint via textDocument/diagnostic.
     const LINT_SEVERITY = { 1: "error", 2: "warning", 3: "info", 4: "info" };
     function luauLint(code, callback, options, cm) {
       if (!lsp.uriOf(cm.getDoc())) { callback([]); return; }
@@ -1772,7 +1622,7 @@ declare myGlobal: MyClass'></textarea>
     }
     CodeMirror.registerHelper("lint", "luau", luauLint);
 
-    // ── Luau = Lua + an overlay for the extra token kinds Studio colors ──
+    // Luau is the Lua mode plus an overlay for the extra token kinds Studio colors.
     // Luau keywords, true/false/nil, self, calls, members, Roblox globals, and operators.
     const ROBLOX_BUILTINS = new Set([
       "game", "workspace", "script", "plugin", "shared", "Instance", "Enum", "task", "typeof", "warn",
@@ -2011,7 +1861,7 @@ declare myGlobal: MyClass'></textarea>
       if (!readParentTheme()) syncPlaygroundTheme();
     });
 
-    // ── Linter toggle (persisted) ──
+    // Linter toggle, persisted.
     // Syntax errors always show; the toggle adds type errors and lint warnings (see luauLint).
     const lintCheck = document.getElementById("lintCheck");
     lintCheck.checked = localStorage.getItem("luau_linter") === "1";
@@ -2021,7 +1871,7 @@ declare myGlobal: MyClass'></textarea>
       editor.performLint();
     });
 
-    // ── Share link: compress+base64url encode/decode ──
+    // Share link: compressed, base64url encoded.
     async function compressToB64(obj) {
       const bytes = new TextEncoder().encode(JSON.stringify(obj));
       const cs = new CompressionStream("deflate-raw");
@@ -2047,7 +1897,6 @@ declare myGlobal: MyClass'></textarea>
       return JSON.parse(new TextDecoder().decode(out));
     }
 
-    // ── Persist editor code ──
     const savedCode = localStorage.getItem("luau_code");
     if (savedCode) editor.setValue(savedCode);
     const MAIN_FILE = "main.luau";
@@ -2089,7 +1938,7 @@ declare myGlobal: MyClass'></textarea>
       }
     }
 
-    // ── io.import packages (playground/imports.js) ──
+    // io.import packages (playground/imports.js).
     // A call whose package isn't downloaded gets a yellow underline; hovering or tapping it offers
     // the download. Nothing is fetched until the user picks one, and specs whose types they loaded
     // load again on later visits.
@@ -2499,7 +2348,7 @@ declare myGlobal: MyClass'></textarea>
     } catch { renderFileTabs(); }
     const sourceId = new URLSearchParams(location.search).get("source");
 
-    // ── Load from URL hash if present (overrides localStorage) ──
+    // A URL hash overrides localStorage.
     // When embedded in an iframe the hash lives on the parent page
     let urlHash = location.hash.slice(1);
     try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch { }
@@ -2536,7 +2385,6 @@ declare myGlobal: MyClass'></textarea>
       refreshToolView();
     });
 
-    // ── Settings popover ──
     const settingsBtn = document.getElementById("settingsBtn");
     const settingsPopover = document.getElementById("settings-popover");
 
@@ -2570,7 +2418,6 @@ declare myGlobal: MyClass'></textarea>
         closeSettingsPopover();
     });
 
-    // ── Sourcemap modal ──
     const smRow = document.getElementById("smRow");
     const smLabel = document.getElementById("smLabel");
     const smStatusEl = document.getElementById("smStatus");
@@ -2585,7 +2432,7 @@ declare myGlobal: MyClass'></textarea>
     function applySmLoaded(loaded) {
       smLabel.classList.toggle("loaded", loaded);
       smStatusEl.classList.toggle("loaded", loaded);
-      smStatusEl.textContent = loaded ? "Loaded" : "—";
+      smStatusEl.textContent = loaded ? "Loaded" : "Not set";
     }
     applySmLoaded(!!localStorage.getItem("luau_sourcemap"));
 
@@ -2638,7 +2485,6 @@ declare myGlobal: MyClass'></textarea>
       if (e.key === "Escape" && defsModal.classList.contains("open")) closeDefsModal();
     });
 
-    // ── Custom definitions modal ──
     const defsRow = document.getElementById("defsRow");
     const defsLabel = document.getElementById("defsLabel");
     const defsStatusEl = document.getElementById("defsStatus");
@@ -2653,7 +2499,7 @@ declare myGlobal: MyClass'></textarea>
     function applyDefsLoaded(loaded) {
       defsLabel.classList.toggle("loaded", loaded);
       defsStatusEl.classList.toggle("loaded", loaded);
-      defsStatusEl.textContent = loaded ? "Loaded" : "—";
+      defsStatusEl.textContent = loaded ? "Loaded" : "Not set";
     }
     applyDefsLoaded(!!localStorage.getItem("luau_custom_defs"));
 
@@ -2718,14 +2564,13 @@ declare myGlobal: MyClass'></textarea>
       restartLsp();
     });
 
-    // ── Format button ──
     document.getElementById("fmtBtn").addEventListener("click", async function () {
       const code = editor.getValue();
       if (!code.trim()) return;
       this.disabled = true;
       this.classList.add("is-busy");
       this.setAttribute("aria-label", "Formatting code");
-      this.querySelector(".button-label").textContent = "Formatting...";
+      this.querySelector(".button-label").textContent = "Formatting…";
       try {
         const res = await fetch(`${SERVER}/format`, {
           method: "POST",
@@ -2739,16 +2584,21 @@ declare myGlobal: MyClass'></textarea>
             editor.setValue(formatted);
             editor.setCursor(cur);
           }
+        } else {
+          const { error } = await res.json().catch(() => ({}));
+          const reason = String(error || res.statusText).trim().split("\n")[0]
+            .replace(/^error: (failed to format from stdin: )?/, "");
+          setStatus(`Format failed: ${reason}`);
         }
-        // Silently ignore errors (format failures, rate limits)
-      } catch { }
+      } catch {
+        setStatus("Format failed: could not reach the server");
+      }
       this.disabled = false;
       this.classList.remove("is-busy");
       this.setAttribute("aria-label", "Format code (StyLua)");
       this.querySelector(".button-label").textContent = "Format";
     });
 
-    // ── Share button ──
     const MAX_EMBEDDED_STATE_CHARS = 50000;
 
     let actionNoticeTimer;
@@ -2891,7 +2741,7 @@ declare myGlobal: MyClass'></textarea>
       const url = base.replace(/\/$/, "") + "/#" + encoded;
       try {
         await navigator.clipboard.writeText(url);
-        this.querySelector(".button-label").textContent = "Copied!";
+        this.querySelector(".button-label").textContent = "Copied";
         showActionNotice("Share link copied");
         setTimeout(() => { this.querySelector(".button-label").textContent = "Share"; }, 2000);
       } catch {
@@ -2924,7 +2774,6 @@ declare myGlobal: MyClass'></textarea>
       const inserted = change.text ? change.text.join("\n") : "";
       if (!inserted) return;
 
-      // ── Auto-close brackets/quotes ──
       // Mobile input can batch keystrokes ("t("), so act on the last typed char.
       // Desktop autoCloseBrackets inserts the pair itself ("()"), which is skipped.
       const typed = inserted.slice(-1);
@@ -2949,7 +2798,6 @@ declare myGlobal: MyClass'></textarea>
 
       if (typed === "(" || typed === "," || inserted === "()") updateSigHelp(cm);
 
-      // ── Auto-trigger autocomplete ──
       // Mobile keyboards can deliver whole words at once, so look at the last char.
       if (cm.state.completionActive) return;
       const last = inserted.slice(-1);
@@ -2960,7 +2808,6 @@ declare myGlobal: MyClass'></textarea>
       CodeMirror.showHint(cm, luauHint, { completeSingle: false });
     });
 
-    // ── Signature help ──
     const sigHelp = document.getElementById("sig-help");
 
     function hideSig() { sigHelp.style.display = "none"; }
@@ -3055,7 +2902,6 @@ declare myGlobal: MyClass'></textarea>
       }, 0);
     });
 
-    // ── Hover type tooltip ──
     const hoverTip = document.getElementById("hover-tip");
     let hoverTimer = null;
 
@@ -3104,7 +2950,7 @@ declare myGlobal: MyClass'></textarea>
 
     function getHoverToken(x, y) {
       const pos = editor.coordsChar({ left: x, top: y }, "window");
-      // Try pos and pos+1 — coordsChar snaps to character boundaries so the
+      // Try pos and pos+1, since coordsChar snaps to character boundaries so the
       // left half of a token resolves to the position before it
       for (const ch of [pos.ch, pos.ch + 1]) {
         const p = { line: pos.line, ch };
@@ -3173,7 +3019,7 @@ declare myGlobal: MyClass'></textarea>
       const { token, pos } = hit;
       const tokenKey = token.string + ":" + pos.line + ":" + token.start;
 
-      // Same token and tip already visible — nothing to do
+      // Same token and tip already visible.
       if (hoverToken === tokenKey && hoverTip.style.display === "block") return;
       hoverToken = tokenKey;
       clearTimeout(hoverTimer);
@@ -3215,7 +3061,6 @@ declare myGlobal: MyClass'></textarea>
       hoverTip.style.display = "none";
     });
 
-    // ── App ──
     const SERVER = "https://api.rluwa.com";
     const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
     const TOOL_REFRESH_MS = 650; // Leave room under the 120 requests/minute limit.
@@ -3558,7 +3403,7 @@ declare myGlobal: MyClass'></textarea>
     const fileQueue = document.getElementById("fileQueue");
     const inputRow = document.querySelector(".input-row");
 
-    // ── File queue: [{file, name}] ──
+    // File queue: [{file, name}].
     let queuedFiles = [];
 
     function renderFileQueue() {
@@ -3568,12 +3413,14 @@ declare myGlobal: MyClass'></textarea>
         const chip = document.createElement("div");
         chip.className = "file-chip";
         const label = document.createElement("span");
-        label.textContent = `📄 ${file.name}`;
+        label.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7l-4-4Zm0 0v4h4"/></svg>';
+        label.append(file.name);
         label.title = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         const rm = document.createElement("button");
         rm.className = "file-chip-remove";
         rm.textContent = "×";
         rm.title = "Remove";
+        rm.setAttribute("aria-label", `Remove ${file.name}`);
         rm.addEventListener("click", () => { queuedFiles.splice(i, 1); renderFileQueue(); });
         chip.appendChild(label);
         chip.appendChild(rm);
@@ -3594,7 +3441,7 @@ declare myGlobal: MyClass'></textarea>
     inputBox.addEventListener("paste", e => {
       if (inputBox.disabled) return;
       const files = Array.from(e.clipboardData?.files ?? []);
-      if (files.length === 0) return; // no files — let normal text paste through
+      if (files.length === 0) return; // no files, so normal text pastes through
       e.preventDefault();
       for (const f of files) queuedFiles.push({ file: f });
       renderFileQueue();
@@ -3660,8 +3507,8 @@ declare myGlobal: MyClass'></textarea>
     });
 
     const ANSI_COLORS = {
-      '30': '#555', '31': '#e06c75', '32': '#98c379', '33': '#e5c07b',
-      '34': '#61afef', '35': '#c678dd', '36': '#56b6c2', '37': '#abb2bf',
+      '30': 'var(--ansi-30)', '31': 'var(--ansi-31)', '32': 'var(--ansi-32)', '33': 'var(--ansi-33)',
+      '34': 'var(--ansi-34)', '35': 'var(--ansi-35)', '36': 'var(--ansi-36)', '37': 'var(--ansi-37)',
     };
 
     function ansiToHtml(raw) {
@@ -3699,13 +3546,13 @@ declare myGlobal: MyClass'></textarea>
       results.scrollTop = results.scrollHeight;
     }
     function setRunning(running) {
+      if (running) outputEl.dataset.ran = "";
       runBtn.style.display = running ? "none" : "inline-flex";
       stopBtn.style.display = running ? "inline-flex" : "none";
       // Buttons belong to one run, like a Discord response's components.
       renderScriptButtons([]);
     }
 
-    // ── discord.button ──
     const scriptButtonsEl = document.getElementById("scriptButtons");
     function renderScriptButtons(buttons) {
       const make = button => {
@@ -3810,7 +3657,7 @@ declare myGlobal: MyClass'></textarea>
       return url;
     }
 
-    // ── screens: a run that writes screen.png (or screen2.png, ...) gets live views over the editor.
+    // screens: a run that writes screen.png (or screen2.png, ...) gets live views over the editor.
     // Desktop: one draggable widget per screen, the last one touched on top. Phone, or expanded:
     // one window with a tab per screen.
     const SCREEN_FILE = /^screen[ _-]?\d*\.(png|gif|jpe?g|webp)$/i;
@@ -4238,7 +4085,7 @@ local function __playground_entry(...)
       return lines.join("\n") + "\nend; __playground_entry_results = table.pack(__playground_entry(...)); __playground_entry_running = false; return table.unpack(__playground_entry_results, 1, __playground_entry_results.n)";
     }
 
-    // ── Run Local (playground/run.worker.js → wasm/luau-run.wasm) ──
+    // Run Local: playground/run.worker.js → wasm/luau-run.wasm.
     // Runs get their own worker, so Stop can terminate it without touching the language server.
     let runWorker = null;
     let localRun = null; // { resolve } while a run is going
@@ -4282,7 +4129,7 @@ local function __playground_entry(...)
 
     function appendLocalOutput(kind, text) {
       outputEl.insertAdjacentHTML("beforeend", kind === "print" ? ansiToHtml(text)
-        : `<span style="color:${kind === "warn" ? "#e5c07b" : "#e06c75"}">${escHtml(text)}</span>`);
+        : `<span style="color:var(${kind === "warn" ? "--ansi-33" : "--ansi-31"})">${escHtml(text)}</span>`);
       const results = outputEl.parentElement;
       results.scrollTop = results.scrollHeight;
     }
@@ -4335,12 +4182,11 @@ local function __playground_entry(...)
         catch (error) { setStatus(error.message); return; }
       }
 
-      // ── Local WASM execution ──
       if (localRunCheck.checked) {
         outputEl.innerHTML = "";
         filesEl.innerHTML = "";
         _pendingFiles = [];
-        setStatus("Running locally...");
+        setStatus("Running locally…");
         setRunning(true);
         const t0 = performance.now();
         let failed = false;
@@ -4369,7 +4215,7 @@ local function __playground_entry(...)
       outputEl.innerHTML = "";
       filesEl.innerHTML = "";
       resetScreen();
-      setStatus(moduleInput ? "Starting modules on server..." : "Starting...");
+      setStatus(moduleInput ? "Starting modules on server…" : "Starting…");
       setRunning(true);
 
       let res;
@@ -4459,7 +4305,6 @@ local function __playground_entry(...)
       });
     });
 
-    // ── Run History ──
     const HISTORY_KEY = "luau_history";
     const HISTORY_MAX = 20;
     const HISTORY_DB_NAME = "luau_playground_history";
@@ -4710,7 +4555,6 @@ local function __playground_entry(...)
       if (h.length === 0) clearEmbeddedCache();
     }
 
-    // ── Mobile bottom sheet ──
     const histSheet = document.getElementById("hist-sheet");
     const histSheetBackdrop = document.getElementById("hist-sheet-backdrop");
     const histSheetList = document.getElementById("hist-sheet-list");
@@ -4769,7 +4613,6 @@ local function __playground_entry(...)
       openHistSheet(); // re-render the sheet list
     });
 
-    // ── Desktop history popover ──
     const histPopover = document.getElementById("hist-popover");
     const histPopoverBtn = document.getElementById("hist-popover-btn");
 
@@ -4790,6 +4633,11 @@ local function __playground_entry(...)
     document.addEventListener("click", e => {
       if (histPopover.classList.contains("open") && !histPopover.contains(e.target))
         closeHistPopover();
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key !== "Escape") return;
+      if (histPopover.classList.contains("open")) { closeHistPopover(); histPopoverBtn.focus(); }
+      if (histSheet.classList.contains("open")) { closeHistSheet(); histSheetBtn.focus(); }
     });
 
     // Save to history when a run completes or errors
@@ -4852,7 +4700,7 @@ local function __playground_entry(...)
         const bytes = new Uint8Array(await piece.arrayBuffer());
         const input = bytesToBase64(bytes);
 
-        setStatus(`Uploading ${file.name} (${index + 1}/${total})...`);
+        setStatus(`Uploading ${file.name} (${index + 1}/${total})…`);
 
         const res = await fetch(`${SERVER}/input/${currentToken}`, {
           method: "POST",

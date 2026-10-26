@@ -24,6 +24,8 @@ copyright: Luau is a trademark of Roblox Corporation. Independent project; not a
 
 extra:
   generator: false
+extra_css:
+  - stylesheets/brand.css
 nav:
   - Home: index.md
   - Commands: Commands.md
