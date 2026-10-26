@@ -15,6 +15,9 @@ h1.post-title, h1 { display: none !important; }
 </style>
 <iframe id="playground-frame" title="Luau playground" style="width:100%;height:calc(100dvh - 2.4rem);border:none;display:block;"></iframe>
 <script>
+  // Shrink the page above the phone keyboard (Android Chrome), so the editor's key bar stays visible.
+  const viewport = document.querySelector('meta[name="viewport"]');
+  if (viewport && !viewport.content.includes("interactive-widget")) viewport.content += ", interactive-widget=resizes-content";
   const frame = document.getElementById("playground-frame");
   frame.src = "../playground.html" + location.search;
 </script>

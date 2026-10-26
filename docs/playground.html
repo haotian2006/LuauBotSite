@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   <title>Luwa</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
   <!-- Start the language server (wasm + type downloads) before the parser-blocking editor CDN scripts. -->
@@ -1185,6 +1185,41 @@
           </div>
         </div>
         <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
+        <div id="mobileKeys" class="mobile-keys" role="toolbar" aria-label="Editing keys">
+          <button type="button" data-key="selectAll" aria-label="Select all">Select all</button>
+          <button type="button" data-key="selectLine" aria-label="Select line">Line</button>
+          <button type="button" data-key="delete" aria-label="Delete selection or character">Delete</button>
+          <button type="button" data-key="undo" aria-label="Undo"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+          <button type="button" data-key="redo" aria-label="Redo"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5m5 5H9a5 5 0 0 0 0 10h3"/></svg></button>
+          <button type="button" data-key="copy" aria-label="Copy">Copy</button>
+          <button type="button" data-key="cut" aria-label="Cut">Cut</button>
+          <button type="button" data-key="paste" aria-label="Paste">Paste</button>
+          <button type="button" data-key="indent" aria-label="Indent">Tab</button>
+          <button type="button" data-key="outdent" aria-label="Outdent">⇤</button>
+          <button type="button" data-key="comment" aria-label="Toggle comment">--</button>
+          <button type="button" data-key="left" aria-label="Move left">←</button>
+          <button type="button" data-key="right" aria-label="Move right">→</button>
+          <button type="button" data-key="up" aria-label="Move up">↑</button>
+          <button type="button" data-key="down" aria-label="Move down">↓</button>
+          <span class="mobile-keys-divider" aria-hidden="true"></span>
+          <button type="button" data-insert="(">(</button>
+          <button type="button" data-insert=")">)</button>
+          <button type="button" data-insert="{">{</button>
+          <button type="button" data-insert="}">}</button>
+          <button type="button" data-insert="[">[</button>
+          <button type="button" data-insert="]">]</button>
+          <button type="button" data-insert='"'>"</button>
+          <button type="button" data-insert="=">=</button>
+          <button type="button" data-insert=".">.</button>
+          <button type="button" data-insert=":">:</button>
+          <button type="button" data-insert=",">,</button>
+          <button type="button" data-insert="#">#</button>
+          <button type="button" data-insert="~">~</button>
+          <button type="button" data-insert="<">&lt;</button>
+          <button type="button" data-insert=">">&gt;</button>
+          <button type="button" data-insert="_">_</button>
+          <button type="button" data-insert="`">`</button>
+        </div>
         <div class="editor-footer"><span>Luau</span><span class="legal" title="Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.">Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.</span></div>
       </section>
       <div class="pane-splitter" role="separator" tabindex="0" aria-label="Resize editor and console" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75" aria-controls="console-pane"></div>
@@ -1492,7 +1527,7 @@ declare myGlobal: MyClass'></textarea>
       // Picking a function before an existing "(" shouldn't produce foo()().
       if (/^\s*\(/.test(cm.getLine(range.to.line).slice(range.to.ch))) text = text.replace(/\(.*$/s, "");
       const indent = cm.getLine(range.from.line).match(/^\s*/)[0];
-      text = text.replace(/\n(\t*)/g, (_, tabs) => "\n" + indent + " ".repeat(tabs.length * cm.getOption("indentUnit")));
+      text = text.replace(/\n(\t*)/g, (_, tabs) => "\n" + indent + indentText(cm).repeat(tabs.length));
       const { text: plain, select } = item.insertTextFormat === 2
         ? LuauLspClient.expandSnippet(text)
         : { text, select: [text.length, text.length] };
@@ -1572,6 +1607,8 @@ declare myGlobal: MyClass'></textarea>
         if (!list.length) { callback(null); return; }
         const result = { list, from, to };
         CodeMirror.on(result, "select", showCompletionDocs);
+        // A refreshed list signals "update" on the old result, never "close".
+        CodeMirror.on(result, "update", hideCompletionDocs);
         CodeMirror.on(result, "close", hideCompletionDocs);
         callback(result);
       };
@@ -1634,28 +1671,114 @@ declare myGlobal: MyClass'></textarea>
       return false;
     }
 
+    const LUA_KEYWORDS = new Set(("and break do else elseif end for function if in local not or " +
+      "repeat return then until while").split(" "));
+
+    // Inside a type: after "x:" or "::", or a "type Name = ..." alias until its brackets close.
+    function luauTypeToken(stream, state) {
+      let style = "luau-op";
+      if (stream.match("->") || stream.match("...")) {
+        // operators that keep the type going
+      } else if (stream.match(/^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*/)) {
+        const word = stream.current();
+        if (state.depth <= 0 && LUA_KEYWORDS.has(word)) {
+          state.inType = state.alias = false;
+          return null;
+        }
+        // Table type keys: { name: string }
+        style = state.depth > 0 && /^\s*:(?!:)/.test(stream.string.slice(stream.pos)) ? "luau-prop" : "luau-type";
+      } else {
+        const ch = stream.next();
+        if ("({[<".includes(ch)) state.depth++;
+        else if (")}]>".includes(ch)) {
+          if (state.depth <= 0) {
+            state.inType = state.alias = false;
+            return "luau-op";
+          }
+          state.depth--;
+        } else if (state.depth <= 0 && (ch === "," || ch === ";" || (ch === "=" && !state.alias))) {
+          state.inType = false;
+          return "luau-op";
+        } else if (!/[+\-*\/%^#=<>~.,;:|&?]/.test(ch)) {
+          style = null;
+        }
+      }
+      // A type continues on the next line inside brackets or after "=", "|", "&", "->" and ":".
+      state.cont = state.depth > 0 || /^(?:->|[=|&:])$/.test(stream.current());
+      return style;
+    }
+
     CodeMirror.defineMode("luau", function (config) {
       const baseLua = CodeMirror.getMode(config, "lua");
       // The Lua mode indents after function/if/do; a class body needs the same, closed by its "end".
+      // An if-expression ("x = if a then b else c") has no "end", so it must not open a block.
       const lua = Object.assign({}, baseLua, {
         token(stream, state) {
+          // Interpolated strings: `text {expr}`; the Lua mode doesn't know backticks.
+          if (stream.peek() === "`") {
+            stream.next();
+            while (!stream.eol()) {
+              const c = stream.next();
+              if (c === "\\") stream.next();
+              else if (c === "`") break;
+            }
+            return "string";
+          }
           const style = baseLua.token(stream, state);
-          if (style === "variable" && stream.current() === "class" &&
+          const word = stream.current();
+          if (style === "variable" && word === "class" &&
               CLASS_PREFIX.test(stream.string.slice(0, stream.start)) && CLASS_START.test(stream.string)) {
             state.indentDepth++;
+          } else if (style === "keyword" && word === "if" &&
+              /(?:[=(,{[]|\breturn|\band|\bor|\bnot|\bthen|\belse)\s*$/.test(stream.string.slice(0, stream.start))) {
+            state.indentDepth--;
           }
           return style;
         },
       });
-      return CodeMirror.overlayMode(lua, {
-        token(stream) {
+      const mode = CodeMirror.overlayMode(lua, {
+        startState: () => ({ inType: false, alias: false, aliasName: false, depth: 0, cont: false }),
+        copyState: state => ({ ...state }),
+        token(stream, state) {
+          if (stream.sol() && state.inType && state.depth <= 0 && !state.cont &&
+              !(state.alias && /^\s*[|&]/.test(stream.string))) {
+            state.inType = state.alias = false;
+          }
+          if (stream.eatSpace()) return null;
+          // The Lua mode styles strings and comments; skipping them keeps a ":" inside from starting a type.
+          if (stream.match(/^--.*/) || stream.match(/^"(?:\\.|[^"\\])*"?/) ||
+              stream.match(/^'(?:\\.|[^'\\])*'?/) || stream.match(/^`(?:\\.|[^`\\])*`?/)) return null;
+          if (state.inType) return luauTypeToken(stream, state);
+          if (stream.match("::")) {
+            Object.assign(state, { inType: true, alias: false, depth: 0, cont: true });
+            return "luau-op";
+          }
+          if (stream.peek() === ":") {
+            stream.next();
+            // obj:Method(...) is a call; anything else after ":" is a type annotation.
+            const rest = stream.string.slice(stream.pos);
+            if (!/^\s*[A-Za-z_]\w*\s*[("'`{[]/.test(rest) || /^\s*typeof\s*\(/.test(rest)) {
+              Object.assign(state, { inType: true, alias: false, depth: 0, cont: true });
+            }
+            return "luau-op";
+          }
           if (stream.match(/^[A-Za-z_]\w*/)) {
             const word = stream.current();
             const rest = stream.string.slice(stream.pos);
             const before = stream.string.slice(0, stream.start);
+            if (state.aliasName) {
+              state.aliasName = false;
+              Object.assign(state, { inType: true, alias: true, depth: 0, cont: true });
+              return "luau-type";
+            }
             // ".." is concatenation and "x: T" is an annotation, neither is member access.
             const isMember = /(?:^|[^.])\.\s*$/.test(before) || /[\w)\]]:$/.test(before);
             if (!isMember) {
+              if (word === "type" && /^\s*(?:export\s+)?$/.test(before) && /^\s+[A-Za-z_]/.test(rest) &&
+                  !/^\s+function\b/.test(rest)) {
+                state.aliasName = true;
+                return "luau-kw";
+              }
               if (word === "export" || ((word === "type" || word === "const") && /^\s+[A-Za-z_]/.test(rest))) return "luau-kw";
               if (word === "continue" && !/^\s*[(=.:\["'{]/.test(rest)) return "luau-kw";
               if (classWordIsKeyword(word, before, rest)) return "luau-kw";
@@ -1672,7 +1795,130 @@ declare myGlobal: MyClass'></textarea>
           return null;
         }
       }, true); // combine: keep the Lua style so strings/comments still win in CSS
+      // overlayMode drops electricInput, so typing "end" or "else" wouldn't dedent the line.
+      mode.electricInput = /^\s*(?:end|until|else|elseif|\)|\})$/;
+      return mode;
     });
+
+    function indentText(cm) {
+      return cm.getOption("indentWithTabs") ? "\t" : " ".repeat(cm.getOption("indentUnit"));
+    }
+
+    function stripStrings(text) {
+      return text.replace(/"(?:\\.|[^"\\])*"?|'(?:\\.|[^'\\])*'?|`(?:\\.|[^`\\])*`?/g, '""');
+    }
+
+    function bracketsBalanced(text) {
+      let depth = 0;
+      for (const c of stripStrings(text)) {
+        if ("([{".includes(c)) depth++;
+        else if (")]}".includes(c)) depth--;
+      }
+      return depth === 0;
+    }
+
+    // "for i, v in t" or "if x" on Enter gets its missing " do" / " then".
+    function missingBlockKeyword(typed) {
+      const header = typed.match(/^\s*(for|while|if|elseif)\b(.*)$/);
+      if (!header) return "";
+      const [, keyword, rest] = header;
+      const code = stripStrings(rest);
+      if (!code.trim() || /\b(?:do|then|end)\b/.test(code) || !bracketsBalanced(rest)) return "";
+      // An unfinished condition continues on the next line.
+      if (/(?:[=~<>+\-*\/%^,.([{&|]|\b(?:and|or|not|in))\s*$/.test(code)) return "";
+      if (keyword === "for" && !/\bin\b|=/.test(code)) return "";
+      return keyword === "for" || keyword === "while" ? " do" : " then";
+    }
+
+    // "function name(args)" with an optional return type and nothing after it.
+    function endsWithFunctionHeader(text) {
+      const match = text.match(/\bfunction\b[^(]*\(/);
+      if (!match) return false;
+      const code = stripStrings(text.slice(match.index + match[0].length));
+      let depth = 1;
+      for (let i = 0; i < code.length; i++) {
+        if (code[i] === "(") depth++;
+        else if (code[i] === ")" && --depth === 0) return /^\s*(?::.+)?$/.test(code.slice(i + 1));
+      }
+      return false;
+    }
+
+    // The word that closes a block opened by this line, or null.
+    function blockCloser(header) {
+      if (/^\s*repeat$/.test(header)) return "until";
+      if (/^\s*(?:elseif|else)\b/.test(header)) return null;
+      if (/\b(?:do|then)$/.test(header) || endsWithFunctionHeader(header) ||
+          /^\s*(?:export\s+)?(?:open\s+)?class\s+[A-Za-z_]\w*(?:\s+extends\s+[A-Za-z_][\w.]*)?$/.test(header)) {
+        return "end";
+      }
+      return null;
+    }
+
+    // Blocks still open at the end of the file, as the Lua mode counts them.
+    function openBlockDepth(cm) {
+      return cm.getStateAfter(cm.lastLine(), true)?.base?.indentDepth ?? 0;
+    }
+
+    function luauEnter(cm) {
+      if (cm.somethingSelected() || cm.listSelections().length > 1) return CodeMirror.Pass;
+      const cur = cm.getCursor();
+      const line = cm.getLine(cur.line);
+      const token = cm.getTokenAt(cur);
+      if (token.type && /\bcomment\b/.test(token.type)) return CodeMirror.Pass;
+      if (token.type && /\bstring\b/.test(token.type) &&
+          (cur.ch < token.end || !/^(["'`]).*\1$/s.test(token.string))) return CodeMirror.Pass;
+      const typed = line.slice(0, cur.ch).replace(/\s+$/, "");
+      const after = line.slice(cur.ch);
+      const keyword = after.trim() ? "" : missingBlockKeyword(typed);
+      const closer = blockCloser(typed + keyword);
+      const from = CodeMirror.Pos(cur.line, typed.length);
+      // Only close the block when the file doesn't already have its "end".
+      if (!closer || openBlockDepth(cm) + (keyword === " do" ? 1 : 0) <= 0) {
+        if (!keyword) return CodeMirror.Pass;
+        cm.operation(() => {
+          cm.replaceRange(keyword, from, cur);
+          cm.execCommand("newlineAndIndent");
+        });
+        return;
+      }
+      const indent = line.match(/^\s*/)[0];
+      const inner = indent + indentText(cm);
+      // Closing brackets after the cursor ("pcall(function()|)") go after the end; other code goes inside.
+      const tail = after.match(/^\s*([)\]},;]*)\s*$/);
+      const body = tail ? "" : after.trim();
+      const close = closer + (closer === "until" ? " " : "") + (tail ? tail[1] : "");
+      cm.operation(() => {
+        cm.replaceRange(keyword + "\n" + inner + body + "\n" + indent + close, from, CodeMirror.Pos(cur.line, line.length));
+        cm.setCursor(CodeMirror.Pos(cur.line + 1, inner.length));
+      });
+    }
+
+    function toggleLineComment(cm) {
+      cm.operation(() => {
+        for (const range of cm.listSelections().slice().reverse()) {
+          const from = Math.min(range.anchor.line, range.head.line);
+          let to = Math.max(range.anchor.line, range.head.line);
+          const end = CodeMirror.cmpPos(range.anchor, range.head) < 0 ? range.head : range.anchor;
+          if (to > from && end.ch === 0) to--;
+          const lines = [];
+          for (let n = from; n <= to; n++) lines.push(cm.getLine(n));
+          const code = lines.filter(text => text.trim());
+          if (!code.length) continue;
+          const commented = code.every(text => /^\s*--/.test(text));
+          const column = Math.min(...code.map(text => text.match(/^\s*/)[0].length));
+          lines.forEach((text, i) => {
+            if (!text.trim()) return;
+            const n = from + i;
+            if (commented) {
+              const at = text.indexOf("--");
+              cm.replaceRange("", CodeMirror.Pos(n, at), CodeMirror.Pos(n, at + (text[at + 2] === " " ? 3 : 2)));
+            } else {
+              cm.replaceRange("-- ", CodeMirror.Pos(n, column));
+            }
+          });
+        }
+      });
+    }
 
     function readParentTheme() {
       try {
@@ -1704,9 +1950,10 @@ declare myGlobal: MyClass'></textarea>
       theme: "studio",
       lineNumbers: true,
       firstLineNumber: 1,
-      indentUnit: 2,
-      tabSize: 2,
-      indentWithTabs: false,
+      // Tabs shown 4 wide, like VS Code, Roblox Studio and StyLua's output.
+      indentUnit: 4,
+      tabSize: 4,
+      indentWithTabs: true,
       smartIndent: true,
       autofocus: true,
       gutters: ["CodeMirror-lint-markers", "CodeMirror-linenumbers"],
@@ -1718,29 +1965,15 @@ declare myGlobal: MyClass'></textarea>
         explode: '[]{}()',
       },
       extraKeys: {
-        Tab: cm => cm.execCommand("insertSoftTab"),
+        Tab: cm => cm.execCommand(cm.somethingSelected() ? "indentMore" : "insertTab"),
+        "Shift-Tab": cm => cm.execCommand("indentLess"),
         "Ctrl-Space": cm => CodeMirror.showHint(cm, luauHint, { completeSingle: false }),
-        "Enter": cm => {
-          // Auto-close Luau blocks: "do", "then", "function ... )", "class Name" → insert end
-          const cur = cm.getCursor();
-          const line = cm.getLine(cur.line);
-          const typed = line.slice(0, cur.ch).trimEnd();
-          const indent = line.match(/^\s*/)[0];
-          const inner = indent + "  ";
-
-          const opensBlock =
-            /\bdo\s*$/.test(typed) ||
-            /\bthen\s*$/.test(typed) ||
-            /\bfunction\b[^)]*\)\s*$/.test(typed) ||
-            /^\s*(?:export\s+)?(?:open\s+)?class\s+[A-Za-z_]\w*(?:\s+extends\s+[A-Za-z_][\w.]*)?\s*$/.test(typed);
-
-          if (opensBlock) {
-            cm.replaceRange("\n" + inner + "\n" + indent + "end", CodeMirror.Pos(cur.line, cur.ch));
-            cm.setCursor(CodeMirror.Pos(cur.line + 1, inner.length));
-            return;
-          }
-          return CodeMirror.Pass; // default newline + smart indent
-        },
+        "Ctrl-/": toggleLineComment,
+        "Cmd-/": toggleLineComment,
+        "Alt-F": () => formatCode(),
+        "Shift-Alt-F": () => formatCode(),
+        // Auto-close Luau blocks: "do", "then", "function ... )", "repeat", "class Name".
+        Enter: luauEnter,
       },
     });
 
@@ -1796,6 +2029,58 @@ declare myGlobal: MyClass'></textarea>
       cancelAnimationFrame(resizeFrame);
       resizeFrame = requestAnimationFrame(() => editor.refresh());
     }).observe(document.getElementById("editor-wrapper"));
+
+    // Touch key bar: selecting, deleting and moving the cursor are fiddly with a phone's own keyboard.
+    const mobileKeys = document.getElementById("mobileKeys");
+    async function copySelection(cm) {
+      const text = cm.getSelection();
+      if (!text) return false;
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        showActionNotice("Could not copy");
+        return false;
+      }
+    }
+    const MOBILE_KEY_ACTIONS = {
+      selectAll: cm => cm.execCommand("selectAll"),
+      selectLine: cm => {
+        const { line } = cm.getCursor();
+        cm.setSelection(CodeMirror.Pos(line, 0), line < cm.lastLine() ? CodeMirror.Pos(line + 1, 0) : CodeMirror.Pos(line));
+      },
+      delete: cm => cm.somethingSelected() ? cm.replaceSelection("", "start", "+delete") : cm.execCommand("delCharBefore"),
+      undo: cm => cm.undo(),
+      redo: cm => cm.redo(),
+      copy: async cm => { if (await copySelection(cm)) showActionNotice("Copied"); },
+      cut: async cm => { if (await copySelection(cm)) cm.replaceSelection("", "start", "cut"); },
+      paste: async cm => {
+        try {
+          cm.replaceSelection(await navigator.clipboard.readText(), "end", "paste");
+        } catch {
+          showActionNotice("Paste blocked; long-press in the editor to paste");
+        }
+      },
+      indent: cm => cm.execCommand(cm.somethingSelected() ? "indentMore" : "insertTab"),
+      outdent: cm => cm.execCommand("indentLess"),
+      comment: toggleLineComment,
+      left: cm => cm.execCommand("goCharLeft"),
+      right: cm => cm.execCommand("goCharRight"),
+      up: cm => cm.execCommand("goLineUp"),
+      down: cm => cm.execCommand("goLineDown"),
+    };
+    // Keep focus (and the phone keyboard) on the editor while a key is pressed.
+    mobileKeys.addEventListener("pointerdown", event => {
+      if (event.target.closest("button")) event.preventDefault();
+    });
+    mobileKeys.addEventListener("mousedown", event => event.preventDefault());
+    mobileKeys.addEventListener("click", event => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      editor.focus();
+      if (button.dataset.insert) editor.replaceSelection(button.dataset.insert, "end", "+input");
+      else MOBILE_KEY_ACTIONS[button.dataset.key]?.(editor);
+    });
 
     function setEditorWidth(width) {
       const available = playgroundMain.clientWidth - splitterWidth;
@@ -1928,6 +2213,12 @@ declare myGlobal: MyClass'></textarea>
         document.getElementById("status").textContent = "Could not save files locally";
       }
     }
+
+    // Saving waits a second after typing; a phone may kill a backgrounded tab before then.
+    addEventListener("pagehide", () => { if (saveTimer) saveWorkspace(); });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden" && saveTimer) saveWorkspace();
+    });
 
     // io.import packages (playground/imports.js).
     // A call whose package isn't downloaded gets a yellow underline; hovering or tapping it offers
@@ -2142,7 +2433,8 @@ declare myGlobal: MyClass'></textarea>
       document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[index].name;
       saveWorkspace();
       editor.refresh();
-      editor.focus();
+      // On a phone, focusing would pop the keyboard up over half the screen on every tab switch.
+      if (!coarsePointer.matches) editor.focus();
       refreshToolView();
     }
 
@@ -2237,6 +2529,9 @@ declare myGlobal: MyClass'></textarea>
 
     function removeFile(index) {
       if (index === 0) return;
+      const code = workspaceFiles[index].doc.getValue().trim();
+      if (code && code !== "-- require me from main to run!" &&
+          !confirm(`Delete ${workspaceFiles[index].name}? Its code can't be recovered.`)) return;
       const wasActive = index === activeFileIndex;
       workspaceFiles.splice(index, 1);
       if (wasActive) {
@@ -2345,25 +2640,10 @@ declare myGlobal: MyClass'></textarea>
     try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch { }
     if (urlHash && sourceId === null) {
       decompressFromB64(urlHash).then(state => {
+        const previous = captureWorkspaceState();
         if (Array.isArray(state.files) || typeof state.c === "string") restoreWorkspace(state);
-        if (state.l !== undefined) {
-          lintCheck.checked = !!state.l;
-          lintCheck.dispatchEvent(new Event("change"));
-        }
-        if (state.t !== undefined) { timestampCheck.checked = !!state.t; localStorage.setItem("luau_timestamp", state.t ? "1" : "0"); }
-        if (state.u !== undefined) {
-          const localRunCheckEl = document.getElementById("localRunCheck");
-          if (localRunCheckEl) {
-            localRunCheckEl.checked = !!state.u;
-            localStorage.setItem("luau_local_run", state.u ? "1" : "0");
-            localRunCheckEl.dispatchEvent(new Event("change"));
-          }
-        }
-        // Restore roblox/bot type toggles
-        applyTypeToggles(state);
-        // Restore shared sourcemap and custom definitions
-        if (state.sm) setSourcemap(state.sm);
-        if (state.cd) { localStorage.setItem("luau_custom_defs", state.cd); applyDefsLoaded(true); restartLsp(); }
+        applySharedSettings(state);
+        offerWorkspaceUndo("Opened a shared link.", previous);
         try {
           const target = (window.parent !== window) ? window.parent.history : history;
           target.replaceState(null, "", location.pathname.replace(/playground\.html$/, "playground/"));
@@ -2532,6 +2812,66 @@ declare myGlobal: MyClass'></textarea>
       }
     }
 
+    // Settings carried by share links and history entries. With exact, a missing
+    // sourcemap or definitions clears the saved one (used to undo a load).
+    function applySharedSettings(state, exact = false) {
+      if (state.l !== undefined && lintCheck.checked !== !!state.l) {
+        lintCheck.checked = !!state.l;
+        lintCheck.dispatchEvent(new Event("change"));
+      }
+      if (state.t !== undefined) { timestampCheck.checked = !!state.t; localStorage.setItem("luau_timestamp", state.t ? "1" : "0"); }
+      const localRunCheckEl = document.getElementById("localRunCheck");
+      if (state.u !== undefined && localRunCheckEl && localRunCheckEl.checked !== !!state.u) {
+        localRunCheckEl.checked = !!state.u;
+        localStorage.setItem("luau_local_run", state.u ? "1" : "0");
+        localRunCheckEl.dispatchEvent(new Event("change"));
+      }
+      applyTypeToggles(state);
+      if ((state.sm || exact) && (state.sm || null) !== localStorage.getItem("luau_sourcemap")) setSourcemap(state.sm || null);
+      if ((state.cd || exact) && (state.cd || null) !== localStorage.getItem("luau_custom_defs")) {
+        if (state.cd) localStorage.setItem("luau_custom_defs", state.cd);
+        else localStorage.removeItem("luau_custom_defs");
+        applyDefsLoaded(!!state.cd);
+        restartLsp();
+      }
+    }
+
+    function captureWorkspaceState() {
+      return {
+        workspace: snapshotWorkspace(),
+        sm: localStorage.getItem("luau_sourcemap"),
+        cd: localStorage.getItem("luau_custom_defs"),
+        l: lintCheck.checked ? 1 : 0,
+        t: timestampCheck.checked ? 1 : 0,
+        u: document.getElementById("localRunCheck")?.checked ? 1 : 0,
+        r: robloxDefsCheck.checked ? 1 : 0,
+        b: botDefsCheck.checked ? 1 : 0,
+      };
+    }
+
+    // Share links and history entries replace the files and settings; offer one step back.
+    function offerWorkspaceUndo(message, previous) {
+      const before = JSON.stringify(previous.workspace.files);
+      if (before === JSON.stringify(snapshotWorkspace().files) ||
+          !previous.workspace.files.some(file => file.code.trim())) return;
+      const notice = document.getElementById("actionNotice");
+      const undo = document.createElement("button");
+      undo.type = "button";
+      undo.textContent = "Undo";
+      undo.addEventListener("click", () => {
+        restoreWorkspace(previous.workspace);
+        applySharedSettings(previous, true);
+        showActionNotice("Restored your previous files");
+      });
+      clearTimeout(actionNoticeTimer);
+      notice.replaceChildren(message + " ", undo);
+      notice.classList.add("has-action");
+      actionNoticeTimer = setTimeout(() => {
+        notice.textContent = "";
+        notice.classList.remove("has-action");
+      }, 15000);
+    }
+
     defsSaveBtn.addEventListener("click", () => {
       const source = defsEditor.value.trim();
       if (!source) {
@@ -2555,13 +2895,16 @@ declare myGlobal: MyClass'></textarea>
       restartLsp();
     });
 
-    document.getElementById("fmtBtn").addEventListener("click", async function () {
-      const code = editor.getValue();
-      if (!code.trim()) return;
-      this.disabled = true;
-      this.classList.add("is-busy");
-      this.setAttribute("aria-label", "Formatting code");
-      this.querySelector(".button-label").textContent = "Formatting…";
+    const fmtBtn = document.getElementById("fmtBtn");
+    fmtBtn.addEventListener("click", () => formatCode());
+    async function formatCode() {
+      const doc = editor.getDoc();
+      const code = doc.getValue();
+      if (!code.trim() || fmtBtn.disabled) return;
+      fmtBtn.disabled = true;
+      fmtBtn.classList.add("is-busy");
+      fmtBtn.setAttribute("aria-label", "Formatting code");
+      fmtBtn.querySelector(".button-label").textContent = "Formatting…";
       try {
         const res = await fetch(`${SERVER}/format`, {
           method: "POST",
@@ -2570,10 +2913,14 @@ declare myGlobal: MyClass'></textarea>
         });
         if (res.ok) {
           const { formatted } = await res.json();
-          if (formatted) {
-            const cur = editor.getCursor();
-            editor.setValue(formatted);
-            editor.setCursor(cur);
+          // Skip if the user switched files or kept typing while the request was out.
+          if (formatted && formatted !== code && editor.getDoc() === doc && doc.getValue() === code) {
+            const cur = doc.getCursor();
+            const scroll = editor.getScrollInfo();
+            doc.replaceRange(formatted, CodeMirror.Pos(doc.firstLine(), 0),
+              CodeMirror.Pos(doc.lastLine(), doc.getLine(doc.lastLine()).length), "+format");
+            doc.setCursor(cur);
+            editor.scrollTo(scroll.left, scroll.top);
           }
         } else {
           const { error } = await res.json().catch(() => ({}));
@@ -2584,11 +2931,11 @@ declare myGlobal: MyClass'></textarea>
       } catch {
         setStatus("Format failed: could not reach the server");
       }
-      this.disabled = false;
-      this.classList.remove("is-busy");
-      this.setAttribute("aria-label", "Format code (StyLua)");
-      this.querySelector(".button-label").textContent = "Format";
-    });
+      fmtBtn.disabled = false;
+      fmtBtn.classList.remove("is-busy");
+      fmtBtn.setAttribute("aria-label", "Format code (StyLua)");
+      fmtBtn.querySelector(".button-label").textContent = "Format";
+    }
 
     const MAX_EMBEDDED_STATE_CHARS = 50000;
 
@@ -2596,6 +2943,7 @@ declare myGlobal: MyClass'></textarea>
     function showActionNotice(message) {
       const notice = document.getElementById("actionNotice");
       clearTimeout(actionNoticeTimer);
+      notice.classList.remove("has-action");
       notice.textContent = message;
       actionNoticeTimer = setTimeout(() => { notice.textContent = ""; }, 2500);
     }
@@ -2725,13 +3073,20 @@ declare myGlobal: MyClass'></textarea>
         ...getEmbeddedStateForSave(true),
       };
 
-      const encoded = await compressToB64(state);
       const base = (window.parent !== window && document.referrer)
         ? new URL(document.referrer).origin + new URL(document.referrer).pathname
         : location.origin + location.pathname.replace(/playground\.html$/, "playground/");
-      const url = base.replace(/\/$/, "") + "/#" + encoded;
+      const urlPromise = compressToB64(state).then(encoded => base.replace(/\/$/, "") + "/#" + encoded);
+      // Safari only allows a clipboard write started during the click, so hand it the pending
+      // link instead of awaiting the compression first.
+      const copied = window.ClipboardItem && navigator.clipboard?.write
+        ? navigator.clipboard.write([new ClipboardItem({
+          "text/plain": urlPromise.then(url => new Blob([url], { type: "text/plain" })),
+        })]).catch(async () => navigator.clipboard.writeText(await urlPromise))
+        : urlPromise.then(url => navigator.clipboard.writeText(url));
+      const url = await urlPromise;
       try {
-        await navigator.clipboard.writeText(url);
+        await copied;
         this.querySelector(".button-label").textContent = "Copied";
         showActionNotice("Share link copied");
         setTimeout(() => { this.querySelector(".button-label").textContent = "Share"; }, 2000);
@@ -2761,6 +3116,15 @@ declare myGlobal: MyClass'></textarea>
     }
 
     editor.on("change", function (cm, change) {
+      // Phone keyboards backspace through input events, which the closebrackets keymap never sees:
+      // deleting the "(" of an empty "()" also deletes the ")".
+      if (change.origin === "+delete" && change.removed.length === 1 && change.text.join("") === "" &&
+          AUTO_CLOSE_MAP[change.removed[0]] && cm.listSelections().length === 1 && coarsePointer.matches) {
+        const at = change.from;
+        const next = CodeMirror.Pos(at.line, at.ch + 1);
+        if (cm.getRange(at, next) === AUTO_CLOSE_MAP[change.removed[0]]) cm.replaceRange("", at, next, "+delete");
+        return;
+      }
       if (change.origin !== "+input" && change.origin !== "*compose") return;
       const inserted = change.text ? change.text.join("\n") : "";
       if (!inserted) return;
@@ -2868,7 +3232,8 @@ declare myGlobal: MyClass'></textarea>
       lsp.signatureHelp(cm.getDoc(), cm.getCursor())
         .then(help => {
           if (requestId !== sigRequestId) return;
-          if (help?.signatures?.length) showSigAt(renderSignature(help), cm);
+          // The cursor may have left the call (or the editor) while the server answered.
+          if (help?.signatures?.length && cm.hasFocus() && findOpenParen(cm)) showSigAt(renderSignature(help), cm);
           else hideSig();
         })
         .catch(() => { /* superseded by a newer request */ });
@@ -2880,6 +3245,16 @@ declare myGlobal: MyClass'></textarea>
     editor.on("cursorActivity", cm => {
       if (sigHelp.style.display === "block" && !findOpenParen(cm)) hideSig();
     });
+    // The tips are placed at fixed spots, so they'd float over the wrong code after a scroll.
+    editor.on("scroll", () => {
+      hideSig();
+      hideHoverTip();
+    });
+    editor.on("swapDoc", () => {
+      hideSig();
+      hideHoverTip();
+    });
+    editor.on("keydown", () => hideHoverTip());
 
     function escHtml(s) {
       return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -2890,6 +3265,7 @@ declare myGlobal: MyClass'></textarea>
     editor.on("startCompletion", hideSig);
     editor.on("endCompletion", () => {
       completionCache = null;
+      hideCompletionDocs();
       // Picking a function leaves the cursor inside "()", so show its signature.
       setTimeout(() => {
         if (!editor.state.completionActive && editor.hasFocus() && findOpenParen(editor)) updateSigHelp(editor);
@@ -2951,6 +3327,11 @@ declare myGlobal: MyClass'></textarea>
         const token = editor.getTokenAt(p);
         if (!token || !token.string.trim() || !/^\w/.test(token.string)) continue;
         if (token.type && token.type.split(" ").some(type => badTokenTypes.has(type))) continue;
+        // coordsChar snaps blank space past a line's end (or below the last line) onto the
+        // nearest word, which kept its tip open while the mouse was nowhere near it.
+        const start = editor.charCoords({ line: pos.line, ch: token.start }, "window");
+        const end = editor.charCoords({ line: pos.line, ch: token.end }, "window");
+        if (x < start.left || x > end.right || y < start.top || y > end.bottom) continue;
         return { token, pos: p };
       }
       return null;
@@ -3042,10 +3423,9 @@ declare myGlobal: MyClass'></textarea>
       }, 250);
     });
 
-    document.addEventListener("mouseleave", () => {
-      clearTimeout(hoverTimer);
-      hoverToken = null;
-      hoverTip.style.display = "none";
+    // mouseleave doesn't fire on document itself; leaving the page shows as an out with no target.
+    document.addEventListener("pointerout", e => {
+      if (!e.relatedTarget) hideHoverTip();
     });
 
     // Reset hover state when window loses focus so re-entering always re-fires
@@ -3113,13 +3493,42 @@ declare myGlobal: MyClass'></textarea>
     }
 
     toolOutput.addEventListener("pointerover", event => {
+      if (event.pointerType !== "mouse") return;
       const target = event.target.closest?.(".syntax-op[data-opcode]");
       if (target) showOpcodeTooltip(target);
     });
     toolOutput.addEventListener("pointerout", event => {
+      if (event.pointerType !== "mouse") return;
       if (event.target.closest?.(".syntax-op[data-opcode]")) hideOpcodeTooltip();
     });
     toolOutput.addEventListener("scroll", hideOpcodeTooltip);
+    // Touch has no hover: tapping an opcode toggles its help, tapping anything else closes it.
+    let tappedOpcode = null;
+    document.addEventListener("click", event => {
+      const target = event.target.closest?.("#toolOutput .syntax-op[data-opcode]");
+      if (!target || matchMedia("(hover: hover)").matches) {
+        if (!target) tappedOpcode = null;
+        if (!target && !matchMedia("(hover: hover)").matches) hideOpcodeTooltip();
+        return;
+      }
+      if (tappedOpcode === target && !opcodeTooltip.hidden) {
+        tappedOpcode = null;
+        hideOpcodeTooltip();
+      } else {
+        tappedOpcode = target;
+        showOpcodeTooltip(target);
+      }
+    });
+    // Clicking a bytecode line selects the source line it came from.
+    toolOutput.addEventListener("click", event => {
+      if (event.target.closest(".syntax-op[data-opcode]") && !matchMedia("(hover: hover)").matches) return;
+      if (!getSelection().isCollapsed) return; // the user is selecting text to copy
+      const row = event.target.closest(".bytecode-line");
+      const line = row && Number(row.dataset.sourceLine);
+      if (!line || line > editor.lineCount()) return;
+      editor.setSelection(CodeMirror.Pos(line - 1, 0), CodeMirror.Pos(line - 1, editor.getLine(line - 1).length));
+      editor.scrollIntoView(CodeMirror.Pos(line - 1, 0), 60);
+    });
 
     function inferredBytecodeOptions(code) {
       const optimize = code.match(/--!optimize (\d+)/);
@@ -3234,6 +3643,7 @@ declare myGlobal: MyClass'></textarea>
         const row = document.createElement("span");
         row.className = "bytecode-line";
         if (sourceLine > 0) {
+          row.dataset.sourceLine = sourceLine;
           const rows = bytecodeRowsByLine.get(sourceLine) || [];
           rows.push(row);
           bytecodeRowsByLine.set(sourceLine, rows);
@@ -3251,7 +3661,11 @@ declare myGlobal: MyClass'></textarea>
       const selectedLines = new Set();
       for (const selection of editor.listSelections()) {
         const direction = CodeMirror.cmpPos(selection.anchor, selection.head);
-        if (direction === 0) continue;
+        // A plain cursor links its own line, so a tap on a phone is enough.
+        if (direction === 0) {
+          selectedLines.add(selection.head.line + 1);
+          continue;
+        }
         const from = direction < 0 ? selection.anchor : selection.head;
         const to = from === selection.anchor ? selection.head : selection.anchor;
         const lastLine = to.ch === 0 && to.line > from.line ? to.line - 1 : to.line;
@@ -3267,7 +3681,13 @@ declare myGlobal: MyClass'></textarea>
           if (!firstMatch) firstMatch = row;
         }
       }
-      if (scroll && firstMatch) firstMatch.scrollIntoView({ block: "nearest" });
+      // Scroll only the bytecode pane; scrollIntoView would also scroll the page around the editor.
+      if (scroll && firstMatch) {
+        const view = toolOutput.getBoundingClientRect();
+        const row = firstMatch.getBoundingClientRect();
+        if (row.top < view.top) toolOutput.scrollTop += row.top - view.top - 8;
+        else if (row.bottom > view.bottom) toolOutput.scrollTop += row.bottom - view.bottom + 8;
+      }
     }
 
     editor.on("cursorActivity", () => highlightBytecodeSelection());
@@ -3466,7 +3886,8 @@ declare myGlobal: MyClass'></textarea>
         const response = await fetch(`${SERVER}/raw/${encodeURIComponent(sourceId)}`);
         if (!response.ok) throw new Error("Source request failed");
         const code = await response.text();
-        restoreWorkspace({ c: code });
+        // Replace only main; the saved modules stay.
+        restoreWorkspace({ c: code, files: snapshotWorkspace().files.slice(1), active: MAIN_FILE });
         const sourceStatus = response.headers.get("X-Source-Status");
         if (sourceStatus === "expired" || sourceStatus === "unknown") {
           sourceNotice.textContent = sourceStatus === "expired"
@@ -3488,6 +3909,7 @@ declare myGlobal: MyClass'></textarea>
     const lightboxImg = document.getElementById("lightboxImg");
 
     let currentToken = null;
+    let startingRun = null; // { stopped } while waiting for /run to answer
     let es = null;
 
     const closePreviewBtn = document.getElementById("closePreviewBtn");
@@ -3537,10 +3959,15 @@ declare myGlobal: MyClass'></textarea>
     }
 
     function setStatus(msg) { statusEl.textContent = msg; }
-    function setOutput(text) {
-      outputEl.innerHTML = ansiToHtml(text);
+    // Follow new output only while the view is at the bottom, so scrolling up to read stays put.
+    function keepOutputPinned(update) {
       const results = outputEl.parentElement;
-      results.scrollTop = results.scrollHeight;
+      const pinned = results.scrollHeight - results.scrollTop - results.clientHeight < 40;
+      update();
+      if (pinned) results.scrollTop = results.scrollHeight;
+    }
+    function setOutput(text) {
+      keepOutputPinned(() => { outputEl.innerHTML = ansiToHtml(text); });
     }
     function setRunning(running) {
       if (running) outputEl.dataset.ran = "";
@@ -4138,10 +4565,8 @@ local require = imports.require;
     }
 
     function appendLocalOutput(kind, text) {
-      outputEl.insertAdjacentHTML("beforeend", kind === "print" ? ansiToHtml(text)
-        : `<span style="color:var(${kind === "warn" ? "--ansi-33" : "--ansi-31"})">${escHtml(text)}</span>`);
-      const results = outputEl.parentElement;
-      results.scrollTop = results.scrollHeight;
+      keepOutputPinned(() => outputEl.insertAdjacentHTML("beforeend", kind === "print" ? ansiToHtml(text)
+        : `<span style="color:var(${kind === "warn" ? "--ansi-33" : "--ansi-31"})">${escHtml(text)}</span>`));
     }
 
     // A 429 from /run carries retryAfter (seconds): keep Run disabled and count down until then.
@@ -4228,6 +4653,8 @@ local require = imports.require;
       resetScreen();
       setStatus(moduleInput ? "Starting modules on server…" : "Starting…");
       setRunning(true);
+      // Stop can be pressed before /run answers with a token.
+      const start = startingRun = { stopped: false };
 
       let res;
       try {
@@ -4237,12 +4664,20 @@ local require = imports.require;
           body: JSON.stringify({ code }),
         });
       } catch {
+        if (start.stopped) return;
+        startingRun = null;
         setStatus("Could not reach the server. Check your connection and try again.");
         setRunning(false);
         return;
       }
+      if (start.stopped) {
+        // End the run the server just started.
+        if (res.ok) res.json().then(({ token }) => token && fetch(`${SERVER}/stop/${token}`, { method: "POST" })).catch(() => { });
+        return;
+      }
 
       if (!res.ok) {
+        startingRun = null;
         if (res.status === 429) {
           let body = {};
           try { body = await res.json(); } catch { }
@@ -4261,10 +4696,16 @@ local require = imports.require;
       try {
         ({ token } = await res.json());
       } catch {
+        startingRun = null;
         setStatus("The server sent an invalid response. Try again.");
         setRunning(false);
         return;
       }
+      if (start.stopped) {
+        fetch(`${SERVER}/stop/${token}`, { method: "POST" }).catch(() => { });
+        return;
+      }
+      startingRun = null;
       currentToken = token;
       syncRunLocalUi();
 
@@ -4489,7 +4930,8 @@ local require = imports.require;
     }
 
     function loadHistoryEntry(entry) {
-      // Stop any running session
+      // Stop any running session, local or on the server
+      if (stopLocalRun()) setRunning(false);
       if (currentToken) {
         fetch(`${SERVER}/stop/${currentToken}`, { method: "POST" }).catch(() => { });
         if (es) { es.close(); es = null; }
@@ -4497,6 +4939,7 @@ local require = imports.require;
         syncRunLocalUi();
         setRunning(false);
       }
+      const previous = captureWorkspaceState();
       restoreWorkspace(entry.workspace || { c: entry.code || "" });
       outputEl.innerHTML = entry.output || "";
       filesEl.innerHTML = "";
@@ -4520,6 +4963,7 @@ local require = imports.require;
         restartLsp();
       }
       setStatus("Loaded from history");
+      offerWorkspaceUndo("Loaded from history.", previous);
     }
 
     function pushHistory(code, output, filesData, serverNum, runtime, local = false, workspace = snapshotWorkspace()) {
@@ -4662,7 +5106,16 @@ local require = imports.require;
         setRunning(false);
         return;
       }
-      if (!currentToken) return;
+      if (!currentToken) {
+        if (startingRun) {
+          startingRun.stopped = true;
+          startingRun = null;
+          setStatus("Stopped");
+          setRunning(false);
+          _pendingCode = null;
+        }
+        return;
+      }
       const token = currentToken;
       setStatus("Stopped");
       setRunning(false);
@@ -4678,7 +5131,8 @@ local require = imports.require;
 
     sendBtn.addEventListener("click", e => sendInput(e.shiftKey));
     inputBox.addEventListener("keydown", e => {
-      if (e.key === "Enter") { e.preventDefault(); sendInput(e.shiftKey); }
+      // Enter that confirms a phone keyboard's composition isn't a send.
+      if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); sendInput(e.shiftKey); }
     });
 
     async function fileToBase64(file) {
@@ -4739,18 +5193,28 @@ local require = imports.require;
 
     // Normal send: text first, then 1 file from the front of the queue
     // Shift+send: text first, then ALL queued files
+    let sendingInput = false;
     async function sendInput(all = false) {
       if (!currentToken) return;
       if (!inputBox.value && queuedFiles.length === 0) return;
 
+      if (sendingInput) return;
+      sendingInput = true;
+      const text = inputBox.value;
       try {
-        if (inputBox.value) {
+        if (text) {
+          // Clear first so a quick second Enter can't send the same line again.
+          inputBox.value = "";
           const textRes = await fetch(`${SERVER}/input/${currentToken}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ input: inputBox.value }),
+            body: JSON.stringify({ input: text }),
+          }).catch(error => {
+            if (!inputBox.value) inputBox.value = text;
+            throw error;
           });
           if (!textRes.ok) {
+            if (!inputBox.value) inputBox.value = text;
             let msg = `Send failed (${textRes.status})`;
             try {
               const body = await textRes.json();
@@ -4758,7 +5222,6 @@ local require = imports.require;
             } catch { }
             throw new Error(msg);
           }
-          inputBox.value = "";
         }
 
         const batch = all ? queuedFiles.splice(0) : queuedFiles.splice(0, 1);
@@ -4787,6 +5250,8 @@ local require = imports.require;
         setStatus("Input sent");
       } catch (err) {
         setStatus("Send error: " + (err?.message || "unknown error"));
+      } finally {
+        sendingInput = false;
       }
     }
   </script>
