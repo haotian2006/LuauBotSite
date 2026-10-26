@@ -11,7 +11,8 @@
   const MAX_FILES = 800;
   const MAX_PACKAGES = 50;
   const NAME = /^[A-Za-z0-9_.-]{1,100}$/;
-  const ASSET_ID = /^\d{1,20}$/;
+  // No leading zeros or ids past 2^53, so the key matches the LSP's numeric form.
+  const ASSET_ID = /^[1-9]\d{0,15}$/;
   const ROBLOX_HOSTS = /^(www\.|create\.)?roblox\.com$/i;
   const PART = /^[a-z0-9_-]{1,64}$/;
 
@@ -625,7 +626,7 @@
 
   function normalizeTree(item) {
     return {
-      name: String(item.name), className: String(item.className), source: item.source, value: item.value,
+      name: String(item.name), className: String(item.className), source: typeof item.source === "string" ? item.source : undefined, value: item.value,
       children: Array.isArray(item.children) ? item.children.map(normalizeTree) : [],
     };
   }

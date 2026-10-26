@@ -1554,6 +1554,8 @@ declare myGlobal: MyClass'></textarea>
       completionDoc.style.top = Math.max(8, Math.min(list.top, innerHeight - completionDoc.offsetHeight - 8)) + "px";
     }
 
+    const LUNE_LIBS = ["datetime", "fs", "luau", "net", "process", "regex", "roblox", "serde", "stdio", "task"];
+
     function luauHint(cm, callback) {
       const doc = cm.getDoc();
       const cur = cm.getCursor();
@@ -1577,7 +1579,8 @@ declare myGlobal: MyClass'></textarea>
       if (/\brequire\s*\(?\s*["'`][^"'`]*$/.test(line.slice(0, cur.ch))) {
         show(workspaceFiles
           .map((file, index) => ({ label: index === 0 ? "main" : file.name, detail: "module", index }))
-          .filter(item => item.index !== activeFileIndex));
+          .filter(item => item.index !== activeFileIndex)
+          .concat(LUNE_LIBS.map(name => ({ label: "@lune/" + name, detail: "Lune library" }))));
         return;
       }
       const key = `${lsp.uriOf(doc)}:${cur.line}:${start}:${line.slice(0, start)}`;
@@ -2791,7 +2794,10 @@ declare myGlobal: MyClass'></textarea>
       const isDot = inserted === "." || inserted === ":";
       const isWord = /^[a-zA-Z_]$/.test(last) && !/\s/.test(inserted);
       const isStr = inserted === '"' || inserted === "'" || inserted === '""' || inserted === "''";
-      if (!isDot && !isWord && !isStr) return;
+      const cur = cm.getCursor();
+      const isRequirePath = (inserted === "@" || inserted === "/") &&
+        /\brequire\s*\(?\s*["'`][^"'`]*$/.test(cm.getLine(cur.line).slice(0, cur.ch));
+      if (!isDot && !isWord && !isStr && !isRequirePath) return;
       CodeMirror.showHint(cm, luauHint, { completeSingle: false });
     });
 
