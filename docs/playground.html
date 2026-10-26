@@ -3973,8 +3973,10 @@ local entryName = nil
 local modules = {}
 local modReturns = {}
 local modLoading = {}
+local baseRequire = imports.require
 function imports.require(x)
   if type(x) == "string" then
+    if string.sub(x, 1, 1) == "@" then return baseRequire(x) end
     if x == entryName then x = entryScript else x = imports.thread.module:FindFirstChild(x) end
   end
   local mod = modules[x]
@@ -3992,7 +3994,7 @@ function imports.require(x)
     end
     return table.unpack(rtr, 1, rtr.n)
   end
-  return require(x)
+  return baseRequire(x)
 end
 imports._childmods = modules
 local filestr = io.read():gsub("%%(%x%x)", function(hex) return string.char(tonumber(hex, 16)) end)
@@ -4074,10 +4076,14 @@ local require = imports.require;
       return `${code}\n--[[@${escaped}]]`;
     }
 
+    // Classes are only allowed at a chunk's top level, so an entry file with one runs as a module
+    // (its own chunk, loaded like the other files) and the main chunk just requires it.
+    function entryRunsAsModule(code) {
+      return /\bclass\s+[A-Za-z_]/.test(code);
+    }
+
     function injectModuleBootstrap(code) {
-      // Classes are only allowed at a chunk's top level, so an entry file with one runs as a module
-      // (its own chunk, loaded like the other files) and the main chunk just requires it.
-      const wrap = !/\bclass\s+[A-Za-z_]/.test(code);
+      const wrap = !entryRunsAsModule(code);
       const bootstrap = MODULE_BOOTSTRAP.replace("__ENTRY_AS_MODULE__", wrap ? "false" : "true");
       const lines = code.split("\n");
       let first = 0;
@@ -4175,7 +4181,8 @@ local require = imports.require;
       }
       const moduleFiles = runWorkspace.files.length > 1
         ? [
-          { name: entryIndex === 0 ? "main" : runWorkspace.files[entryIndex].name, code: "" },
+          // A class entry runs from this list (see injectModuleBootstrap), so it needs its code here.
+          { name: entryIndex === 0 ? "main" : runWorkspace.files[entryIndex].name, code: entryRunsAsModule(raw) ? raw : "" },
           ...runWorkspace.files.flatMap((file, index) => index === entryIndex ? [] : [{ name: index === 0 ? "main" : file.name, code: file.code }]),
         ]
         : [];
