@@ -60,8 +60,24 @@ function forward(messages) {
   if (out.length) self.postMessage({ type: "rpc", messages: out });
 }
 
+// The bot has Lune runs turned off, so --!lune is a no-op: say so instead of luau-lsp's unknown-directive warning.
+const LUNE_DIRECTIVE = /Unknown comment directive 'lune'/;
+const markLuneDirective = list => list?.map(d => LUNE_DIRECTIVE.test(d.message)
+  ? { ...d, severity: 3, message: "--!lune does nothing: Lune runs are turned off, so this runs on Roblox" }
+  : d);
+
+function patchReply(message, request) {
+  if (message.method === "textDocument/publishDiagnostics") {
+    message.params.diagnostics = markLuneDirective(message.params.diagnostics);
+  } else if (message.id === request?.id && request.method === "textDocument/diagnostic" && message.result) {
+    message.result.items = markLuneDirective(message.result.items);
+  }
+  return message;
+}
+
 function send(message) {
-  forward(call("_lsp_send", JSON.stringify({ jsonrpc: "2.0", ...message })));
+  const replies = call("_lsp_send", JSON.stringify({ jsonrpc: "2.0", ...message }));
+  forward(replies.map(reply => patchReply(reply, message)));
 }
 
 // String requires only resolve to files that exist, so every open document gets a placeholder on disk.
@@ -198,15 +214,24 @@ function enqueue(item) {
   pump();
 }
 
+// Lune's own typedefs (lune-org/lune v0.11.0, crates/lune-std-*/types.d.luau), behind a .luaurc alias.
+const LUNE_LIBS = ["datetime", "fs", "luau", "net", "process", "regex", "roblox", "serde", "stdio", "task"];
+
 async function start(options) {
-  const [module, roblox, bot] = await Promise.all([
+  const [module, roblox, bot, lune] = await Promise.all([
     moduleReady,
     options.roblox ? fetchText("globalTypes.d.luau") : null,
     options.bot ? fetchText("botTypes.d.luau") : null,
+    Promise.all(LUNE_LIBS.map(name => fetchText(`lune/${name}.luau`).catch(err => {
+      console.warn("[lsp] lune types unavailable:", err);
+      return null;
+    }))),
   ]);
   const { FS } = module;
   FS.mkdirTree("/defs");
-  FS.mkdirTree(WORKSPACE);
+  FS.mkdirTree(WORKSPACE + "/.lune");
+  LUNE_LIBS.forEach((name, i) => lune[i] !== null && FS.writeFile(`${WORKSPACE}/.lune/${name}.luau`, lune[i]));
+  FS.writeFile(WORKSPACE + "/.luaurc", JSON.stringify({ aliases: { lune: "./.lune" } }));
   const definitions = {};
   for (const [name, source] of [["@roblox", roblox], ["@bot", bot], ["@custom", options.customDefs]]) {
     if (!source) continue;

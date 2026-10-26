@@ -12,6 +12,7 @@
 
 #include <emscripten/emscripten.h>
 
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 
@@ -40,6 +41,16 @@ struct BufferTransport : Transport
     }
 };
 
+// io.import's spec: a string, or a whole-number asset id written as its digits.
+std::optional<std::string> importSpec(const Luau::AstExpr* arg)
+{
+    if (auto* str = arg->as<Luau::AstExprConstantString>())
+        return std::string(str->value.data, str->value.size);
+    if (auto* num = arg->as<Luau::AstExprConstantNumber>(); num && num->value >= 1 && num->value < 1e18 && num->value == std::floor(num->value))
+        return std::to_string(static_cast<long long>(num->value));
+    return std::nullopt;
+}
+
 // Resolves io.import("<spec>") to a package the page downloaded and the worker added to the
 // sourcemap; every other require goes to luau-lsp's resolver.
 struct ImportResolver : Luau::FileResolver
@@ -57,10 +68,9 @@ struct ImportResolver : Luau::FileResolver
         auto* call = expr->as<Luau::AstExprCall>();
         auto* func = call && !call->self && call->args.size == 1 ? call->func->as<Luau::AstExprIndexName>() : nullptr;
         auto* io = func && func->index == "import" ? func->expr->as<Luau::AstExprGlobal>() : nullptr;
-        auto* spec = io && io->name == "io" ? call->args.data[0]->as<Luau::AstExprConstantString>() : nullptr;
-        if (spec)
+        if (auto spec = io && io->name == "io" ? importSpec(call->args.data[0]) : std::nullopt)
         {
-            if (auto it = virtualPaths.find(std::string(spec->value.data, spec->value.size)); it != virtualPaths.end())
+            if (auto it = virtualPaths.find(*spec); it != virtualPaths.end())
                 return Luau::ModuleInfo{it->second};
         }
         return inner->resolveModule(context, expr, limits);
@@ -83,8 +93,8 @@ ImportResolver importResolver;
 // game.PlaygroundImports.importN, children included.
 std::optional<Luau::TypeId> packageType(const Luau::Scope& scope, const Luau::AstExprCall& call)
 {
-    auto* spec = call.args.size == 1 ? call.args.data[0]->as<Luau::AstExprConstantString>() : nullptr;
-    auto it = spec ? importResolver.virtualPaths.find(std::string(spec->value.data, spec->value.size)) : importResolver.virtualPaths.end();
+    auto spec = call.args.size == 1 ? importSpec(call.args.data[0]) : std::nullopt;
+    auto it = spec ? importResolver.virtualPaths.find(*spec) : importResolver.virtualPaths.end();
     auto dataModel = scope.lookupType("DataModel");
     if (it == importResolver.virtualPaths.end() || !dataModel || !Luau::startsWith(it->second, "game/"))
         return std::nullopt;
@@ -102,7 +112,7 @@ std::optional<Luau::TypeId> packageType(const Luau::Scope& scope, const Luau::As
     return ty;
 }
 
-// io.import("<spec>") returns that package's instance type instead of a plain Instance.
+// io.import("<spec>") or io.import(<asset id>) returns that package's instance type instead of a plain Instance.
 struct MagicImport final : Luau::MagicFunction
 {
     std::optional<Luau::WithPredicate<Luau::TypePackId>> handleOldSolver(

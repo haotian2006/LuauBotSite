@@ -18,6 +18,10 @@ them to `sourcemap.json`, and an `ImportResolver` in front of luau-lsp's file re
 call at that sourcemap node, so `script.Parent` requires inside the package resolve normally. A magic
 function on `io.import` returns the same node's instance type, so `io.import(...)` itself has children.
 
+`require("@lune/<lib>")` resolves through a `.luaurc` alias the worker writes into the workspace,
+pointing at `docs/playground/lune/`: Lune's own typedefs, copied from
+`crates/lune-std-<lib>/types.d.luau` at the Lune tag the bot runs (v0.11.0).
+
 `build.sh` also refreshes `docs/playground/globalTypes.d.luau` (the `None` security variant) and
 `docs/playground/api-docs.json` from the same luau-lsp release, so types and docs match the server.
 

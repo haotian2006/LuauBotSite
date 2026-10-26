@@ -61,14 +61,15 @@ In the playground, an image named `screen` (or `screen2`, `screen3`, ...) opens 
 io.writeimage(workspace, "scene", { Size = Vector2.new(320, 180) })
 ```
 
-### `import(url:string):Instance`
-Builds a GitHub repository or a Wally package into an Instance.
+### `import(url:string|number):Instance`
+Builds a GitHub repository, a Wally package or a public Roblox model into an Instance.
 
 - `github.com/<owner>/<repo>`: builds `default.project.json`, or `src/` if there isn't one.
 - `.../tree/<branch>/<path>` or `.../blob/<branch>/<path>`: builds that folder or file.
 - `.../releases/download/<tag>/<file>.rbxm` or `.../releases/latest/download/<file>.rbxm` (`.rbxmx` works too)
 - `raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>`
 - `wally:<scope>/<name>@<version>` 
+- `<asset id>`, `rbxassetid://<asset id>`, `roblox.com/library/<asset id>` or `create.roblox.com/store/asset/<asset id>`: a public Roblox model
 
 Only public repositories work, and a build is cached for 10 minutes. A repository can be up to 80 MB, with up to 5000 files (32 MB in all) and 4 MB per file.
 
@@ -83,6 +84,11 @@ Wally example:
 ```lua
 local Knit = require(io.import("wally:sleitnick/knit@1.7"))
 local Signal = require(io.import("https://wally.run/package/sleitnick/signal?version=2.0.1"))
+```
+
+Roblox example:
+```lua
+local Packet = require(io.import(104116977416770))
 ```
 
 ### `readfile(file:string): (string,string)`

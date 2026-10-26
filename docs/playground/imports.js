@@ -1,6 +1,7 @@
 // io.import in the browser: downloads a Wally package or GitHub folder straight from Wally's
 // registry / GitHub's API (both allow cross-origin reads), builds the instance tree the bot's
 // src/github/build.luau would, and writes it as an .rbxm. Mirrors RluauRunnerV3's src/github/*.
+// Roblox assets need the bot's Open Cloud key, so the bot downloads those (/import/roblox).
 //
 // A node is { name, className, source?, value?, contents?, children: [] }.
 (function () {
@@ -10,11 +11,29 @@
   const MAX_FILES = 800;
   const MAX_PACKAGES = 50;
   const NAME = /^[A-Za-z0-9_.-]{1,100}$/;
+  const ASSET_ID = /^\d{1,20}$/;
+  const ROBLOX_HOSTS = /^(www\.|create\.)?roblox\.com$/i;
   const PART = /^[a-z0-9_-]{1,64}$/;
 
   class ImportError extends Error {}
 
-  //// targets (same forms as the bot: wally:, wally.run/package, github.com)
+  //// targets (same forms as the bot: wally:, wally.run/package, github.com, Roblox assets)
+
+  // 123, rbxassetid://123, roblox.com/library/123, create.roblox.com/store/asset/123, roblox.com/asset/?id=123
+  function parseRobloxTarget(text, url) {
+    if (ASSET_ID.test(text)) return { mode: "roblox", id: text };
+    const scheme = /^rbxassetid:\/\/(\d{1,20})$/i.exec(text);
+    if (scheme) return { mode: "roblox", id: scheme[1] };
+    if (!url || !ROBLOX_HOSTS.test(url.hostname)) return null;
+    const segs = url.pathname.split("/").filter(Boolean).map(s => s.toLowerCase());
+    const after = name => segs[segs.indexOf(name) + 1];
+    const id = segs.includes("library") ? after("library")
+      : segs.includes("catalog") ? after("catalog")
+      : segs.includes("store") && after("store") === "asset" ? segs[segs.indexOf("store") + 2]
+      : segs.includes("asset") ? url.searchParams.get("id") : null;
+    if (!ASSET_ID.test(id ?? "")) throw new ImportError("expected a roblox.com asset link with an asset id");
+    return { mode: "roblox", id };
+  }
 
   function parseTarget(raw) {
     const text = String(raw).trim();
@@ -39,6 +58,8 @@
       parseRequirement(req);
       return { mode: "wally", scope, name, req };
     }
+    const roblox = parseRobloxTarget(text, url);
+    if (roblox) return roblox;
     if (!url) throw new ImportError("not a valid URL");
     const host = url.hostname.toLowerCase();
     const segs = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
@@ -51,7 +72,7 @@
       }
       return { mode: "path", owner, repo, candidates: refCandidates(rest).filter(c => c.path) };
     }
-    if (host !== "github.com" && host !== "www.github.com") throw new ImportError("only github.com and Wally URLs are supported");
+    if (host !== "github.com" && host !== "www.github.com") throw new ImportError("only github.com, Wally and Roblox asset URLs are supported");
     const [owner, repoRaw, kind, ...rest] = segs;
     const repo = (repoRaw ?? "").replace(/\.git$/i, "");
     if (!NAME.test(owner ?? "") || !NAME.test(repo)) throw new ImportError("expected github.com/<owner>/<repo>");
@@ -591,6 +612,40 @@
     return concat([head, data]);
   }
 
+  //// Roblox assets (through the bot)
+
+  const api = { server: "https://api.rluwa.com" };
+
+  async function fetchRoblox(id, format) {
+    const res = await fetch(`${api.server}/import/roblox/${id}${format ? `?format=${format}` : ""}`);
+    if (res.ok) return res;
+    const message = await res.json().then(body => body?.message, () => null);
+    throw new ImportError(message || `the bot returned ${res.status}`);
+  }
+
+  function normalizeTree(item) {
+    return {
+      name: String(item.name), className: String(item.className), source: item.source, value: item.value,
+      children: Array.isArray(item.children) ? item.children.map(normalizeTree) : [],
+    };
+  }
+
+  async function buildRoblox(target) {
+    return normalizeTree(await (await fetchRoblox(target.id, "tree")).json());
+  }
+
+  // The .rbxm for a spec: Roblox assets as the bot downloaded them (parts, meshes and all),
+  // everything else written from the built tree.
+  async function modelFile(spec) {
+    const target = parseTarget(spec);
+    if (target.mode === "roblox") {
+      const bytes = new Uint8Array(await (await fetchRoblox(target.id)).arrayBuffer());
+      return { name: `Asset${target.id}`, bytes };
+    }
+    const tree = await build(spec);
+    return { name: tree.name, bytes: toRbxm(tree) };
+  }
+
   //// entry
 
   const builds = new Map();
@@ -600,7 +655,7 @@
     if (!builds.has(spec)) {
       const target = Promise.resolve().then(() => parseTarget(spec));
       builds.set(spec, target
-        .then(t => (t.mode === "wally" ? buildWally(t) : buildGithub(t)))
+        .then(t => (t.mode === "wally" ? buildWally(t) : t.mode === "roblox" ? buildRoblox(t) : buildGithub(t)))
         .catch(err => {
           builds.delete(spec);
           throw err instanceof ImportError ? err : new ImportError(err.message || String(err));
@@ -609,15 +664,15 @@
     return builds.get(spec);
   }
 
-  // io.import("...") calls with a literal spec, as { spec, start, end } offsets into code.
+  // io.import("...") or io.import(<asset id>) calls with a literal spec, as { spec, start, end } offsets into code.
   function findCalls(code) {
-    return [...code.matchAll(/\bio\.import\s*\(\s*(["'`])([^"'`\n]+)\1\s*\)/g)]
-      .map(m => ({ spec: m[2], start: m.index, end: m.index + m[0].length }));
+    return [...code.matchAll(/\bio\.import\s*\(\s*(?:(["'`])([^"'`\n]+)\1|(\d{1,20}))\s*\)/g)]
+      .map(m => ({ spec: m[2] ?? m[3], start: m.index, end: m.index + m[0].length }));
   }
 
   function findSpecs(code) {
     return [...new Set(findCalls(code).map(call => call.spec))];
   }
 
-  window.LuauImports = { build, toRbxm, findCalls, findSpecs, parseTarget, ImportError };
+  window.LuauImports = { api, build, modelFile, toRbxm, findCalls, findSpecs, parseTarget, ImportError };
 })();

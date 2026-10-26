@@ -1987,11 +1987,11 @@ declare myGlobal: MyClass'></textarea>
       const state = importState.get(spec) ?? { status: "idle" };
       setImportState(spec, { ...state, downloading: true, error: undefined });
       try {
-        const tree = await LuauImports.build(spec);
-        const url = URL.createObjectURL(new Blob([LuauImports.toRbxm(tree)], { type: "application/octet-stream" }));
+        const { name, bytes } = await LuauImports.modelFile(spec);
+        const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${tree.name}.rbxm`;
+        link.download = `${name}.rbxm`;
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         setImportState(spec, { ...state, downloading: false });
@@ -3049,6 +3049,7 @@ declare myGlobal: MyClass'></textarea>
     });
 
     const SERVER = "https://api.rluwa.com";
+    LuauImports.api.server = SERVER;
     const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
     const TOOL_REFRESH_MS = 650; // Leave room under the 120 requests/minute limit.
     const TOOL_EDIT_DELAY_MS = 300;
@@ -3959,7 +3960,7 @@ declare myGlobal: MyClass'></textarea>
 
     const MODULE_MARKER_LINE = /^--==<<\s*FILE:\s*(.*?)\s*>>==--\s*$/;
     const MODULE_BOOTSTRAP = String.raw`
-local __playground_entry_results, __playground_entry_running = nil, true;
+local __playground_entry_results, __playground_entry_running, __playground_entry_module = nil, true, __ENTRY_AS_MODULE__;
 do
 local entryScript = script
 local entryName = nil
@@ -4020,7 +4021,10 @@ end
 local files, parsedEntryName = parseFiles(filestr)
 entryName = parsedEntryName
 for name, src in files do
-  if name == entryName then
+  if name == entryName and __playground_entry_module then
+    local fx, module = _execute(src, name)
+    modules[entryScript] = fx or module
+  elseif name == entryName then
     modules[entryScript] = function()
       if __playground_entry_running then error("Circular require: " .. name, 2) end
       return table.unpack(__playground_entry_results, 1, __playground_entry_results.n)
@@ -4039,7 +4043,6 @@ for name, src in files do
 end
 end
 local require = imports.require;
-local function __playground_entry(...)
 `.trim().replace(/\r?\n\s*/g, " ");
 
     function buildModuleInput(files) {
@@ -4066,11 +4069,16 @@ local function __playground_entry(...)
     }
 
     function injectModuleBootstrap(code) {
+      // Classes are only allowed at a chunk's top level, so an entry file with one runs as a module
+      // (its own chunk, loaded like the other files) and the main chunk just requires it.
+      const wrap = !/\bclass\s+[A-Za-z_]/.test(code);
+      const bootstrap = MODULE_BOOTSTRAP.replace("__ENTRY_AS_MODULE__", wrap ? "false" : "true");
       const lines = code.split("\n");
       let first = 0;
       while (first < lines.length && /^\s*--!/.test(lines[first])) first++;
-      if (first < lines.length) lines[first] = MODULE_BOOTSTRAP + " " + lines[first];
-      else lines.push(MODULE_BOOTSTRAP);
+      if (!wrap) return [...lines.slice(0, first), bootstrap + " return require(script)"].join("\n");
+      if (first < lines.length) lines[first] = bootstrap + " local function __playground_entry(...) " + lines[first];
+      else lines.push(bootstrap + " local function __playground_entry(...)");
       return lines.join("\n") + "\nend; __playground_entry_results = table.pack(__playground_entry(...)); __playground_entry_running = false; return table.unpack(__playground_entry_results, 1, __playground_entry_results.n)";
     }
 
