@@ -25,9 +25,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
-  <script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>  <script>
     (function () {
       function pickTheme() {
         try {
@@ -228,32 +226,20 @@
       color: var(--pg-fg);
     }
 
-    #shareBtn, #exportAllBtn, #importFilesBtn {
-      background: transparent;
+    #shareBtn, #exportAllBtn, #importFilesBtn, #settingsBtn {
+      background: var(--pg-button);
       color: var(--pg-fg);
       border: 1px solid transparent;
       font-size: 12px;
       padding: 3px 10px;
     }
 
-    #shareBtn:hover, #exportAllBtn:hover, #importFilesBtn:hover {
-      background: var(--pg-hover);
+    #shareBtn:hover, #exportAllBtn:hover, #importFilesBtn:hover, #settingsBtn:hover {
+      background: var(--pg-button-hover);
     }
 
     #exportAllBtn, #importFilesBtn {
       padding: 3px 7px;
-    }
-
-    #settingsBtn {
-      background: transparent;
-      color: var(--pg-fg);
-      border: 1px solid transparent;
-      font-size: 12px;
-      padding: 3px 10px;
-    }
-
-    #settingsBtn:hover {
-      background: var(--pg-hover);
     }
 
     #settings-popover {
@@ -586,7 +572,7 @@
     }
 
     #hist-popover-btn {
-      background: transparent;
+      background: var(--pg-button);
       color: var(--pg-fg);
       border: 1px solid transparent;
       font-size: 12px;
@@ -594,7 +580,7 @@
     }
 
     #hist-popover-btn:hover {
-      background: var(--pg-hover);
+      background: var(--pg-button-hover);
     }
 
     #hist-popover {
@@ -715,13 +701,13 @@
 
     #hist-sheet-btn {
       display: none;
-      background: transparent;
+      background: var(--pg-button);
       color: var(--pg-fg);
       border: 1px solid transparent;
     }
 
     #hist-sheet-btn:hover {
-      background: var(--pg-hover);
+      background: var(--pg-button-hover);
     }
 
     #hist-sheet-backdrop {
@@ -1197,7 +1183,7 @@
             <button id="expandEditorBtn" class="pane-view-button" type="button" title="Expand editor" aria-label="Expand editor" aria-pressed="false" aria-controls="editor-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
           </div>
         </div>
-        <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code" placeholder='print("Hello world")'></textarea></div>
+        <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
         <div class="editor-footer"><span>Luau</span><span class="legal" title="Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.">Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.</span></div>
       </section>
       <div class="pane-splitter" role="separator" tabindex="0" aria-label="Resize editor and console" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75" aria-controls="console-pane"></div>

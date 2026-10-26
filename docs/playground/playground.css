@@ -15,6 +15,8 @@
   --pg-editor: hsl(225 15% 18%);
   --pg-input: hsl(225 15% 18%);
   --pg-hover: hsl(225 15% 23%);
+  --pg-button: hsl(225 15% 23%); /* secondary toolbar buttons: filled, no outline */
+  --pg-button-hover: hsl(225 15% 29%);
   --pg-border: hsl(225 15% 90% / .12);
   --pg-fg: hsl(225 15% 90% / .82);
   --pg-muted: hsl(225 15% 90% / .56);
@@ -42,6 +44,8 @@ html[data-playground-theme="light"] {
   --pg-editor: #fff;
   --pg-input: #fff;
   --pg-hover: #0000000f;
+  --pg-button: #00000014;
+  --pg-button-hover: #00000024;
   --pg-border: #0000001f;
   --pg-fg: #000000de;
   --pg-muted: #0000008a;
@@ -113,8 +117,8 @@ body { height: 100dvh; }
 .toolbar { padding: 7px 16px; gap: 10px; }
 .ui-icon { width: 16px; height: 16px; flex: 0 0 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .toolbar button, #fmtBtn { min-height: 30px; border-radius: var(--pg-radius-sm); padding: 6px 12px; font-size: 12px; }
-#fmtBtn { background: transparent; color: var(--pg-fg); border: 1px solid transparent; }
-#fmtBtn:hover { background: var(--pg-hover); }
+#fmtBtn { background: var(--pg-button); color: var(--pg-fg); border: 1px solid transparent; }
+#fmtBtn:hover { background: var(--pg-button-hover); }
 #fmtBtn.is-busy .ui-icon { animation: tool-spin 1s linear infinite; }
 #runBtn { background: var(--pg-primary); padding-inline: 20px; box-shadow: none; }
 #runBtn .ui-icon, #stopBtn .ui-icon { fill: currentColor; }
@@ -254,9 +258,7 @@ html[data-playground-theme="light"] .script-button-secondary:hover:not(:disabled
 #inputBox { min-width: 0; padding: 9px 10px; border-radius: var(--pg-radius-sm); }
 #output { min-height: 0; padding: 18px; font-size: 13px; }
 #editor-wrapper .CodeMirror, #output, #inputBox { font-family: var(--pg-mono); font-variant-ligatures: none; }
-#output:empty:not([data-ran])::before { content: "Press Run to see output."; color: var(--pg-muted); font-family: var(--pg-font); }
-.cm-s-studio .CodeMirror-placeholder { color: var(--pg-muted); }
-.file-chip .ui-icon { width: 14px; height: 14px; flex-basis: 14px; }
+#output:empty:not([data-ran])::before { content: "Press Run to see output."; color: var(--pg-muted); font-family: var(--pg-font); }.file-chip .ui-icon { width: 14px; height: 14px; flex-basis: 14px; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--pg-accent); outline-offset: 3px; }
 .CodeMirror-hints { max-width: min(520px, 92vw); }
 .cm-hint-detail { color: var(--pg-muted); }
