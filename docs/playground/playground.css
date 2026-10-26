@@ -120,6 +120,10 @@ body { height: 100dvh; }
 #fmtBtn { background: var(--pg-button); color: var(--pg-fg); border: 1px solid transparent; }
 #fmtBtn:hover { background: var(--pg-button-hover); }
 #fmtBtn.is-busy .ui-icon { animation: tool-spin 1s linear infinite; }
+.home-link { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; margin-right: 6px; padding: 0 6px; border-radius: var(--pg-radius-sm); color: var(--pg-fg); font-size: 14px; font-weight: 600; text-decoration: none; }
+.home-link[hidden] { display: none; }
+.home-link:hover { background: var(--pg-button-hover); }
+.home-link:focus-visible { outline: 2px solid var(--pg-accent); outline-offset: 3px; }
 #runBtn { background: var(--pg-primary); padding-inline: 20px; box-shadow: none; }
 #runBtn .ui-icon, #stopBtn .ui-icon { fill: currentColor; }
 #runBtn:hover { background: var(--pg-primary-hover); }
@@ -276,6 +280,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--pg-accent);
   .toolbar-opts { display: contents; }
   .toolbar button { justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0 !important; }
   .toolbar .button-label, .file-action .button-label, #sendBtn .button-label { display: none; }
+  .home-link { justify-content: center; min-width: 44px; min-height: 44px; margin-right: 0; padding: 0; }
   .toolbar .ui-icon, .pane-view-button .ui-icon, #sendBtn .ui-icon { width: 20px; height: 20px; flex-basis: 20px; }
   #hist-sheet-btn { display: inline-flex; }
   #hist-bottom-tab { display: none; }

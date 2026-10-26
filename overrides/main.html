@@ -28,6 +28,17 @@
             color: var(--md-default-fg-color);
         }
 
+        .luwa-home-link {
+            display: block;
+            height: 100%;
+            color: inherit;
+        }
+
+        .luwa-home-link:hover,
+        .luwa-home-link:focus {
+            color: inherit;
+        }
+
         .md-header__source { order: 1; }
         .md-header__option[data-md-component="palette"] { order: 2; }
         .md-header__button[for="__search"],
@@ -35,6 +46,18 @@
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // The title (site name, or the page name once scrolled) also goes home, like the logo.
+            const title = document.querySelector('.md-header__title .md-header__ellipsis');
+            const logo = document.querySelector('.md-header__button.md-logo');
+            if (title && logo) {
+                const homeLink = document.createElement('a');
+                homeLink.className = 'luwa-home-link';
+                homeLink.href = logo.href;
+                homeLink.title = 'Luwa home';
+                title.parentNode.insertBefore(homeLink, title);
+                homeLink.appendChild(title);
+            }
+
             const topic = document.querySelector('.md-header__topic');
             if (!topic) return;
 

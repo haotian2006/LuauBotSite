@@ -1154,6 +1154,7 @@
 <body>
 
   <div class="toolbar">
+    <a id="homeLink" class="home-link" href="./" title="Luwa home" hidden><img src="images/favicon.png" alt="" width="22" height="22"><span class="button-label">Luwa</span></a>
     <button id="runBtn" title="Run the open file" aria-label="Run the open file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span class="button-label">Run</span></button>
     <button id="stopBtn" title="Stop the run" aria-label="Stop the run"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span class="button-label">Stop</span></button>
     <button id="fmtBtn" title="Format code (StyLua)" aria-label="Format code (StyLua)"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M8 10h12M8 15h8M4 20h16M2 10l3 2.5L2 15"/></svg><span class="button-label">Format</span></button>
@@ -3380,6 +3381,8 @@ declare myGlobal: MyClass'></textarea>
       } catch { copyToolBtn.textContent = "Copy failed"; }
     });
     toolViewsReady = true;
+    // Inside the docs page the site header already links home.
+    document.getElementById("homeLink").hidden = window.parent !== window;
     const runBtn = document.getElementById("runBtn");
     const stopBtn = document.getElementById("stopBtn");
     const inputBox = document.getElementById("inputBox");
