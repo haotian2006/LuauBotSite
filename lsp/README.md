@@ -20,7 +20,10 @@ function on `io.import` returns the same node's instance type, so `io.import(...
 
 `require("@lune/<lib>")` resolves through a `.luaurc` alias the worker writes into the workspace,
 pointing at `docs/playground/lune/`: Lune's own typedefs, copied from
-`crates/lune-std-<lib>/types.d.luau` at the Lune tag the bot runs (v0.11.0).
+`crates/lune-std-<lib>/types.d.luau` at the Lune tag the bot runs (v0.11.0). Only the libraries
+`roblox/LuneImports.luau` provides are there, plus `datetime`, which `fs` uses for its types.
+`net.luau` is cut down to what the bot implements (`request`, `socket`, `jsonEncode`/`jsonDecode`,
+`urlEncode`/`urlDecode`); no `serve`, `http`, `tcp` or `ws`.
 
 `build.sh` also refreshes `docs/playground/globalTypes.d.luau` (the `None` security variant) and
 `docs/playground/api-docs.json` from the same luau-lsp release, so types and docs match the server.

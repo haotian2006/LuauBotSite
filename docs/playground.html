@@ -1554,7 +1554,8 @@ declare myGlobal: MyClass'></textarea>
       completionDoc.style.top = Math.max(8, Math.min(list.top, innerHeight - completionDoc.offsetHeight - 8)) + "px";
     }
 
-    const LUNE_LIBS = ["datetime", "fs", "luau", "net", "process", "regex", "roblox", "serde", "stdio", "task"];
+    // The @lune libraries the bot's workers provide (roblox/LuneImports.luau).
+    const LUNE_LIBS = ["fs", "luau", "net", "regex", "roblox", "serde", "task"];
 
     function luauHint(cm, callback) {
       const doc = cm.getDoc();
