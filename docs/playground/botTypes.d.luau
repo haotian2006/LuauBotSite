@@ -248,8 +248,28 @@ declare discord: {
 }
 
 -- Misc library
+-- Native fields (TValue layout, capacities, metatable summaries) differ by value type, hence the indexers.
+export type MiscInspectSummary = {
+    type: string,
+    shallowBytes: number,
+    estimatePartial: boolean?,
+    [string]: any,
+}
+export type MiscInspectInfo = {
+    type: string,
+    shallowBytes: number,
+    estimatedTotalBytes: number,
+    visitedObjects: number,
+    truncated: boolean,
+    estimatePartial: boolean,
+    estimateScope: string,
+    entries: { { key: MiscInspectSummary, value: MiscInspectSummary } }?,
+    entriesTruncated: boolean?,
+    [string]: any,
+}
 declare misc: {
     truth: (vars: { any }) -> {},
+    inspect: (value: any) -> MiscInspectInfo,
     calculate: (vars: string, ...string) -> (),
     uwuify: (text: string) -> string,
 }
