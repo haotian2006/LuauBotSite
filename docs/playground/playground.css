@@ -406,3 +406,7 @@ button, select, label, .file-tab .file-name, .file-tab .file-name-input, #status
 #actionNotice.has-action { display: flex; align-items: center; gap: 12px; pointer-events: auto; }
 #actionNotice.has-action button { min-height: 32px; padding: 4px 14px; border: 0; border-radius: var(--pg-radius-sm); background: var(--pg-primary); color: #fff; font-size: 13px; cursor: pointer; }
 @media (pointer: coarse) { #actionNotice.has-action button { min-height: 40px; } }
+/* Color3 swatch before the call; the hidden input anchors the system color picker beside it. */
+.cm-color-swatch { display: inline-block; width: .8em; height: .8em; margin: 0 4px 0 1px; vertical-align: -.05em; border: 1px solid var(--pg-border); border-radius: 2px; cursor: pointer; }
+@media (pointer: coarse) { .cm-color-swatch { width: 1em; height: 1em; } }
+.color-picker-input { position: fixed; z-index: -1; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
