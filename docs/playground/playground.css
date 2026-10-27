@@ -163,7 +163,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .bytecode-options { border-bottom: 1px solid var(--pg-border); background: var(--pg-surface); }
 .bytecode-options > summary { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 14px; color: var(--pg-fg); cursor: pointer; font-size: 11px; font-weight: 600; list-style: none; }
 .bytecode-options > summary::-webkit-details-marker { display: none; }
-.bytecode-options > summary::before { content: "â–¸"; color: var(--pg-muted); font-size: 14px; transition: transform .15s; }
+.bytecode-options > summary::before { content: "▸"; color: var(--pg-muted); font-size: 14px; transition: transform .15s; }
 .bytecode-options[open] > summary::before { transform: rotate(90deg); }
 .bytecode-options > summary:focus-visible { outline: 2px solid var(--pg-accent); outline-offset: -2px; }
 #bytecodeOptionSummary { min-width: 0; margin-left: auto; overflow: hidden; color: var(--pg-muted); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
@@ -230,7 +230,7 @@ html[data-playground-theme="light"] #toolOutput .syntax-keyword { color: #a03d45
 .editor-heading .file-action { flex: 0 0 auto; padding: 3px 7px; font-size: 13px; }
 #removeAllFilesBtn[hidden] { display: none; }
 #editor-wrapper { position: relative; border: 0; }
-#editor-wrapper.file-drag-over::after { content: "â†“  Drop file to paste into " attr(data-active-file); position: absolute; z-index: 5; inset: 12px; display: grid; place-items: center; padding: 20px; border: 2px dashed var(--pg-accent); border-radius: var(--pg-radius); background: color-mix(in srgb, var(--pg-bg) 92%, transparent); color: var(--pg-fg); font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; animation: file-drop-enter .18s ease-out, file-drop-pulse 1.2s ease-in-out .18s infinite alternate; }
+#editor-wrapper.file-drag-over::after { content: "↓  Drop file to paste into " attr(data-active-file); position: absolute; z-index: 5; inset: 12px; display: grid; place-items: center; padding: 20px; border: 2px dashed var(--pg-accent); border-radius: var(--pg-radius); background: color-mix(in srgb, var(--pg-bg) 92%, transparent); color: var(--pg-fg); font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; animation: file-drop-enter .18s ease-out, file-drop-pulse 1.2s ease-in-out .18s infinite alternate; }
 html[data-playground-theme="light"] #editor-wrapper.file-drag-over::after { background: rgba(255, 255, 255, .94); }
 @keyframes file-drop-enter { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
 @keyframes file-drop-pulse { from { box-shadow: 0 0 0 0 var(--pg-accent-soft); } to { box-shadow: 0 0 0 7px var(--pg-accent-soft); } }
