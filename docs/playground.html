@@ -3365,15 +3365,32 @@ declare myGlobal: MyClass'></textarea>
     editor.on("scroll", hideImportPopup);
 
     // Color3 swatches, like VS Code's color decorators: a box before each Color3.new / fromRGB /
-    // fromHSV / fromHex call with literal arguments; clicking it opens the system color picker.
+    // fromHSV / fromHex call with literal arguments. Clicking it opens VS Code's style of picker:
+    // the color's text on top (click to change format) beside the original (click to reset),
+    // then a saturation/brightness square and a hue strip.
     const COLOR3_CALL = /\bColor3\s*\.\s*(new|fromRGB|fromHSV|fromHex)\s*\(([^()]*)\)/g;
-    const colorPicker = document.createElement("input");
-    colorPicker.type = "color";
-    colorPicker.className = "color-picker-input";
-    colorPicker.tabIndex = -1;
-    colorPicker.setAttribute("aria-hidden", "true");
-    document.body.appendChild(colorPicker);
-    let colorEdit = null; // { kind, args: TextMarker over the arguments, quote, swatch }
+    const COLOR3_FORMATS = ["fromRGB", "new", "fromHex", "fromHSV"];
+    const colorPopup = document.createElement("div");
+    colorPopup.id = "color-popup";
+    colorPopup.setAttribute("role", "dialog");
+    colorPopup.setAttribute("aria-label", "Color picker");
+    colorPopup.hidden = true;
+    colorPopup.innerHTML = `
+      <div class="cp-header">
+        <button type="button" class="cp-current" title="Change color format"></button>
+        <button type="button" class="cp-original" title="Reset to the original color"></button>
+      </div>
+      <div class="cp-body">
+        <div class="cp-sv" aria-label="Saturation and brightness"><div class="cp-thumb"></div></div>
+        <div class="cp-hue" aria-label="Hue"><div class="cp-hue-thumb"></div></div>
+      </div>`;
+    document.body.appendChild(colorPopup);
+    const cpCurrent = colorPopup.querySelector(".cp-current");
+    const cpOriginal = colorPopup.querySelector(".cp-original");
+    const cpSv = colorPopup.querySelector(".cp-sv");
+    const cpHue = colorPopup.querySelector(".cp-hue");
+    // { doc, call: TextMarker over "fromRGB(...)", kind, quote, hsv, originalText, originalRgb }
+    let colorEdit = null;
     let colorMarkTimer = null;
 
     function hexOf(rgb) {
@@ -3435,49 +3452,136 @@ declare myGlobal: MyClass'></textarea>
         swatch.className = "cm-color-swatch";
         swatch.style.background = hexOf(color.rgb);
         swatch.title = "Pick a color";
-        const argsStart = match.index + match[0].indexOf("(", match[1].length) + 1;
-        const argsFrom = doc.posFromIndex(argsStart);
-        const argsTo = doc.posFromIndex(argsStart + match[2].length);
+        // From the method name ("fromRGB") to the closing ")", so changing format can rename it.
+        const callStart = match.index + match[0].indexOf(match[1], "Color3".length);
+        const callEnd = match.index + match[0].length;
+        // Keep the tap from moving the cursor or opening the phone keyboard.
+        swatch.addEventListener("pointerdown", event => event.preventDefault());
         swatch.addEventListener("mousedown", event => event.preventDefault());
-        swatch.addEventListener("click", () => openColorPicker(doc, match[1], argsFrom, argsTo, color, swatch));
+        swatch.addEventListener("click", event => {
+          event.stopPropagation();
+          openColorPicker(doc, match[1], doc.posFromIndex(callStart), doc.posFromIndex(callEnd), color);
+        });
         const mark = doc.setBookmark(start, { widget: swatch, insertLeft: true });
         mark.colorSwatch = true;
       }
     }
 
-    function openColorPicker(doc, kind, from, to, color, swatch) {
-      colorEdit?.args.clear();
-      const args = doc.markText(from, to, { inclusiveLeft: true, inclusiveRight: true });
-      colorEdit = { doc, kind, args, quote: color.quote || '"', swatch };
-      const rect = swatch.getBoundingClientRect();
-      colorPicker.style.left = rect.left + "px";
-      colorPicker.style.top = rect.bottom + "px";
-      colorPicker.value = hexOf(color.rgb);
-      try { colorPicker.showPicker(); } catch { colorPicker.click(); }
+    function colorEditRgb() {
+      return hsvToRgb(...colorEdit.hsv).map(Math.round);
     }
 
-    colorPicker.addEventListener("input", () => {
-      const range = colorEdit?.args.find();
-      if (!range || colorEdit.doc !== editor.getDoc()) return;
-      const hex = colorPicker.value;
-      const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
-      colorEdit.swatch.style.background = hex;
-      // "+" origins within a second merge, so dragging around the picker is one undo step.
-      colorEdit.doc.replaceRange(formatColor3Args(colorEdit.kind, rgb, colorEdit.quote), range.from, range.to, "+colorpick");
-    });
-    colorPicker.addEventListener("change", () => {
-      colorEdit?.args.clear();
+    function renderColorPopup() {
+      const [h, s, v] = colorEdit.hsv;
+      const rgb = colorEditRgb();
+      const hex = hexOf(rgb);
+      // Dark text on light colors, like VS Code's header.
+      const ink = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000 > 140 ? "#000" : "#fff";
+      cpCurrent.style.background = hex;
+      cpCurrent.style.color = ink;
+      cpCurrent.textContent = `${colorEdit.kind}(${formatColor3Args(colorEdit.kind, rgb, colorEdit.quote)})`;
+      cpOriginal.style.background = hexOf(colorEdit.originalRgb);
+      cpSv.style.setProperty("--cp-hue", `${h * 360}`);
+      cpSv.firstElementChild.style.left = `${s * 100}%`;
+      cpSv.firstElementChild.style.top = `${(1 - v) * 100}%`;
+      cpSv.firstElementChild.style.background = hex;
+      cpHue.firstElementChild.style.top = `${h * 100}%`;
+    }
+
+    function placeColorPopup() {
+      const range = colorEdit?.call.find();
+      if (!range) { closeColorPicker(); return; }
+      const at = editor.charCoords(range.from, "window");
+      const width = colorPopup.offsetWidth, height = colorPopup.offsetHeight;
+      colorPopup.style.left = Math.max(8, Math.min(at.left - 20, innerWidth - width - 8)) + "px";
+      colorPopup.style.top = (at.bottom + 4 + height <= innerHeight - 8 ? at.bottom + 4 : Math.max(8, at.top - height - 4)) + "px";
+    }
+
+    // Writes the picked color into the code. "+" origins within a second merge, so a drag is one undo step.
+    function applyColorEdit() {
+      const range = colorEdit?.call.find();
+      if (!range || colorEdit.doc !== editor.getDoc()) { closeColorPicker(); return; }
+      const text = `${colorEdit.kind}(${formatColor3Args(colorEdit.kind, colorEditRgb(), colorEdit.quote)})`;
+      if (colorEdit.doc.getRange(range.from, range.to) !== text) {
+        colorEdit.doc.replaceRange(text, range.from, range.to, "+colorpick");
+        refreshColorMarks(colorEdit.doc); // the swatch follows the drag
+      }
+      renderColorPopup();
+    }
+
+    function openColorPicker(doc, kind, from, to, color) {
+      closeColorPicker();
+      colorEdit = {
+        doc, kind,
+        call: doc.markText(from, to, { inclusiveLeft: true, inclusiveRight: true }),
+        quote: color.quote || '"',
+        hsv: rgbToHsv(color.rgb),
+        originalText: doc.getRange(from, to),
+        originalRgb: color.rgb,
+      };
+      colorPopup.hidden = false;
+      renderColorPopup();
+      placeColorPopup();
+    }
+
+    function closeColorPicker() {
+      if (!colorEdit) return;
+      colorEdit.call.clear();
       colorEdit = null;
+      colorPopup.hidden = true;
+      refreshColorMarks();
+    }
+
+    // Drags on the square and the strip; pointer capture keeps the drag going outside them.
+    function trackColorDrag(area, onMove) {
+      area.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        area.setPointerCapture(event.pointerId);
+        const move = e => {
+          const box = area.getBoundingClientRect();
+          onMove(Math.min(1, Math.max(0, (e.clientX - box.left) / box.width)),
+            Math.min(1, Math.max(0, (e.clientY - box.top) / box.height)));
+          applyColorEdit();
+        };
+        move(event);
+        area.addEventListener("pointermove", move);
+        area.addEventListener("pointerup", () => area.removeEventListener("pointermove", move), { once: true });
+        area.addEventListener("pointercancel", () => area.removeEventListener("pointermove", move), { once: true });
+      });
+    }
+    trackColorDrag(cpSv, (x, y) => { colorEdit.hsv[1] = x; colorEdit.hsv[2] = 1 - y; });
+    // The bottom of the strip is red again; keep it below 1 so the hue doesn't wrap to 0.
+    trackColorDrag(cpHue, (x, y) => { colorEdit.hsv[0] = Math.min(y, 0.9999); });
+
+    cpCurrent.addEventListener("click", () => {
+      colorEdit.kind = COLOR3_FORMATS[(COLOR3_FORMATS.indexOf(colorEdit.kind) + 1) % COLOR3_FORMATS.length];
+      applyColorEdit();
+    });
+    cpOriginal.addEventListener("click", () => {
+      const range = colorEdit.call.find();
+      if (range) colorEdit.doc.replaceRange(colorEdit.originalText, range.from, range.to, "+colorpick");
+      colorEdit.kind = colorEdit.originalText.match(/^\w+/)[0];
+      colorEdit.hsv = rgbToHsv(colorEdit.originalRgb);
+      renderColorPopup();
+    });
+    colorPopup.addEventListener("pointerdown", event => event.preventDefault());
+    document.addEventListener("pointerdown", event => {
+      if (colorEdit && !colorPopup.contains(event.target) && !event.target.closest?.(".cm-color-swatch")) closeColorPicker();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && colorEdit) closeColorPicker();
     });
 
     editor.on("change", (cm, change) => {
       clearTimeout(colorMarkTimer);
+      // Typing elsewhere closes the picker; its own edits keep it open.
+      if (colorEdit && change.origin !== "+colorpick") closeColorPicker();
       // Wait longer while the picker is dragged, so the swatch isn't rebuilt on every step.
-      colorMarkTimer = setTimeout(() => refreshColorMarks(), change.origin === "+colorpick" ? 1000 : 250);
+      colorMarkTimer = setTimeout(() => refreshColorMarks(), change.origin === "+colorpick" ? 400 : 250);
     });
+    editor.on("scroll", () => { if (colorEdit) placeColorPopup(); });
     editor.on("swapDoc", () => {
-      colorEdit?.args.clear();
-      colorEdit = null;
+      closeColorPicker();
       refreshColorMarks();
     });
     refreshColorMarks();
