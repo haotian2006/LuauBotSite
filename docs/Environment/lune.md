@@ -17,8 +17,9 @@ print(fs.readFile("hello.txt")) --> hi
 | `@lune/serde` | `encode` and `decode` for json, yaml and toml, `compress` and `decompress` for gzip and zlib, `hash` and `hmac` with md5, sha1, sha256, sha384 and sha512 |
 | `@lune/regex` | `new`, with `isMatch`, `find`, `captures`, `split`, `replace` and `replaceAll` |
 | `@lune/luau` | `compile`, `disassemble` and `load`. `load` only takes source or bytecode compiled in the same run. |
+| `@lune/net` | `request`, `socket`, `jsonEncode`, `jsonDecode`, `urlEncode` and `urlDecode` |
 
-Other libraries like `@lune/net`, `@lune/process` and `@lune/stdio` don't work: `library @lune/net is unavailable on this worker`.
+Other libraries like `@lune/process` and `@lune/stdio` don't work: `library @lune/process is unavailable on this worker`.
 
 ???+ info
     `@lune/serde`, `@lune/regex` and `@lune/luau` only work when the code runs in Studio.
