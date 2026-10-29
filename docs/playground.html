@@ -4935,10 +4935,12 @@ local require = imports.require;
       es = new EventSource(`${SERVER}/stream/${token}`);
 
       let _serverNum = null;
+      let _studio; // undefined until the bot says
       es.addEventListener("output", e => {
-        const { content, serverNum } = JSON.parse(e.data);
+        const { content, serverNum, studio } = JSON.parse(e.data);
         _serverNum = serverNum;
-        setStatus(`Server #${serverNum}`);
+        _studio = typeof studio === "boolean" ? studio : undefined;
+        setStatus(runnerLabel(serverNum, _studio));
         setOutput(content);
       });
       es.addEventListener("buttons", e => {
@@ -4954,13 +4956,13 @@ local require = imports.require;
       });
       es.addEventListener("done", e => {
         const { runtime } = JSON.parse(e.data);
-        const serverPart = _serverNum != null ? `Server #${_serverNum} · ` : "";
+        const serverPart = _serverNum != null ? `${runnerLabel(_serverNum, _studio)} · ` : "";
         setStatus(`${serverPart}Done (${(+runtime).toFixed(4)}s)`);
         setRunning(false);
         es.close();
         currentToken = null;
         syncRunLocalUi();
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, +runtime, false, _pendingWorkspace); }
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, { serverNum: _serverNum, studio: _studio }, +runtime, false, _pendingWorkspace); }
         _pendingCode = null;
         _pendingWorkspace = null;
         _pendingFiles = [];
@@ -4972,7 +4974,7 @@ local require = imports.require;
         es.close();
         currentToken = null;
         syncRunLocalUi();
-        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, _serverNum, null, false, _pendingWorkspace); }
+        if (_pendingCode && histRecordCheck.checked) { pushHistory(_pendingCode, outputEl.innerHTML, _pendingFiles, { serverNum: _serverNum, studio: _studio }, null, false, _pendingWorkspace); }
         _pendingCode = null;
         _pendingWorkspace = null;
         _pendingFiles = [];
@@ -5124,7 +5126,7 @@ local require = imports.require;
         const body = document.createElement("div");
         body.className = "hist-body";
         const localTag = entry.local ? " · Local" : "";
-        const serverTag = entry.serverNum != null ? ` · #${entry.serverNum}` : "";
+        const serverTag = entry.serverNum != null ? ` · ${runnerLabel(entry.serverNum, entry.studio)}` : "";
         const runtimeTag = entry.runtime != null ? ` · ${entry.runtime.toFixed(2)}s` : "";
         const label = document.createElement("div");
         label.className = "hist-label";
@@ -5188,9 +5190,17 @@ local require = imports.require;
       offerWorkspaceUndo("Loaded from history.", previous);
     }
 
-    function pushHistory(code, output, filesData, serverNum, runtime, local = false, workspace = snapshotWorkspace()) {
+    // Where a run went: "Studio #3" is a headless Studio worker, "Server #3" a live Roblox game server.
+    // Without the flag (older bot, older history entries) it's just "#3".
+    function runnerLabel(serverNum, studio) {
+      if (serverNum === "Lune") return "Lune";
+      return studio === undefined ? `#${serverNum}` : `${studio ? "Studio" : "Server"} #${serverNum}`;
+    }
+
+    function pushHistory(code, output, filesData, runner, runtime, local = false, workspace = snapshotWorkspace()) {
       const h = loadHistory();
-      const entry = { ts: Date.now(), label: histLabel(code), code, workspace, output, serverNum, runtime, local: local ? 1 : 0 };
+      const entry = { ts: Date.now(), label: histLabel(code), code, workspace, output, serverNum: runner?.serverNum ?? null, runtime, local: local ? 1 : 0 };
+      if (typeof runner?.studio === "boolean" && runner.serverNum !== "Lune") entry.studio = runner.studio ? 1 : 0;
       // Snapshot settings, sourcemap, and custom definitions with the entry
       entry.r = document.getElementById("robloxDefsCheck")?.checked ? 1 : 0;
       entry.b = document.getElementById("botDefsCheck")?.checked ? 1 : 0;
