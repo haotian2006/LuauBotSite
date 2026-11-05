@@ -244,6 +244,7 @@ html[data-playground-theme="light"] #editor-wrapper.file-drag-over::after { back
   .mobile-keys::-webkit-scrollbar { display: none; }
   .mobile-keys button { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; min-width: 40px; height: 38px; padding: 0 10px; border: 1px solid var(--pg-border); border-radius: var(--pg-radius-sm); background: var(--pg-surface-2); color: var(--pg-fg); font: 14px var(--pg-mono); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
   .mobile-keys button:active { background: var(--pg-hover); }
+  .mobile-keys button[aria-pressed="true"] { border-color: var(--pg-accent); background: var(--pg-accent-soft); color: var(--pg-accent); }
   .mobile-keys .ui-icon { width: 18px; height: 18px; flex-basis: 18px; }
   .mobile-keys-divider { flex: 0 0 1px; align-self: stretch; margin: 4px 2px; background: var(--pg-border); }
 }

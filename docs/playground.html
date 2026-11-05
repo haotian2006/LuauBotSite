@@ -1186,8 +1186,9 @@
         </div>
         <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
         <div id="mobileKeys" class="mobile-keys" role="toolbar" aria-label="Editing keys">
+          <button type="button" data-key="selectMode" aria-pressed="false" aria-label="Select mode: taps and arrows extend the selection">Select</button>
           <button type="button" data-key="selectAll" aria-label="Select all">Select all</button>
-          <button type="button" data-key="selectLine" aria-label="Select line">Line</button>
+          <button type="button" data-key="selectLine" aria-label="Select line, again for the next line">Line</button>
           <button type="button" data-key="delete" aria-label="Delete selection or character">Delete</button>
           <button type="button" data-key="undo" aria-label="Undo"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
           <button type="button" data-key="redo" aria-label="Redo"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5m5 5H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -2025,13 +2026,77 @@ declare myGlobal: MyClass'></textarea>
     });
 
     // The viewport can shrink without a window resize (for example, a phone keyboard).
-    new ResizeObserver(() => {
-      cancelAnimationFrame(resizeFrame);
-      resizeFrame = requestAnimationFrame(() => editor.refresh());
+    // A refresh redraws every line, which drops a selection held by the phone's handles, so a
+    // change of height alone (keyboard, browser toolbar) only recomputes the visible lines.
+    let wrapperSize = null;
+    let wrapperResizeFrame;
+    new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      const heightOnly = wrapperSize && wrapperSize.width === width && wrapperSize.height > 0 && height > 0;
+      wrapperSize = { width, height };
+      cancelAnimationFrame(wrapperResizeFrame);
+      wrapperResizeFrame = requestAnimationFrame(() => heightOnly ? editor.setSize() : editor.refresh());
     }).observe(document.getElementById("editor-wrapper"));
+
+    const coarsePointer = window.matchMedia("(pointer: coarse)");
+    // The phone's selection handles lose their place once the line a selection starts on scrolls
+    // past the lines CodeMirror has drawn, and its Select all only reaches drawn lines, so touch
+    // screens draw the whole file unless it's long.
+    const TOUCH_DRAW_ALL_LINES = 1000;
+    function updateViewportMargin() {
+      const margin = coarsePointer.matches && editor.lineCount() <= TOUCH_DRAW_ALL_LINES ? Infinity : 10;
+      if (editor.getOption("viewportMargin") !== margin) editor.setOption("viewportMargin", margin);
+    }
+    updateViewportMargin();
+    editor.on("change", updateViewportMargin);
+    editor.on("swapDoc", updateViewportMargin);
+    coarsePointer.addEventListener("change", updateViewportMargin);
+
+    // On phones CodeMirror reads the browser's selection on a 100ms poll, which it skips while the
+    // keyboard holds a finished word, so a key can act on an old cursor. Read it first.
+    function syncSelectionFromDom() {
+      const input = editor.display.input;
+      if (!input.pollSelection || !editor.hasFocus()) return; // desktop's textarea input keeps its own
+      if (input.composing?.done) input.composing = null;
+      input.pollSelection();
+    }
+    editor.on("keydown", syncSelectionFromDom);
+    // A phone keyboard's backspace can arrive only as an input event, which the browser applies to
+    // the keyboard's idea of the selection; delete CodeMirror's selection instead.
+    const DELETE_INPUT = /^delete(Content|Word|SoftLine|HardLine)/;
+    // "delete" rather than "+delete", which would also take a ")" after a selected lone "(".
+    const deleteSelection = cm => cm.replaceSelection("", "start", "delete");
+    editor.getInputField().addEventListener("beforeinput", event => {
+      syncSelectionFromDom();
+      if (!event.cancelable || !DELETE_INPUT.test(event.inputType) || !editor.somethingSelected()) return;
+      event.preventDefault();
+      deleteSelection(editor);
+    });
 
     // Touch key bar: selecting, deleting and moving the cursor are fiddly with a phone's own keyboard.
     const mobileKeys = document.getElementById("mobileKeys");
+    // Select works like a held Shift key: the arrows and taps in the code extend the selection.
+    const selectModeBtn = mobileKeys.querySelector('[data-key="selectMode"]');
+    let selectMode = false;
+    function setSelectMode(on) {
+      selectMode = on;
+      editor.setExtending(on);
+      selectModeBtn.setAttribute("aria-pressed", String(on));
+    }
+    editor.on("change", () => { if (selectMode) setSelectMode(false); });
+    editor.on("swapDoc", (cm, oldDoc) => {
+      oldDoc.setExtending(false);
+      setSelectMode(false);
+    });
+    // CodeMirror turns a tap into a plain cursor, so put the anchor back afterwards.
+    let tapAnchor = null;
+    editor.getWrapperElement().addEventListener("touchend", () => {
+      tapAnchor = selectMode ? editor.getCursor("anchor") : null;
+    }, true);
+    editor.getWrapperElement().addEventListener("touchend", event => {
+      if (tapAnchor && event.defaultPrevented) editor.setSelection(tapAnchor, editor.getCursor("head"), { scroll: false });
+      tapAnchor = null;
+    });
     async function copySelection(cm) {
       const text = cm.getSelection();
       if (!text) return false;
@@ -2044,15 +2109,25 @@ declare myGlobal: MyClass'></textarea>
       }
     }
     const MOBILE_KEY_ACTIONS = {
+      selectMode: () => setSelectMode(!selectMode),
       selectAll: cm => cm.execCommand("selectAll"),
+      // Pressed again on whole selected lines, it takes in the next line too.
       selectLine: cm => {
-        const { line } = cm.getCursor();
-        cm.setSelection(CodeMirror.Pos(line, 0), line < cm.lastLine() ? CodeMirror.Pos(line + 1, 0) : CodeMirror.Pos(line));
+        const from = cm.getCursor("from"), to = cm.getCursor("to");
+        const wholeLines = cm.somethingSelected() && from.ch === 0 &&
+          (to.ch === 0 || (to.line === cm.lastLine() && to.ch === cm.getLine(to.line).length));
+        const start = wholeLines ? from.line : cm.getCursor().line;
+        const end = wholeLines ? to.line : start;
+        cm.setSelection(CodeMirror.Pos(start, 0), end < cm.lastLine() ? CodeMirror.Pos(end + 1, 0) : CodeMirror.Pos(end));
       },
-      delete: cm => cm.somethingSelected() ? cm.replaceSelection("", "start", "+delete") : cm.execCommand("delCharBefore"),
+      delete: cm => cm.somethingSelected() ? deleteSelection(cm) : cm.execCommand("delCharBefore"),
       undo: cm => cm.undo(),
       redo: cm => cm.redo(),
-      copy: async cm => { if (await copySelection(cm)) showActionNotice("Copied"); },
+      copy: async cm => {
+        if (!await copySelection(cm)) return;
+        setSelectMode(false);
+        showActionNotice("Copied");
+      },
       cut: async cm => { if (await copySelection(cm)) cm.replaceSelection("", "start", "cut"); },
       paste: async cm => {
         try {
@@ -2077,6 +2152,7 @@ declare myGlobal: MyClass'></textarea>
     mobileKeys.addEventListener("click", event => {
       const button = event.target.closest("button");
       if (!button) return;
+      syncSelectionFromDom();
       editor.focus();
       if (button.dataset.insert) editor.replaceSelection(button.dataset.insert, "end", "+input");
       else MOBILE_KEY_ACTIONS[button.dataset.key]?.(editor);
@@ -2176,7 +2252,6 @@ declare myGlobal: MyClass'></textarea>
     const savedCode = localStorage.getItem("luau_code");
     if (savedCode) editor.setValue(savedCode);
     const MAIN_FILE = "main.luau";
-    const coarsePointer = window.matchMedia("(pointer: coarse)");
     function renameTitle(name) {
       return `${name} (${coarsePointer.matches ? "tap again" : "double-click"} to rename)`;
     }
