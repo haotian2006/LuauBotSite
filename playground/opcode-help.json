@@ -1,0 +1,799 @@
+{
+  "source": "https://github.com/luau-lang/luau/blob/367f9d83cc29804a6d5938ec85b6116d34d8743b/Common/include/Luau/Bytecode.h",
+  "license": "MIT License\n\nCopyright (c) 2019-2025 Roblox Corporation\nCopyright (c) 1994–2019 Lua.org, PUC-Rio.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of\nthis software and associated documentation files (the \"Software\"), to deal in\nthe Software without restriction, including without limitation the rights to\nuse, copy, modify, merge, publish, distribute, sublicense, and/or sell copies\nof the Software, and to permit persons to whom the Software is furnished to do\nso, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+  "opcodes": {
+    "NOP": {
+      "description": "noop",
+      "details": [],
+      "line": 71
+    },
+    "BREAK": {
+      "description": "debugger break",
+      "details": [],
+      "line": 74
+    },
+    "LOADNIL": {
+      "description": "sets register to nil",
+      "details": [
+        "A: target register"
+      ],
+      "line": 78
+    },
+    "LOADB": {
+      "description": "sets register to boolean and jumps to a given short offset (used to compile comparison results into a boolean)",
+      "details": [
+        "A: target register",
+        "B: value (0/1)",
+        "C: jump offset"
+      ],
+      "line": 84
+    },
+    "LOADN": {
+      "description": "sets register to a number literal",
+      "details": [
+        "A: target register",
+        "D: value (-32768..32767)"
+      ],
+      "line": 89
+    },
+    "LOADK": {
+      "description": "sets register to an entry from the constant table from the proto (number/vector/string)",
+      "details": [
+        "A: target register",
+        "D: constant table index (0..32767)"
+      ],
+      "line": 94
+    },
+    "MOVE": {
+      "description": "move (copy) value from one register to another",
+      "details": [
+        "A: target register",
+        "B: source register"
+      ],
+      "line": 99
+    },
+    "GETGLOBAL": {
+      "description": "load value from global table using constant string as a key",
+      "details": [
+        "A: target register",
+        "C: predicted slot index (based on hash)",
+        "AUX: constant table index"
+      ],
+      "line": 105
+    },
+    "SETGLOBAL": {
+      "description": "set value in global table using constant string as a key",
+      "details": [
+        "A: source register",
+        "C: predicted slot index (based on hash)",
+        "AUX: constant table index"
+      ],
+      "line": 111
+    },
+    "GETUPVAL": {
+      "description": "load upvalue from the upvalue table for the current function",
+      "details": [
+        "A: target register",
+        "B: upvalue index"
+      ],
+      "line": 116
+    },
+    "SETUPVAL": {
+      "description": "store value into the upvalue table for the current function",
+      "details": [
+        "A: target register",
+        "B: upvalue index"
+      ],
+      "line": 121
+    },
+    "CLOSEUPVALS": {
+      "description": "close (migrate to heap) all upvalues that were captured for registers >= target",
+      "details": [
+        "A: target register"
+      ],
+      "line": 125
+    },
+    "GETIMPORT": {
+      "description": "load imported global table global from the constant table",
+      "details": [
+        "A: target register",
+        "D: constant table index (0..32767); we assume that imports are loaded into the constant table",
+        "AUX: 3 10-bit indices of constant strings that, combined, constitute an import path; length of the path is set by the top 2 bits (1,2,3)"
+      ],
+      "line": 131
+    },
+    "GETTABLE": {
+      "description": "load value from table into target register using key from register",
+      "details": [
+        "A: target register",
+        "B: table register",
+        "C: index register"
+      ],
+      "line": 137
+    },
+    "SETTABLE": {
+      "description": "store source register into table using key from register",
+      "details": [
+        "A: source register",
+        "B: table register",
+        "C: index register"
+      ],
+      "line": 143
+    },
+    "GETTABLEKS": {
+      "description": "load value from table into target register using constant string as a key",
+      "details": [
+        "A: target register",
+        "B: table register",
+        "C: predicted slot index (based on hash)",
+        "AUX: constant table index"
+      ],
+      "line": 150
+    },
+    "SETTABLEKS": {
+      "description": "store source register into table using constant string as a key",
+      "details": [
+        "A: source register",
+        "B: table register",
+        "C: predicted slot index (based on hash)",
+        "AUX: constant table index"
+      ],
+      "line": 157
+    },
+    "GETTABLEN": {
+      "description": "load value from table into target register using small integer index as a key",
+      "details": [
+        "A: target register",
+        "B: table register",
+        "C: index-1 (index is 1..256)"
+      ],
+      "line": 163
+    },
+    "SETTABLEN": {
+      "description": "store source register into table using small integer index as a key",
+      "details": [
+        "A: source register",
+        "B: table register",
+        "C: index-1 (index is 1..256)"
+      ],
+      "line": 169
+    },
+    "NEWCLOSURE": {
+      "description": "create closure from a child proto; followed by a CAPTURE instruction for each upvalue",
+      "details": [
+        "A: target register",
+        "D: child proto index (0..32767)"
+      ],
+      "line": 174
+    },
+    "NAMECALL": {
+      "description": "prepare to call specified method by name by loading function from source register using constant index into target register and copying source register into target register + 1",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: predicted slot index (based on hash)",
+        "AUX: constant table index",
+        "Note that this instruction must be followed directly by CALL; it prepares the arguments",
+        "This instruction is roughly equivalent to GETTABLEKS + MOVE pair, but we need a special instruction to support custom __namecall metamethod"
+      ],
+      "line": 183
+    },
+    "CALL": {
+      "description": "call specified function",
+      "details": [
+        "A: register where the function object lives, followed by arguments; results are placed starting from the same register",
+        "B: argument count + 1, or 0 to preserve all arguments up to top (MULTRET)",
+        "C: result count + 1, or 0 to preserve all values and adjust top (MULTRET)"
+      ],
+      "line": 189
+    },
+    "RETURN": {
+      "description": "returns specified values from the function",
+      "details": [
+        "A: register where the returned values start",
+        "B: number of returned values + 1, or 0 to return all values up to top (MULTRET)"
+      ],
+      "line": 194
+    },
+    "JUMP": {
+      "description": "jumps to target offset",
+      "details": [
+        "D: jump offset (-32768..32767; 0 means \"next instruction\" aka \"don't jump\")"
+      ],
+      "line": 198
+    },
+    "JUMPBACK": {
+      "description": "jumps to target offset; this is equivalent to JUMP but is used as a safepoint to be able to interrupt while/repeat loops",
+      "details": [
+        "D: jump offset (-32768..32767; 0 means \"next instruction\" aka \"don't jump\")"
+      ],
+      "line": 202
+    },
+    "JUMPIF": {
+      "description": "jumps to target offset if register is not nil/false",
+      "details": [
+        "A: source register",
+        "D: jump offset (-32768..32767; 0 means \"next instruction\" aka \"don't jump\")"
+      ],
+      "line": 207
+    },
+    "JUMPIFNOT": {
+      "description": "jumps to target offset if register is nil/false",
+      "details": [
+        "A: source register",
+        "D: jump offset (-32768..32767; 0 means \"next instruction\" aka \"don't jump\")"
+      ],
+      "line": 212
+    },
+    "JUMPIFEQ": {
+      "description": "jumps to target offset if the comparison is true (or false, for NOT variants)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: source register 2"
+      ],
+      "line": 218
+    },
+    "JUMPIFLE": {
+      "description": "jumps to target offset if the comparison is true (or false, for NOT variants)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: source register 2"
+      ],
+      "line": 219
+    },
+    "JUMPIFLT": {
+      "description": "jumps to target offset if the comparison is true (or false, for NOT variants)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: source register 2"
+      ],
+      "line": 220
+    },
+    "JUMPIFNOTEQ": {
+      "description": "jumps to target offset if the comparison is true (or false, for NOT variants)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: source register 2"
+      ],
+      "line": 221
+    },
+    "JUMPIFNOTLE": {
+      "description": "jumps to target offset if the comparison is true (or false, for NOT variants)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: source register 2"
+      ],
+      "line": 222
+    },
+    "JUMPIFNOTLT": {
+      "description": "jumps to target offset if the comparison is true (or false, for NOT variants)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: source register 2"
+      ],
+      "line": 223
+    },
+    "ADD": {
+      "description": "compute arithmetic operation between two source registers and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 229
+    },
+    "SUB": {
+      "description": "compute arithmetic operation between two source registers and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 230
+    },
+    "MUL": {
+      "description": "compute arithmetic operation between two source registers and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 231
+    },
+    "DIV": {
+      "description": "compute arithmetic operation between two source registers and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 232
+    },
+    "MOD": {
+      "description": "compute arithmetic operation between two source registers and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 233
+    },
+    "POW": {
+      "description": "compute arithmetic operation between two source registers and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 234
+    },
+    "ADDK": {
+      "description": "compute arithmetic operation between the source register and a constant and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255); must refer to a number"
+      ],
+      "line": 240
+    },
+    "SUBK": {
+      "description": "compute arithmetic operation between the source register and a constant and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255); must refer to a number"
+      ],
+      "line": 241
+    },
+    "MULK": {
+      "description": "compute arithmetic operation between the source register and a constant and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255); must refer to a number"
+      ],
+      "line": 242
+    },
+    "DIVK": {
+      "description": "compute arithmetic operation between the source register and a constant and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255); must refer to a number"
+      ],
+      "line": 243
+    },
+    "MODK": {
+      "description": "compute arithmetic operation between the source register and a constant and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255); must refer to a number"
+      ],
+      "line": 244
+    },
+    "POWK": {
+      "description": "compute arithmetic operation between the source register and a constant and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255); must refer to a number"
+      ],
+      "line": 245
+    },
+    "AND": {
+      "description": "perform `and` or `or` operation (selecting first or second register based on whether the first one is truthy) and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 251
+    },
+    "OR": {
+      "description": "perform `and` or `or` operation (selecting first or second register based on whether the first one is truthy) and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 252
+    },
+    "ANDK": {
+      "description": "perform `and` or `or` operation (selecting source register or constant based on whether the source register is truthy) and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255)"
+      ],
+      "line": 258
+    },
+    "ORK": {
+      "description": "perform `and` or `or` operation (selecting source register or constant based on whether the source register is truthy) and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255)"
+      ],
+      "line": 259
+    },
+    "CONCAT": {
+      "description": "concatenate all strings between B and C (inclusive) and put the result into A",
+      "details": [
+        "A: target register",
+        "B: source register start",
+        "C: source register end"
+      ],
+      "line": 265
+    },
+    "NOT": {
+      "description": "compute unary operation for source register and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register"
+      ],
+      "line": 270
+    },
+    "MINUS": {
+      "description": "compute unary operation for source register and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register"
+      ],
+      "line": 271
+    },
+    "LENGTH": {
+      "description": "compute unary operation for source register and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register"
+      ],
+      "line": 272
+    },
+    "NEWTABLE": {
+      "description": "create table in target register",
+      "details": [
+        "A: target register",
+        "B: table size, stored as 0 for v=0 and ceil(log2(v))+1 for v!=0",
+        "AUX: array size"
+      ],
+      "line": 278
+    },
+    "DUPTABLE": {
+      "description": "duplicate table using the constant table template to target register",
+      "details": [
+        "A: target register",
+        "D: constant table index (0..32767)"
+      ],
+      "line": 283
+    },
+    "SETLIST": {
+      "description": "set a list of values to table in target register",
+      "details": [
+        "A: target register",
+        "B: source register start",
+        "C: value count + 1, or 0 to use all values up to top (MULTRET)",
+        "AUX: table index to start from"
+      ],
+      "line": 290
+    },
+    "FORNPREP": {
+      "description": "prepare a numeric for loop, jump over the loop if first iteration doesn't need to run",
+      "details": [
+        "A: target register; numeric for loops assume a register layout [limit, step, index, variable]",
+        "D: jump offset (-32768..32767)",
+        "limit/step are immutable, index isn't visible to user code since it's copied into variable"
+      ],
+      "line": 296
+    },
+    "FORNLOOP": {
+      "description": "adjust loop variables for one iteration, jump back to the loop header if loop needs to continue",
+      "details": [
+        "A: target register; see FORNPREP for register layout",
+        "D: jump offset (-32768..32767)"
+      ],
+      "line": 301
+    },
+    "FORGLOOP": {
+      "description": "adjust loop variables for one iteration of a generic for loop, jump back to the loop header if loop needs to continue",
+      "details": [
+        "A: target register; generic for loops assume a register layout [generator, state, index, variables...]",
+        "D: jump offset (-32768..32767)",
+        "AUX: variable count (1..255) in the low 8 bits, high bit indicates whether to use ipairs-style traversal in the fast path",
+        "loop variables are adjusted by calling generator(state, index) and expecting it to return a tuple that's copied to the user variables",
+        "the first variable is then copied into index; generator/state are immutable, index isn't visible to user code"
+      ],
+      "line": 309
+    },
+    "FORGPREP_INEXT": {
+      "description": "prepare FORGLOOP with 2 output variables (no AUX encoding), assuming generator is luaB_inext, and jump to FORGLOOP",
+      "details": [
+        "A: target register (see FORGLOOP for register layout)",
+        "D: jump offset (-32768..32767)"
+      ],
+      "line": 314
+    },
+    "FASTCALL3": {
+      "description": "perform a fast call of a built-in function using 3 register arguments",
+      "details": [
+        "A: builtin function id (see LuauBuiltinFunction)",
+        "B: source argument register",
+        "C: jump offset to get to following CALL",
+        "AUX: source register 2 in least-significant byte",
+        "AUX: source register 3 in second least-significant byte"
+      ],
+      "line": 322
+    },
+    "FORGPREP_NEXT": {
+      "description": "prepare FORGLOOP with 2 output variables (no AUX encoding), assuming generator is luaB_next, and jump to FORGLOOP",
+      "details": [
+        "A: target register (see FORGLOOP for register layout)",
+        "D: jump offset (-32768..32767)"
+      ],
+      "line": 327
+    },
+    "NATIVECALL": {
+      "description": "start executing new function in native code",
+      "details": [
+        "this is a pseudo-instruction that is never emitted by bytecode compiler, but can be constructed at runtime to accelerate native code dispatch"
+      ],
+      "line": 331
+    },
+    "GETVARARGS": {
+      "description": "copy variables into the target register from vararg storage for current function",
+      "details": [
+        "A: target register",
+        "B: variable count + 1, or 0 to copy all variables and adjust top (MULTRET)"
+      ],
+      "line": 336
+    },
+    "DUPCLOSURE": {
+      "description": "create closure from a pre-created function object (reusing it unless environments diverge)",
+      "details": [
+        "A: target register",
+        "D: constant table index (0..32767)"
+      ],
+      "line": 341
+    },
+    "PREPVARARGS": {
+      "description": "prepare stack for variadic functions so that GETVARARGS works correctly",
+      "details": [
+        "A: number of fixed arguments"
+      ],
+      "line": 345
+    },
+    "LOADKX": {
+      "description": "sets register to an entry from the constant table from the proto (number/string)",
+      "details": [
+        "A: target register",
+        "AUX: constant table index"
+      ],
+      "line": 350
+    },
+    "JUMPX": {
+      "description": "jumps to the target offset; like JUMPBACK, supports interruption",
+      "details": [
+        "E: jump offset (-2^23..2^23; 0 means \"next instruction\" aka \"don't jump\")"
+      ],
+      "line": 354
+    },
+    "FASTCALL": {
+      "description": "perform a fast call of a built-in function",
+      "details": [
+        "A: builtin function id (see LuauBuiltinFunction)",
+        "C: jump offset to get to following CALL",
+        "FASTCALL is followed by one of (GETIMPORT, MOVE, GETUPVAL) instructions and by CALL instruction",
+        "This is necessary so that if FASTCALL can't perform the call inline, it can continue normal execution",
+        "If FASTCALL *can* perform the call, it jumps over the instructions *and* over the next CALL",
+        "Note that FASTCALL will read the actual call arguments, such as argument/result registers and counts, from the CALL instruction"
+      ],
+      "line": 363
+    },
+    "COVERAGE": {
+      "description": "update coverage information stored in the instruction",
+      "details": [
+        "E: hit count for the instruction (0..2^23-1)",
+        "The hit count is incremented by VM every time the instruction is executed, and saturates at 2^23-1"
+      ],
+      "line": 368
+    },
+    "CAPTURE": {
+      "description": "capture a local or an upvalue as an upvalue into a newly created closure; only valid after NEWCLOSURE",
+      "details": [
+        "A: capture type, see LuauCaptureType",
+        "B: source register (for VAL/REF) or upvalue index (for UPVAL/UPREF)"
+      ],
+      "line": 373
+    },
+    "SUBRK": {
+      "description": "compute arithmetic operation between the constant and a source register and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: constant table index (0..255); must refer to a number",
+        "C: source register"
+      ],
+      "line": 379
+    },
+    "DIVRK": {
+      "description": "compute arithmetic operation between the constant and a source register and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: constant table index (0..255); must refer to a number",
+        "C: source register"
+      ],
+      "line": 380
+    },
+    "FASTCALL1": {
+      "description": "perform a fast call of a built-in function using 1 register argument",
+      "details": [
+        "A: builtin function id (see LuauBuiltinFunction)",
+        "B: source argument register",
+        "C: jump offset to get to following CALL"
+      ],
+      "line": 386
+    },
+    "FASTCALL2": {
+      "description": "perform a fast call of a built-in function using 2 register arguments",
+      "details": [
+        "A: builtin function id (see LuauBuiltinFunction)",
+        "B: source argument register",
+        "C: jump offset to get to following CALL",
+        "AUX: source register 2 in least-significant byte"
+      ],
+      "line": 393
+    },
+    "FASTCALL2K": {
+      "description": "perform a fast call of a built-in function using 1 register argument and 1 constant argument",
+      "details": [
+        "A: builtin function id (see LuauBuiltinFunction)",
+        "B: source argument register",
+        "C: jump offset to get to following CALL",
+        "AUX: constant index"
+      ],
+      "line": 400
+    },
+    "FORGPREP": {
+      "description": "prepare loop variables for a generic for loop, jump to the loop backedge unconditionally",
+      "details": [
+        "A: target register; generic for loops assume a register layout [generator, state, index, variables...]",
+        "D: jump offset (-32768..32767)"
+      ],
+      "line": 405
+    },
+    "JUMPXEQKNIL": {
+      "description": "jumps to target offset if the comparison with constant is true (or false, see AUX)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: constant value (for boolean) in low bit, NOT flag (that flips comparison result) in high bit"
+      ],
+      "line": 411
+    },
+    "JUMPXEQKB": {
+      "description": "jumps to target offset if the comparison with constant is true (or false, see AUX)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: constant value (for boolean) in low bit, NOT flag (that flips comparison result) in high bit"
+      ],
+      "line": 412
+    },
+    "JUMPXEQKN": {
+      "description": "jumps to target offset if the comparison with constant is true (or false, see AUX)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: constant table index in low 24 bits, NOT flag (that flips comparison result) in high bit"
+      ],
+      "line": 418
+    },
+    "JUMPXEQKS": {
+      "description": "jumps to target offset if the comparison with constant is true (or false, see AUX)",
+      "details": [
+        "A: source register 1",
+        "D: jump offset (-32768..32767; 1 means \"next instruction\" aka \"don't jump\")",
+        "AUX: constant table index in low 24 bits, NOT flag (that flips comparison result) in high bit"
+      ],
+      "line": 419
+    },
+    "IDIV": {
+      "description": "compute floor division between two source registers and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register 1",
+        "C: source register 2"
+      ],
+      "line": 425
+    },
+    "IDIVK": {
+      "description": "IDIVK compute floor division between the source register and a constant and put the result into target register",
+      "details": [
+        "A: target register",
+        "B: source register",
+        "C: constant table index (0..255)"
+      ],
+      "line": 431
+    },
+    "GETUDATAKS": {
+      "description": "Atom-based userdata field access acceleration",
+      "details": [
+        "These are equivalent to their GETTABLEKS/SETTABLEKS/NAMECALL counterparts, except tailored towards userdata field accesses",
+        "If the user has registered metamethods for a userdata tag, callbacks will be called by these instructions",
+        "NOTE: it uses only lower 2 bytes in AUX for constant index. Higher bytes are used for runtime cache."
+      ],
+      "line": 437
+    },
+    "SETUDATAKS": {
+      "description": "Atom-based userdata field access acceleration",
+      "details": [
+        "These are equivalent to their GETTABLEKS/SETTABLEKS/NAMECALL counterparts, except tailored towards userdata field accesses",
+        "If the user has registered metamethods for a userdata tag, callbacks will be called by these instructions",
+        "NOTE: it uses only lower 2 bytes in AUX for constant index. Higher bytes are used for runtime cache."
+      ],
+      "line": 438
+    },
+    "NAMECALLUDATA": {
+      "description": "Atom-based userdata field access acceleration",
+      "details": [
+        "These are equivalent to their GETTABLEKS/SETTABLEKS/NAMECALL counterparts, except tailored towards userdata field accesses",
+        "If the user has registered metamethods for a userdata tag, callbacks will be called by these instructions",
+        "NOTE: it uses only lower 2 bytes in AUX for constant index. Higher bytes are used for runtime cache."
+      ],
+      "line": 439
+    },
+    "NEWCLASSMEMBER": {
+      "description": "register this method on a class object.",
+      "details": [
+        "A: target register of class",
+        "B: reserved",
+        "C: initial value of this member. currently must be a function.",
+        "AUX: The name of this member as a constant string"
+      ],
+      "line": 446
+    },
+    "CALLFB": {
+      "description": "call specified function with collecting runtime stats in a feedback slot",
+      "details": [
+        "A: register where the function object lives, followed by arguments; results are placed starting from the same register",
+        "B: argument count + 1, or 0 to preserve all arguments up to top (MULTRET)",
+        "C: result count + 1, or 0 to preserve all values and adjust top (MULTRET)",
+        "AUX: feedback slot id. 0xFFFFFFFF - sealed"
+      ],
+      "line": 453
+    },
+    "CMPPROTO": {
+      "description": "check if a register contains a closure with a specified Luau function proto id",
+      "details": [
+        "A: closure register",
+        "D: jump offset if proto doesn't match",
+        "AUX: proto id"
+      ],
+      "line": 459
+    },
+    "FASTPCALL": {
+      "description": "perform a fastcall of a built-in protected call function",
+      "details": [
+        "A: protected function id (0 - pcall, 1 - xpcall)",
+        "B: number of explicit arguments before a variadic tail",
+        "C: jump offset to get to following CALL"
+      ],
+      "line": 465
+    },
+    "NEWCLASS": {
+      "description": "reify a class object",
+      "details": [
+        "A: target register of class",
+        "B: source register of superclass, or 0xFF if no superclass",
+        "C: bottom bit is 1 if the class is open, else 0; upper 7 bits are reserved",
+        "AUX: constant table index of unreified class object"
+      ],
+      "line": 472
+    }
+  }
+}
