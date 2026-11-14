@@ -4,7 +4,7 @@
   const ROOT_URI = "file:///workspace";
   const WORKER_URL = "playground/lsp.worker.js";
   // Luau features the bot runs with; Run Local turns on the same flags.
-  const FFLAGS = { DebugLuauUserDefinedClasses: "true", DebugLuauUserDefinedClassesRuntime: "true" };
+  const FFLAGS = { DebugLuauUserDefinedClasses: "true", DebugLuauUserDefinedClassesRuntime: "true", DebugLuauBufferVectorLibrary: "true", DebugLuauBufferVectorFastcalls: "true" };
 
   function readSetting(key) {
     try { return localStorage.getItem(key); } catch { return null; }

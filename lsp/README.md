@@ -38,16 +38,22 @@ git clone https://github.com/emscripten-core/emsdk.git ~/emsdk
 ~/emsdk/emsdk install latest && ~/emsdk/emsdk activate latest
 source ~/emsdk/emsdk_env.sh
 
-./lsp/build.sh                    # luau-lsp release pinned in build.sh (LSP_TAG)
-LSP_TAG=1.71.0 ./lsp/build.sh     # or another release tag
+./lsp/build.sh                              # luau-lsp main with Luau 0.747 (the default)
+LSP_REF=1.71.0 LUAU_TAG= ./lsp/build.sh     # a luau-lsp release with the Luau it pins
 ```
+
+No luau-lsp release includes Luau 0.747 (Studio 0.747) yet, so the default build takes luau-lsp `main`,
+checks its `luau` submodule out at `LUAU_TAG` and applies `patches/` (0.747 added a `SolverMode`
+argument to `Luau::Frontend`'s constructor). The committed wasm was built that way on 2026-11-14 from
+luau-lsp 5f290c8 and Luau 0.747, which brings `while local`, the buffer vector library
+(`DebugLuauBufferVectorLibrary`, set in `lsp-client.js`) and the 0.747 type checker.
 
 The first build clones luau-lsp into `~/.cache/playground-wasm` and takes a few minutes; later
 builds are incremental. Commit the changed files under `docs/playground/`.
 
 ## Upgrading luau-lsp
 
-1. Bump `LSP_TAG` in `build.sh` and run it.
+1. Bump `LSP_REF` or `LUAU_TAG` in `build.sh` (drop patches luau-lsp has caught up with) and run it.
 2. If the build breaks, check what luau-lsp changed in `src/include/Thread.hpp`, `LSPClient`,
    `LanguageServer::handleMessage` or `parseDocumentation`; those are the only APIs the glue uses.
 3. Load `docs/playground.html` from a local server (`python -m http.server` in `docs/`) and check
