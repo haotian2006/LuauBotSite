@@ -1,0 +1,14 @@
+diff --git a/Analysis/src/Linter.cpp b/Analysis/src/Linter.cpp
+index aa1438d..2c32daa 100644
+--- a/Analysis/src/Linter.cpp
++++ b/Analysis/src/Linter.cpp
+@@ -791,7 +791,8 @@ private:
+ 
+     void reportUnusedLocal(AstLocal* local, const Local& info)
+     {
+-        if (local->name.value[0] == '_')
++        // Exported values are read by whoever requires the module.
++        if (local->name.value[0] == '_' || local->isExported)
+             return;
+ 
+         if (info.function)

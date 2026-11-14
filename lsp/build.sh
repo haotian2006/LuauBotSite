@@ -26,6 +26,10 @@ if [ ! -d "$SRC" ]; then
         for patch in "$HERE"/patches/*.patch; do
             [ -e "$patch" ] && git -C "$SRC" apply "$patch"
         done
+        # patches/luau/ applies to Luau itself (the luau submodule).
+        for patch in "$HERE"/patches/luau/*.patch; do
+            [ -e "$patch" ] && git -C "$SRC/luau" apply "$patch"
+        done
     fi
 fi
 
