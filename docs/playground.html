@@ -4698,6 +4698,17 @@ local entryName = nil
 local modules = {}
 local modReturns = {}
 local modLoading = {}
+local exportModules = {}
+local placeholderMeta = {
+  __index = function(_, k) error("Cannot access the exported field '" .. tostring(k) .. "' because it has a cyclic dependency on its requiring module", 2) end,
+  __newindex = function(_, k) error("Cannot set the exported field '" .. tostring(k) .. "' because it has a cyclic dependency on its requiring module", 2) end,
+}
+local function usesExport(src)
+  for _, line in src:split("\n") do
+    if line:match("^%s*export%s+local[%s(]") or line:match("^%s*export%s+const%s") or line:match("^%s*export%s+function%s") then return true end
+  end
+  return false
+end
 local baseRequire = imports.require
 function imports.require(x)
   if type(x) == "string" then
@@ -4709,11 +4720,24 @@ function imports.require(x)
     if type(mod) == "string" then error(mod, 2) end
     local rtr = modReturns[x]
     if not rtr then
-      if modLoading[x] then error("Circular require: " .. (x == entryScript and entryName or x.Name), 2) end
-      modLoading[x] = true
+      local loading = modLoading[x]
+      if type(loading) == "table" then return loading end
+      if loading then error("Circular require: " .. (x == entryScript and entryName or x.Name) .. " (only modules that use 'export' can be required in a cycle)", 2) end
+      local placeholder = if exportModules[x] then setmetatable({}, placeholderMeta) else nil
+      modLoading[x] = placeholder or true
       local ok, result = pcall(function() return table.pack(mod()) end)
       modLoading[x] = nil
       if not ok then error(result, 2) end
+      if placeholder then
+        local exported = result[1]
+        setmetatable(placeholder, nil)
+        if type(exported) == "table" then
+          for k, v in next, exported do rawset(placeholder, k, v) end
+          setmetatable(placeholder, getmetatable(exported))
+        end
+        table.freeze(placeholder)
+        result = table.pack(placeholder)
+      end
       modReturns[x] = result
       rtr = result
     end
@@ -4757,6 +4781,7 @@ for name, src in files do
   if name == entryName and __playground_entry_module then
     local fx, module = _execute(src, name)
     modules[entryScript] = fx or module
+    exportModules[entryScript] = usesExport(src)
   elseif name == entryName then
     modules[entryScript] = function()
       if __playground_entry_running then error("Circular require: " .. name, 2) end
@@ -4765,6 +4790,7 @@ for name, src in files do
   else
     local parentModule = Instance.new("ModuleScript", script)
     parentModule.Name = name
+    exportModules[parentModule] = usesExport(src)
     local fx, module = _execute(src, name)
     if not fx then
       modules[parentModule] = module
@@ -4801,10 +4827,10 @@ local require = imports.require;
       return `${code}\n--[[@${escaped}]]`;
     }
 
-    // Classes are only allowed at a chunk's top level, so an entry file with one runs as a module
-    // (its own chunk, loaded like the other files) and the main chunk just requires it.
+    // Classes and `export` are only allowed at a chunk's top level, so an entry file with either runs
+    // as a module (its own chunk, loaded like the other files) and the main chunk just requires it.
     function entryRunsAsModule(code) {
-      return /\bclass\s+[A-Za-z_]/.test(code);
+      return /\bclass\s+[A-Za-z_]/.test(code) || /^\s*export\s+(local|const|function)\b/m.test(code);
     }
 
     function injectModuleBootstrap(code) {

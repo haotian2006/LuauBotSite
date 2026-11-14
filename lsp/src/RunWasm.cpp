@@ -37,6 +37,8 @@ struct Task
 };
 
 const char* const kModulesKey = "playground.modules";
+void finishEntry(lua_State* T); // after luaRequire
+extern lua_State* entryThread;
 
 lua_State* globalState = nullptr;
 std::vector<Task> tasks;
@@ -133,6 +135,8 @@ void resume(const Task& task)
         int status = lua_resume(T, nullptr, nargs);
         if (status != LUA_OK && status != LUA_YIELD && status != LUA_BREAK)
             reportError(T);
+        else if (status == LUA_OK && T == entryThread)
+            finishEntry(T);
     }
     lua_unref(globalState, task.ref);
 }
@@ -220,37 +224,164 @@ int taskCancel(lua_State* L)
     return 0;
 }
 
+// Cyclic requires, as Luau's Require library does them: a module that uses `export` is cached as a
+// locked placeholder while it loads, a module that requires it back gets that placeholder, and the
+// exports are copied into it once loading ends. Modules that return a value can't be in a cycle.
+char placeholderMetatableKey = 0;
+
+int placeholderIndexError(lua_State* L)
+{
+    const char* key = lua_tostring(L, 2);
+    luaL_error(L, "Cannot access the exported field '%s' because it has a cyclic dependency on its requiring module", key ? key : "unknown");
+}
+
+int placeholderNewIndexError(lua_State* L)
+{
+    const char* key = lua_tostring(L, 2);
+    luaL_error(L, "Cannot set the exported field '%s' because it has a cyclic dependency on its requiring module", key ? key : "unknown");
+}
+
+// Pushes a new placeholder table, locked until populatePlaceholder fills it.
+void pushPlaceholder(lua_State* L)
+{
+    lua_newtable(L);
+    lua_rawgetp(L, LUA_REGISTRYINDEX, &placeholderMetatableKey);
+    if (lua_isnil(L, -1))
+    {
+        lua_pop(L, 1);
+        lua_newtable(L);
+        lua_pushcfunction(L, placeholderIndexError, "placeholderIndexError");
+        lua_setfield(L, -2, "__index");
+        lua_pushcfunction(L, placeholderNewIndexError, "placeholderNewIndexError");
+        lua_setfield(L, -2, "__newindex");
+        lua_pushliteral(L, "The metatable is locked");
+        lua_setfield(L, -2, "__metatable");
+        lua_pushvalue(L, -1);
+        lua_rawsetp(L, LUA_REGISTRYINDEX, &placeholderMetatableKey);
+    }
+    lua_setmetatable(L, -2);
+    lua_setreadonly(L, -1, 1);
+}
+
+// Copies the exports (fields and metatable) into the placeholder and freezes it.
+void populatePlaceholder(lua_State* L, int placeholderIdx, int resultIdx)
+{
+    placeholderIdx = lua_absindex(L, placeholderIdx);
+    resultIdx = lua_absindex(L, resultIdx);
+    lua_setreadonly(L, placeholderIdx, 0);
+    if (lua_istable(L, resultIdx))
+    {
+        for (int iter = 0; (iter = lua_rawiter(L, resultIdx, iter)) != -1;)
+            lua_rawset(L, placeholderIdx);
+        if (lua_getmetatable(L, resultIdx) == 0)
+            lua_pushnil(L);
+    }
+    else
+        lua_pushnil(L);
+    lua_setmetatable(L, placeholderIdx);
+    lua_setreadonly(L, placeholderIdx, 1);
+}
+
+// The entry file runs as a thread, not through require; an entry that exports is cached under its
+// name like a module so a cycle back to it gets its placeholder.
+lua_State* entryThread = nullptr;
+std::string entryName;
+
+// Registers the entry file under its name before it runs: a placeholder if it exports, else a
+// marker so a cycle back to it fails instead of loading it a second time.
+void registerEntry(lua_State* T, const std::string& name)
+{
+    lua_State* L = globalState;
+    entryThread = T;
+    entryName = name;
+    lua_getfield(L, LUA_REGISTRYINDEX, kModulesKey);
+    if (lua_usesexport(T, -1))
+        pushPlaceholder(L);
+    else
+        lua_pushlightuserdata(L, &modules);
+    lua_setfield(L, -2, name.c_str());
+    lua_pop(L, 1);
+}
+
+// The entry finished: fill its placeholder with what it returned, or forget the marker.
+void finishEntry(lua_State* T)
+{
+    lua_State* L = globalState;
+    entryThread = nullptr;
+    lua_getfield(L, LUA_REGISTRYINDEX, kModulesKey);
+    lua_getfield(L, -1, entryName.c_str());
+    if (lua_istable(L, -1))
+    {
+        if (lua_gettop(T) > 0)
+        {
+            lua_pushvalue(T, -1);
+            lua_xmove(T, L, 1);
+        }
+        else
+            lua_pushnil(L);
+        populatePlaceholder(L, -2, -1);
+        lua_pop(L, 1);
+    }
+    else
+    {
+        lua_pushnil(L);
+        lua_setfield(L, -3, entryName.c_str());
+    }
+    lua_pop(L, 2);
+}
+
 // require("name") loads another playground file. Modules run to completion and can't yield.
 int luaRequire(lua_State* L)
 {
     std::string name = luaL_checkstring(L, 1);
     lua_getfield(L, LUA_REGISTRYINDEX, kModulesKey);
-    lua_getfield(L, -1, name.c_str());
+    int cache = lua_gettop(L);
+    lua_getfield(L, cache, name.c_str());
     if (lua_islightuserdata(L, -1))
-        luaL_error(L, "Circular require: %s", name.c_str());
+        luaL_error(L, "Circular require: %s (only modules that use 'export' can be required in a cycle)", name.c_str());
     if (!lua_isnil(L, -1))
-        return 1;
+        return 1; // loaded, or an export module still loading (its placeholder)
     lua_pop(L, 1);
 
     auto it = modules.find(name);
     if (it == modules.end())
         luaL_error(L, "Module '%s' not found", name.c_str());
 
-    lua_pushlightuserdata(L, &modules);
-    lua_setfield(L, -2, name.c_str());
-
     lua_State* T = lua_newthread(L);
     luaL_sandboxthread(T);
-    if (!load(T, name, it->second.data(), it->second.size()) || lua_pcall(T, 0, 1, 0) != LUA_OK)
+    if (!load(T, name, it->second.data(), it->second.size()))
+    {
+        lua_xmove(T, L, 1);
+        lua_error(L);
+    }
+
+    int placeholder = 0;
+    if (lua_usesexport(T, -1))
+    {
+        pushPlaceholder(L);
+        placeholder = lua_gettop(L);
+        lua_pushvalue(L, placeholder);
+    }
+    else
+        lua_pushlightuserdata(L, &modules);
+    lua_setfield(L, cache, name.c_str());
+
+    if (lua_pcall(T, 0, 1, 0) != LUA_OK)
     {
         lua_pushnil(L);
-        lua_setfield(L, -3, name.c_str());
+        lua_setfield(L, cache, name.c_str());
         lua_xmove(T, L, 1);
         lua_error(L);
     }
     lua_xmove(T, L, 1);
+    if (placeholder)
+    {
+        populatePlaceholder(L, placeholder, -1);
+        lua_pop(L, 1);
+        lua_pushvalue(L, placeholder);
+    }
     lua_pushvalue(L, -1);
-    lua_setfield(L, -4, name.c_str());
+    lua_setfield(L, cache, name.c_str());
     return 1;
 }
 
@@ -306,6 +437,7 @@ extern "C"
             lua_close(globalState);
         tasks.clear();
         modules.clear();
+        entryThread = nullptr;
         output.clear();
         createState();
     }
@@ -320,7 +452,10 @@ extern "C"
         lua_State* T = lua_newthread(globalState);
         luaL_sandboxthread(T);
         if (load(T, name, source, strlen(source)))
+        {
+            registerEntry(T, name);
             schedule(T, 0, 0);
+        }
         else
             reportError(T);
         lua_pop(globalState, 1);
