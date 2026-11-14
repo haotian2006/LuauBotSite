@@ -67,7 +67,7 @@
                     if (!Number.isFinite(stats.guilds) || !Number.isFinite(stats.memberReach)) return;
                     const statsLabel = document.createElement('span');
                     statsLabel.className = 'luau-header-stats';
-                    statsLabel.textContent = `· ${stats.guilds.toLocaleString()} servers · ${stats.memberReach.toLocaleString()} members`;
+                    statsLabel.textContent = `${stats.guilds.toLocaleString()} servers, ${stats.memberReach.toLocaleString()} members`;
                     topic.appendChild(statsLabel);
                 })
                 .catch(() => {});

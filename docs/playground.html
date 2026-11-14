@@ -1254,7 +1254,7 @@
       </div>
       <div id="toolResults" class="tool-results" role="tabpanel" aria-labelledby="bytecodeTab" hidden>
         <details id="bytecodeOptions" class="bytecode-options">
-          <summary><span>Compiler options</span><span id="bytecodeOptionSummary">O2 · G2 · VM bytecode</span></summary>
+          <summary><span>Compiler options</span><span id="bytecodeOptionSummary">O2, G2, VM bytecode</span></summary>
           <div class="bytecode-option-grid">
           <label>Optimization
             <select id="bytecodeOptimize" aria-label="Bytecode optimization">
@@ -1267,9 +1267,9 @@
           <label>Debug
             <select id="bytecodeDebug" aria-label="Bytecode debug level" title="G1 or G2 shows source lines for highlighting">
               <option value="auto">Auto: G0</option>
-              <option value="0">G0 · None</option>
-              <option value="1">G1 · Lines</option>
-              <option value="2" selected>G2 · Full</option>
+              <option value="0">G0 (None)</option>
+              <option value="1">G1 (Lines)</option>
+              <option value="2" selected>G2 (Full)</option>
             </select>
           </label>
           <label class="bytecode-output-option">Output
@@ -1439,7 +1439,7 @@ declare myGlobal: MyClass'></textarea>
     // Globals the bot expects scripts to assign, e.g. TIMEOUT = 30
     const BOT_SETTABLE_GLOBALS = new Set(["TIMEOUT", "OUTPUT_LOGS", "TIMESTAMP"]);
 
-    // Type loading shouldn't overwrite run results such as "Local · Stopped".
+    // Type loading shouldn't overwrite run results such as "Local: Stopped".
     const TYPE_STATUSES = new Set(["", "Loading types…"]);
     function setTypeStatus(text) {
       const statusEl = document.getElementById("status");
@@ -1591,7 +1591,7 @@ declare myGlobal: MyClass'></textarea>
     }
 
     // The @lune libraries the bot's workers provide (roblox/LuneImports.luau).
-    const LUNE_LIBS = ["fs", "luau", "net", "regex", "roblox", "serde", "task"];
+    const LUNE_LIBS = ["fs", "luau", "net", "regex", "roblox", "serde", "stdio", "task"];
 
     function luauHint(cm, callback) {
       const doc = cm.getDoc();
@@ -3860,7 +3860,7 @@ declare myGlobal: MyClass'></textarea>
       const optimize = bytecodeOptimize.value === "auto" ? inferred.optimizeLevel : bytecodeOptimize.value;
       const debug = bytecodeDebug.value === "auto" ? inferred.debugLevel : bytecodeDebug.value;
       const output = bytecodeOutputMode.value === "auto" ? inferred.output : bytecodeOutputMode.value;
-      bytecodeOptionSummary.textContent = `O${optimize} · G${debug} · ${outputNames[output]}`;
+      bytecodeOptionSummary.textContent = `O${optimize}, G${debug}, ${outputNames[output]}`;
     }
 
     function selectedToolSource() {
@@ -3997,7 +3997,7 @@ declare myGlobal: MyClass'></textarea>
       const state = toolViews[activeResultView];
       copyToolBtn.textContent = "Copy";
       if (!source.code.trim()) {
-        toolStatus.textContent = `${source.name} · Enter code to see ${activeResultView}.`;
+        toolStatus.textContent = `${source.name}: Enter code to see ${activeResultView}.`;
         toolSpinner.hidden = true;
         toolOutput.textContent = "";
         clearBytecodeRows();
@@ -4005,7 +4005,7 @@ declare myGlobal: MyClass'></textarea>
         return;
       }
       if (state.signature === source.signature) {
-        toolStatus.textContent = state.error ? `${source.name} · Error` : source.name;
+        toolStatus.textContent = state.error ? `${source.name}: Error` : source.name;
         toolSpinner.hidden = true;
         if (activeResultView === "bytecode" && !state.error) renderBytecodeOutput(state.output);
         else if (activeResultView === "ast" && !state.error) renderAstOutput(state.output);
@@ -4881,7 +4881,7 @@ local require = imports.require;
       const tick = () => {
         const left = Math.ceil((until - Date.now()) / 1000);
         if (left > 0) {
-          setStatus(`${label} · try again in ${left}s`);
+          setStatus(`${label}, try again in ${left}s`);
           return;
         }
         clearInterval(runLimitTimer);
@@ -4930,7 +4930,7 @@ local require = imports.require;
         });
         if (!finished) return; // stopped
         const elapsed = ((performance.now() - t0) / 1000).toFixed(4);
-        setStatus(`Local · ${failed ? "Error" : "Done"} (${elapsed}s)`);
+        setStatus(`Local: ${failed ? "Error" : "Done"} (${elapsed}s)`);
         setRunning(false);
         if (histRecordCheck.checked) {
           pushHistory(raw, outputEl.innerHTML, _pendingFiles, null, +elapsed, true, runWorkspace);
@@ -5031,7 +5031,7 @@ local require = imports.require;
       });
       es.addEventListener("done", e => {
         const { runtime } = JSON.parse(e.data);
-        const serverPart = _serverNum != null ? `${runnerLabel(_serverNum, _studio)} · ` : "";
+        const serverPart = _serverNum != null ? `${runnerLabel(_serverNum, _studio)}: ` : "";
         setStatus(`${serverPart}Done (${(+runtime).toFixed(4)}s)`);
         setRunning(false);
         es.close();
@@ -5200,12 +5200,12 @@ local require = imports.require;
 
         const body = document.createElement("div");
         body.className = "hist-body";
-        const localTag = entry.local ? " · Local" : "";
-        const serverTag = entry.serverNum != null ? ` · ${runnerLabel(entry.serverNum, entry.studio)}` : "";
-        const runtimeTag = entry.runtime != null ? ` · ${entry.runtime.toFixed(2)}s` : "";
+        const localTag = entry.local ? ", Local" : "";
+        const serverTag = entry.serverNum != null ? `, ${runnerLabel(entry.serverNum, entry.studio)}` : "";
+        const runtimeTag = entry.runtime != null ? `, ${entry.runtime.toFixed(2)}s` : "";
         const label = document.createElement("div");
         label.className = "hist-label";
-        label.textContent = `${entry.workspace?.active || MAIN_FILE} · ${entry.label || "(empty)"}`;
+        label.textContent = `${entry.workspace?.active || MAIN_FILE}: ${entry.label || "(empty)"}`;
         const time = document.createElement("div");
         time.className = "hist-time";
         time.textContent = `${histTime(entry.ts)}${localTag}${serverTag}${runtimeTag}`;
@@ -5409,7 +5409,7 @@ local require = imports.require;
 
     stopBtn.addEventListener("click", async () => {
       if (stopLocalRun()) {
-        setStatus("Local · Stopped");
+        setStatus("Local: Stopped");
         setRunning(false);
         return;
       }

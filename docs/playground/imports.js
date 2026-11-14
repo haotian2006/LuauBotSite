@@ -1,7 +1,8 @@
-// io.import in the browser: downloads a Wally package or GitHub folder straight from Wally's
-// registry / GitHub's API (both allow cross-origin reads), builds the instance tree the bot's
-// src/github/build.luau would, and writes it as an .rbxm. Mirrors RluauRunnerV3's src/github/*.
-// Roblox assets need the bot's Open Cloud key, so the bot downloads those (/import/roblox).
+// io.import in the browser: downloads a Wally package, GitHub folder or gist straight from
+// Wally's registry / GitHub's API (both allow cross-origin reads), builds the instance tree the
+// bot's src/github/build.luau would, and writes it as an .rbxm. Mirrors RluauRunnerV3's src/github/*.
+// Roblox assets need the bot's Open Cloud key and Pastebin blocks cross-origin reads, so the bot
+// downloads those (/import/roblox, /import/pastebin).
 //
 // A node is { name, className, source?, value?, contents?, children: [] }.
 (function () {
@@ -15,10 +16,45 @@
   const ASSET_ID = /^[1-9]\d{0,15}$/;
   const ROBLOX_HOSTS = /^(www\.|create\.)?roblox\.com$/i;
   const PART = /^[a-z0-9_-]{1,64}$/;
+  const GIST_ID = /^[0-9a-f]{20,40}$/i;
+  const REVISION = /^[0-9a-f]{40}$/i;
+  const PASTE_ID = /^[A-Za-z0-9]{4,16}$/;
+  const USER = /^[A-Za-z0-9-]{1,39}$/;
 
   class ImportError extends Error {}
 
-  //// targets (same forms as the bot: wally:, wally.run/package, github.com, Roblox assets)
+  //// targets (same forms as the bot: wally:, wally.run/package, github.com, gists, Pastebin, Roblox assets)
+
+  // gist.github.com/<user>/<id>[/<revision>], gist.github.com/<id>, or
+  // gist.githubusercontent.com/<user>/<id>/raw[/<revision>]/<file>
+  function parseGistTarget(url) {
+    const host = url.hostname.toLowerCase();
+    if (host !== "gist.github.com" && host !== "gist.githubusercontent.com") return null;
+    const segs = url.pathname.split("/").filter(Boolean);
+    if (segs[0] && !GIST_ID.test(segs[0]) && USER.test(segs[0])) segs.shift();
+    const [id, ...rest] = segs;
+    if (!GIST_ID.test(id ?? "")) throw new ImportError("expected gist.github.com/<user>/<gist id>");
+    let rev = null;
+    let file = null;
+    if (host === "gist.githubusercontent.com") {
+      if (rest[0] !== "raw" || rest.length < 2) throw new ImportError("expected gist.githubusercontent.com/<user>/<id>/raw/<file>");
+      if (rest.length > 2 && REVISION.test(rest[1])) rev = rest[1].toLowerCase();
+      try { file = decodeURIComponent(rest.at(-1)); } catch { throw new ImportError("not a valid URL"); }
+    } else if (rest.length > 0) {
+      if (!REVISION.test(rest[0]) || rest.length > 1) throw new ImportError("expected gist.github.com/<user>/<gist id>[/<revision>]");
+      rev = rest[0].toLowerCase();
+    }
+    return { mode: "gist", id: id.toLowerCase(), rev, file };
+  }
+
+  // pastebin.com/<id>, pastebin.com/raw/<id> or pastebin.com/dl/<id>
+  function parsePastebinTarget(url) {
+    if (!/^(www\.)?pastebin\.com$/i.test(url.hostname)) return null;
+    const segs = url.pathname.split("/").filter(Boolean);
+    const id = segs.length === 2 && (segs[0] === "raw" || segs[0] === "dl") ? segs[1] : segs.length === 1 ? segs[0] : null;
+    if (!PASTE_ID.test(id ?? "")) throw new ImportError("expected pastebin.com/<paste id>");
+    return { mode: "pastebin", id };
+  }
 
   // 123, rbxassetid://123, roblox.com/library/123, create.roblox.com/store/asset/123, roblox.com/asset/?id=123
   function parseRobloxTarget(text, url) {
@@ -62,6 +98,8 @@
     const roblox = parseRobloxTarget(text, url);
     if (roblox) return roblox;
     if (!url) throw new ImportError("not a valid URL");
+    const paste = parseGistTarget(url) ?? parsePastebinTarget(url);
+    if (paste) return paste;
     const host = url.hostname.toLowerCase();
     const segs = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
     if (segs.some(s => s === "." || s === "..")) throw new ImportError("not a valid URL");
@@ -73,7 +111,7 @@
       }
       return { mode: "path", owner, repo, candidates: refCandidates(rest).filter(c => c.path) };
     }
-    if (host !== "github.com" && host !== "www.github.com") throw new ImportError("only github.com, Wally and Roblox asset URLs are supported");
+    if (host !== "github.com" && host !== "www.github.com") throw new ImportError("only GitHub, gist, Pastebin, Wally and Roblox asset URLs are supported");
     const [owner, repoRaw, kind, ...rest] = segs;
     const repo = (repoRaw ?? "").replace(/\.git$/i, "");
     if (!NAME.test(owner ?? "") || !NAME.test(repo)) throw new ImportError("expected github.com/<owner>/<repo>");
@@ -342,6 +380,36 @@
       throw new ImportError(`"${dir}" not found in the repository`);
     }
     throw new ImportError(target.mode === "repo" ? "repository not found (or it's private)" : "branch, tag or commit not found");
+  }
+
+  // A gist is a tiny repo: one file builds as that file, several as a folder (a ModuleScript
+  // when it has init.luau), like the bot's paste.js.
+  async function buildGist(target) {
+    const res = await fetch(`https://api.github.com/gists/${target.id}${target.rev ? `/${target.rev}` : ""}`);
+    if (res.status === 404) throw new ImportError(target.rev ? "gist revision not found" : "gist not found (or it's secret and the link is wrong)");
+    if (res.status === 403) throw new ImportError("GitHub's API limit for this network is used up; try again later");
+    if (!res.ok) throw new ImportError(`GitHub returned ${res.status}`);
+    const listed = Object.values((await res.json()).files ?? {}).filter(f => SYNCED.test(f.filename));
+    if (listed.length > MAX_FILES) throw new ImportError(`more than ${MAX_FILES} files to download`);
+    const files = new Map();
+    await Promise.all(listed.map(async f => {
+      // the API cuts contents off past 1MB; raw_url has the whole file
+      files.set(f.filename, f.truncated || typeof f.content !== "string" ? await (await fetchOk(f.raw_url)).text() : f.content);
+    }));
+    if (target.file) {
+      if (!files.has(target.file)) throw new ImportError(`"${target.file}" not found in the gist`);
+      return buildOne(new Tree(files), target.file);
+    }
+    if (files.has("default.project.json")) return new Tree(files).buildProject("default.project.json");
+    if (files.size === 0) throw new ImportError("the gist has no files Rojo can sync");
+    if (files.size === 1) return buildOne(new Tree(files), [...files.keys()][0]);
+    return new Tree(new Map([...files].map(([p, text]) => [`Gist/${p}`, text]))).buildDir("Gist", "Gist");
+  }
+
+  function buildOne(tree, path) {
+    const built = tree.buildFile(path, path);
+    if (!built) throw new ImportError(`"${path}" isn't a file Rojo can sync`);
+    return built;
   }
 
   //// Rojo's sync rules (build.luau), minus properties and binary models
@@ -613,12 +681,12 @@
     return concat([head, data]);
   }
 
-  //// Roblox assets (through the bot)
+  //// Roblox assets and pastes (through the bot)
 
   const api = { server: "https://api.rluwa.com" };
 
-  async function fetchRoblox(id, format) {
-    const res = await fetch(`${api.server}/import/roblox/${id}${format ? `?format=${format}` : ""}`);
+  async function fetchBot(kind, id, format) {
+    const res = await fetch(`${api.server}/import/${kind}/${encodeURIComponent(id)}${format ? `?format=${format}` : ""}`);
     if (res.ok) return res;
     const message = await res.json().then(body => body?.message, () => null);
     throw new ImportError(message || `the bot returned ${res.status}`);
@@ -631,8 +699,8 @@
     };
   }
 
-  async function buildRoblox(target) {
-    return normalizeTree(await (await fetchRoblox(target.id, "tree")).json());
+  async function buildThroughBot(target) {
+    return normalizeTree(await (await fetchBot(target.mode, target.id, "tree")).json());
   }
 
   // The .rbxm for a spec: Roblox assets as the bot downloaded them (parts, meshes and all),
@@ -640,7 +708,7 @@
   async function modelFile(spec) {
     const target = parseTarget(spec);
     if (target.mode === "roblox") {
-      const bytes = new Uint8Array(await (await fetchRoblox(target.id)).arrayBuffer());
+      const bytes = new Uint8Array(await (await fetchBot("roblox", target.id)).arrayBuffer());
       return { name: `Asset${target.id}`, bytes };
     }
     const tree = await build(spec);
@@ -656,7 +724,10 @@
     if (!builds.has(spec)) {
       const target = Promise.resolve().then(() => parseTarget(spec));
       builds.set(spec, target
-        .then(t => (t.mode === "wally" ? buildWally(t) : t.mode === "roblox" ? buildRoblox(t) : buildGithub(t)))
+        .then(t => (t.mode === "wally" ? buildWally(t)
+          : t.mode === "roblox" || t.mode === "pastebin" ? buildThroughBot(t)
+          : t.mode === "gist" ? buildGist(t)
+          : buildGithub(t)))
         .catch(err => {
           builds.delete(spec);
           throw err instanceof ImportError ? err : new ImportError(err.message || String(err));

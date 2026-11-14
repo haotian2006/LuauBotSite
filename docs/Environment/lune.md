@@ -18,8 +18,20 @@ print(fs.readFile("hello.txt")) --> hi
 | `@lune/regex` | `new`, with `isMatch`, `find`, `captures`, `split`, `replace` and `replaceAll` |
 | `@lune/luau` | `compile`, `disassemble` and `load`. `load` only takes source or bytecode compiled in the same run. |
 | `@lune/net` | `request`, `socket`, `jsonEncode`, `jsonDecode`, `urlEncode` and `urlDecode` |
+| `@lune/stdio` | `write`, `ewrite`, `format`, `color`, `style`, `readLine`, `readToEnd` and `prompt`. Both reads wait for the next input, like `io.read`, and `readToEnd` returns that one input. |
 
-Other libraries like `@lune/process` and `@lune/stdio` don't work: `library @lune/process is unavailable on this worker`.
+`stdio.prompt` asks the person who ran the code. A `text` prompt waits for their next input. `confirm`, `select` and `multiselect` show buttons that only they can click, and return `true`/`false`, the option's index, or a list of indexes. With more than 25 options, or where buttons can't be shown, they type the answer instead.
+
+```lua
+local stdio = require("@lune/stdio")
+local name = stdio.prompt("text", "Name?", "Guest")
+if stdio.prompt("confirm", `Hi {name}, pick a color?`, true) then
+	local colors = { "red", "green", "blue" }
+	print(colors[stdio.prompt("select", "Color", colors)])
+end
+```
+
+Other libraries like `@lune/process` don't work: `library @lune/process is unavailable on this worker`.
 
 ???+ info
     `@lune/serde`, `@lune/regex` and `@lune/luau` only work when the code runs in Studio.

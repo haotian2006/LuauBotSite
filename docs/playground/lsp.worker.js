@@ -216,7 +216,7 @@ function enqueue(item) {
 
 // Lune's own typedefs (lune-org/lune v0.11.0, crates/lune-std-*/types.d.luau), behind a .luaurc alias.
 // Only the libraries the bot's workers provide (roblox/LuneImports.luau); datetime is there because fs's types use it.
-const LUNE_LIBS = ["datetime", "fs", "luau", "net", "regex", "roblox", "serde", "task"];
+const LUNE_LIBS = ["datetime", "fs", "luau", "net", "regex", "roblox", "serde", "stdio", "task"];
 
 async function start(options) {
   const [module, roblox, bot, lune] = await Promise.all([

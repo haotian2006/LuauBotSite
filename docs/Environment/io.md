@@ -62,12 +62,14 @@ io.writeimage(workspace, "scene", { Size = Vector2.new(320, 180) })
 ```
 
 ### `import(url:string|number):Instance`
-Builds a GitHub repository, a Wally package or a public Roblox model into an Instance.
+Builds a GitHub repository, a gist, a paste, a Wally package or a public Roblox model into an Instance.
 
 - `github.com/<owner>/<repo>`: builds `default.project.json`, or `src/` if there isn't one.
 - `.../tree/<branch>/<path>` or `.../blob/<branch>/<path>`: builds that folder or file.
 - `.../releases/download/<tag>/<file>.rbxm` or `.../releases/latest/download/<file>.rbxm` (`.rbxmx` works too)
 - `raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>`
+- `gist.github.com/<user>/<gist id>`
+- `pastebin.com/<paste id>` or `pastebin.com/raw/<paste id>`
 - `wally:<scope>/<name>@<version>` 
 - `<asset id>`, `rbxassetid://<asset id>`, `roblox.com/library/<asset id>` or `create.roblox.com/store/asset/<asset id>`: a public Roblox model
 
@@ -89,6 +91,12 @@ local Signal = require(io.import("https://wally.run/package/sleitnick/signal?ver
 Roblox example:
 ```lua
 local Packet = require(io.import(104116977416770))
+```
+
+Gist and Pastebin example:
+```lua
+local observers = require(io.import("https://gist.github.com/Sleitnick/c14be94ae7503b82e87f40eb53734965"))
+print(io.import("https://pastebin.com/raw/0C343n0d").Source)
 ```
 
 ### `readfile(file:string): (string,string)`
