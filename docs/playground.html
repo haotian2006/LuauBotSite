@@ -826,9 +826,31 @@
     }
 
     .editor-split {
+      position: relative;
       flex: 1;
       min-height: 0;
       display: flex;
+    }
+
+    /* Where a dragged tab will open. */
+    .split-drop-hint {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      z-index: 6;
+      display: grid;
+      place-items: center;
+      border: 2px dashed var(--pg-accent);
+      border-radius: var(--pg-radius);
+      background: color-mix(in srgb, var(--pg-primary) 10%, transparent);
+      color: var(--pg-fg);
+      font-size: 15px;
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    .split-drop-hint[hidden] {
+      display: none;
     }
 
     .editor-column {
@@ -2468,6 +2490,73 @@ declare myGlobal: MyClass'></textarea>
     splitEditorBtn.addEventListener("click", () => setSplit(!splitOn));
     splitUnavailable.addEventListener("change", () => { if (splitUnavailable.matches) setSplit(false); });
 
+    // Dragging a tab onto the editor: unsplit, the right half opens the file to the side and the
+    // left half just opens it; split, either pane opens it there (swapping if the other pane had it).
+    const splitDropHint = document.createElement("div");
+    splitDropHint.className = "split-drop-hint";
+    splitDropHint.hidden = true;
+    editorSplit.appendChild(splitDropHint);
+    let draggedFileIndex = null;
+
+    function dropTargetPane(event) {
+      if (splitOn) {
+        const column = event.target.closest?.(".editor-column");
+        return column ? Number(column.dataset.pane) : null;
+      }
+      const bounds = editorSplit.getBoundingClientRect();
+      return event.clientX > bounds.left + bounds.width / 2 ? 1 : 0;
+    }
+
+    function showDropHint(pane) {
+      const bounds = editorSplit.getBoundingClientRect();
+      let left = 0, width = bounds.width;
+      if (splitOn) {
+        const column = editorColumns[pane].getBoundingClientRect();
+        left = column.left - bounds.left;
+        width = column.width;
+      } else if (pane === 1) {
+        left = width = bounds.width / 2;
+      }
+      splitDropHint.style.left = `${left}px`;
+      splitDropHint.style.width = `${width}px`;
+      splitDropHint.textContent = !splitOn && pane === 1 ? "Open to the side" : "Open here";
+      splitDropHint.hidden = false;
+    }
+
+    function openInPane(pane, index) {
+      if (!splitOn && pane === 1) {
+        setSplit(true);
+        if (!splitOn) return;
+      }
+      if (splitOn) focusPane(pane);
+      selectFile(index);
+      if (!coarsePointer.matches) editor.focus();
+    }
+
+    // Capture phase, so the editor's own text and file drops never see a tab drag.
+    editorSplit.addEventListener("dragover", event => {
+      if (draggedFileIndex == null || splitUnavailable.matches) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "move";
+      const pane = dropTargetPane(event);
+      if (pane == null) splitDropHint.hidden = true;
+      else showDropHint(pane);
+    }, true);
+    editorSplit.addEventListener("dragleave", event => {
+      if (!editorSplit.contains(event.relatedTarget)) splitDropHint.hidden = true;
+    }, true);
+    editorSplit.addEventListener("drop", event => {
+      if (draggedFileIndex == null) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const index = draggedFileIndex;
+      const pane = dropTargetPane(event);
+      draggedFileIndex = null;
+      splitDropHint.hidden = true;
+      if (pane != null) openInPane(pane, index);
+    }, true);
+
     // After files were added, removed or replaced: keep two different files in the panes.
     function reconcileSplit() {
       if (!splitOn) return;
@@ -2693,6 +2782,20 @@ declare myGlobal: MyClass'></textarea>
         });
         if (index !== 0) name.addEventListener("dblclick", () => editFileName(index));
         tab.appendChild(name);
+        // Drag a tab onto the editor to open it there or to the side (split view, desktop).
+        if (!splitUnavailable.matches) {
+          tab.draggable = true;
+          tab.addEventListener("dragstart", event => {
+            if (tab.classList.contains("editing")) { event.preventDefault(); return; }
+            draggedFileIndex = index;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("application/x-luau-file", file.name);
+          });
+          tab.addEventListener("dragend", () => {
+            draggedFileIndex = null;
+            splitDropHint.hidden = true;
+          });
+        }
         if (index !== 0) {
           const close = document.createElement("button");
           close.type = "button";
