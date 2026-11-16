@@ -21,6 +21,7 @@ Private messages to the bot will not be logged or read by the bot.
 
 ## Stored Data
 - **Code you run with `/compile`** is kept for 24 hours for the **see raw** link. Anyone with the link can view it.
+- **Playground short links** made with the Share button are kept for 7 days, then deleted. Anyone with the link can open the code in it. Shift+click Share to get a full link instead, which keeps the code in the link itself and stores nothing on the server.
 - **DataStores and MemoryStores** your code saves in Discord are kept on the bot's server under your User ID, up to 1 MB. Data that isn't used for 30 days is deleted, and MemoryStore entries are deleted when they expire.
 - Code run in the play ground doesn't save DataStores or MemoryStores.
 - To delete your saved data, remove it with `RemoveAsync`, or wait 30 days.

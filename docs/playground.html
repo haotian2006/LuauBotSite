@@ -3073,18 +3073,20 @@ declare myGlobal: MyClass'></textarea>
     // When embedded in an iframe the hash lives on the parent page
     let urlHash = location.hash.slice(1);
     try { if (!urlHash && window.parent !== window) urlHash = window.parent.location.hash.slice(1); } catch { }
+    // Opens a decoded share state (long link hash or short link) and tidies the address bar.
+    function openSharedState(state) {
+      const previous = captureWorkspaceState();
+      if (Array.isArray(state.files) || typeof state.c === "string") restoreWorkspace(state);
+      applySharedSettings(state);
+      applySharedLayout(state);
+      offerWorkspaceUndo("Opened a shared link.", previous);
+      try {
+        const target = (window.parent !== window) ? window.parent.history : history;
+        target.replaceState(null, "", location.pathname.replace(/playground\.html$/, "playground/"));
+      } catch { }
+    }
     if (urlHash && sourceId === null) {
-      decompressFromB64(urlHash).then(state => {
-        const previous = captureWorkspaceState();
-        if (Array.isArray(state.files) || typeof state.c === "string") restoreWorkspace(state);
-        applySharedSettings(state);
-        applySharedLayout(state);
-        offerWorkspaceUndo("Opened a shared link.", previous);
-        try {
-          const target = (window.parent !== window) ? window.parent.history : history;
-          target.replaceState(null, "", location.pathname.replace(/playground\.html$/, "playground/"));
-        } catch { }
-      }).catch(() => { /* invalid hash */ });
+      decompressFromB64(urlHash).then(openSharedState).catch(() => { /* invalid hash */ });
     }
     onEditors("change", () => {
       clearTimeout(saveTimer);
@@ -3496,7 +3498,7 @@ declare myGlobal: MyClass'></textarea>
       return null;
     }
 
-    document.getElementById("shareBtn").addEventListener("click", async function () {
+    document.getElementById("shareBtn").addEventListener("click", async function (event) {
       const state = {
         c: workspaceFiles[0].doc.getValue(),
         ...snapshotWorkspace(),
@@ -3514,7 +3516,33 @@ declare myGlobal: MyClass'></textarea>
       const base = (window.parent !== window && document.referrer)
         ? new URL(document.referrer).origin + new URL(document.referrer).pathname
         : location.origin + location.pathname.replace(/playground\.html$/, "playground/");
-      const urlPromise = compressToB64(state).then(encoded => base.replace(/\/$/, "") + "/#" + encoded);
+      const longUrl = encoded => base.replace(/\/$/, "") + "/#" + encoded;
+      // A short link the bot keeps for a week; Shift+click, or any failure, gives the long link,
+      // which holds everything itself and never expires.
+      let shortLink = false;
+      let fallbackNote = "";
+      const urlPromise = compressToB64(state).then(async encoded => {
+        if (event.shiftKey) return longUrl(encoded);
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 5000);
+          const res = await fetch(`${SERVER}/share`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ state: encoded }),
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 429) fallbackNote = " (short link limit reached, so this is the full link)";
+          else if (res.status === 413) fallbackNote = " (too big for a short link, so this is the full link)";
+          if (!res.ok || typeof data.id !== "string") return longUrl(encoded);
+          shortLink = true;
+          return base.replace(/\/$/, "") + "/?s=" + data.id;
+        } catch {
+          return longUrl(encoded);
+        }
+      });
       // Safari only allows a clipboard write started during the click, so hand it the pending
       // link instead of awaiting the compression first.
       const copied = window.ClipboardItem && navigator.clipboard?.write
@@ -3526,7 +3554,7 @@ declare myGlobal: MyClass'></textarea>
       try {
         await copied;
         this.querySelector(".button-label").textContent = "Copied";
-        showActionNotice("Share link copied");
+        showActionNotice(shortLink ? "Short link copied. It works for 7 days. Shift+click Share for a permanent link." : "Share link copied" + fallbackNote);
         setTimeout(() => { this.querySelector(".button-label").textContent = "Share"; }, 2000);
       } catch {
         window.prompt("Copy failed. Use this link instead:", url);
@@ -4102,6 +4130,28 @@ declare myGlobal: MyClass'></textarea>
 
     const SERVER = "https://api.rluwa.com";
     LuauImports.api.server = SERVER;
+
+    // Short share links (?s=<id>): the bot keeps the same compressed state a long link carries.
+    {
+      const params = new URLSearchParams(location.search);
+      const shortId = params.get("s");
+      if (shortId && !urlHash && sourceId === null) {
+        if (!/^[0-9a-f]{20}$/.test(shortId)) {
+          showActionNotice("That short link is not valid.");
+        } else {
+          fetch(`${SERVER}/share/${shortId}`)
+            .then(async res => {
+              if (res.status === 410) throw new Error("This short link has expired. Short links last 7 days.");
+              if (res.status === 404) throw new Error("This short link was not found.");
+              const data = await res.json();
+              if (!res.ok || typeof data.state !== "string") throw new Error("Could not open the short link.");
+              return decompressFromB64(data.state);
+            })
+            .then(openSharedState)
+            .catch(err => showActionNotice(err instanceof TypeError ? "Could not reach the server to open the short link." : err.message));
+        }
+      }
+    }
     const FILE_UPLOAD_CHUNK_BYTES = 512 * 1024;
     const TOOL_REFRESH_MS = 650; // Leave room under the 120 requests/minute limit.
     const TOOL_EDIT_DELAY_MS = 300;
