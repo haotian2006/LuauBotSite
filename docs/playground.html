@@ -2557,6 +2557,30 @@ declare myGlobal: MyClass'></textarea>
       if (pane != null) openInPane(pane, index);
     }, true);
 
+    // A shared link made in split view: reopen the same two panes, focused the same way. Small and
+    // touch screens have no split view, so they just open the focused file.
+    function applySharedLayout(state) {
+      const layout = state?.sp;
+      if (!layout || typeof layout.o !== "string" || splitUnavailable.matches) return;
+      const focusedFile = activeFileIndex;
+      const other = workspaceFiles.findIndex(file => file.name.toLowerCase() === layout.o.toLowerCase());
+      if (other < 0 || other === focusedFile) return;
+      setSplit(true);
+      if (!splitOn) return;
+      focusedPane = 0;
+      editor = paneEditors[0];
+      activeFileIndex = focusedFile;
+      otherPaneFile = other;
+      applyPaneDocs();
+      if (layout.f === 1) {
+        // The focused file goes in the right pane: focus it, then swap the files in.
+        focusPane(1);
+        selectFile(focusedFile);
+      }
+      renderFileTabs();
+      saveWorkspace();
+    }
+
     // After files were added, removed or replaced: keep two different files in the panes.
     function reconcileSplit() {
       if (!splitOn) return;
@@ -3054,6 +3078,7 @@ declare myGlobal: MyClass'></textarea>
         const previous = captureWorkspaceState();
         if (Array.isArray(state.files) || typeof state.c === "string") restoreWorkspace(state);
         applySharedSettings(state);
+        applySharedLayout(state);
         offerWorkspaceUndo("Opened a shared link.", previous);
         try {
           const target = (window.parent !== window) ? window.parent.history : history;
@@ -3481,6 +3506,8 @@ declare myGlobal: MyClass'></textarea>
         r: document.getElementById("robloxDefsCheck")?.checked ? 1 : 0,
         b: document.getElementById("botDefsCheck")?.checked ? 1 : 0,
         u: document.getElementById("localRunCheck")?.checked ? 1 : 0,
+        // Split view: the other pane's file and which pane was focused (see applySharedLayout).
+        ...(splitOn ? { sp: { o: workspaceFiles[otherPaneFile].name, f: focusedPane } } : {}),
         ...getEmbeddedStateForSave(true),
       };
 
