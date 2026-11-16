@@ -825,7 +825,97 @@
       }
     }
 
-    #editor-wrapper {
+    .editor-split {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+
+    .editor-column {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-column[hidden] {
+      display: none;
+    }
+
+    .editor-column + .editor-column {
+      border-left: 1px solid var(--pg-border);
+    }
+
+    /* Split view only: the file each pane shows, and a Run button that runs that file. */
+    .split-pane-head {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 6px 3px 10px;
+      border-bottom: 1px solid var(--pg-border);
+      background: var(--pg-surface-2);
+      color: var(--pg-muted);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .editor-split.split .split-pane-head {
+      display: flex;
+    }
+
+    .editor-split.split .editor-column.focused .split-pane-head {
+      color: var(--pg-fg);
+      box-shadow: inset 0 -2px 0 var(--pg-primary);
+    }
+
+    .split-pane-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: var(--pg-mono);
+    }
+
+    .split-run {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border: 0;
+      border-radius: var(--pg-radius-sm);
+      background: var(--pg-primary);
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .split-run:hover {
+      background: var(--pg-primary-hover);
+    }
+
+    .split-run:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .split-run .ui-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    #splitEditorBtn[aria-pressed="true"] {
+      color: var(--pg-primary);
+    }
+
+    @media (max-width: 1000px), (pointer: coarse) {
+      #splitEditorBtn {
+        display: none;
+      }
+    }
+
+    #editor-wrapper, #editor-wrapper-2 {
       flex: 1;
       min-height: 0;
       display: flex;
@@ -833,7 +923,7 @@
       border-bottom: 1px solid var(--pg-border);
     }
 
-    #editor-wrapper .CodeMirror {
+    #editor-wrapper .CodeMirror, #editor-wrapper-2 .CodeMirror {
       flex: 1;
       height: 100%;
       background: var(--pg-editor);
@@ -842,7 +932,7 @@
       line-height: 1.6;
     }
 
-    #editor-wrapper .CodeMirror-scroll {
+    #editor-wrapper .CodeMirror-scroll, #editor-wrapper-2 .CodeMirror-scroll {
       height: 100%;
     }
 
@@ -1181,10 +1271,20 @@
           <button id="removeAllFilesBtn" class="file-action" type="button" title="Remove all modules" aria-label="Remove all modules" hidden><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg><span class="button-label">Remove all</span></button>
           <div class="pane-actions editor-view-actions">
             <button id="showConsoleBtn" class="pane-view-button" type="button" title="Show console" aria-label="Show console" aria-controls="console-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 6 6 6-6 6m9 0h7"/></svg></button>
+            <button id="splitEditorBtn" class="pane-view-button" type="button" title="Split editor: two files side by side" aria-label="Split editor" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zM12 4v16"/></svg></button>
             <button id="expandEditorBtn" class="pane-view-button" type="button" title="Expand editor" aria-label="Expand editor" aria-pressed="false" aria-controls="editor-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
           </div>
         </div>
-        <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
+        <div id="editorSplit" class="editor-split">
+          <div class="editor-column focused" data-pane="0">
+            <div class="split-pane-head"><span class="split-pane-name"></span><button class="split-run" type="button" data-pane="0" title="Run this file" aria-label="Run this file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span class="button-label">Run</span></button></div>
+            <div id="editor-wrapper"><textarea id="code" aria-label="Luau source code"></textarea></div>
+          </div>
+          <div class="editor-column" data-pane="1" hidden>
+            <div class="split-pane-head"><span class="split-pane-name"></span><button class="split-run" type="button" data-pane="1" title="Run this file" aria-label="Run this file"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span class="button-label">Run</span></button></div>
+            <div id="editor-wrapper-2" class="editor-wrapper"><textarea id="code2" aria-label="Luau source code, second pane"></textarea></div>
+          </div>
+        </div>
         <div id="mobileKeys" class="mobile-keys" role="toolbar" aria-label="Editing keys">
           <button type="button" data-key="selectMode" aria-pressed="false" aria-label="Select mode: taps and arrows extend the selection">Select</button>
           <button type="button" data-key="selectAll" aria-label="Select all">Select all</button>
@@ -1946,7 +2046,7 @@ declare myGlobal: MyClass'></textarea>
       applyPlaygroundTheme(pickPlaygroundTheme());
     }
 
-    let editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+    const editorOptions = {
       mode: "luau",
       theme: "studio",
       lineNumbers: true,
@@ -1976,7 +2076,16 @@ declare myGlobal: MyClass'></textarea>
         // Auto-close Luau blocks: "do", "then", "function ... )", "repeat", "class Name".
         Enter: luauEnter,
       },
-    });
+    };
+    // `editor` is the editor in the focused pane; split view adds a second one (setSplit).
+    let editor = CodeMirror.fromTextArea(document.getElementById("code"), editorOptions);
+    const editors = [editor];
+    const editorHooks = [];
+    // Registers a CodeMirror event handler on every editor, including ones split view adds later.
+    function onEditors(event, handler) {
+      editorHooks.push([event, handler]);
+      for (const cm of editors) cm.on(event, handler);
+    }
 
     syncPlaygroundTheme();
 
@@ -2007,7 +2116,7 @@ declare myGlobal: MyClass'></textarea>
         setEditorWidth(parseFloat(playgroundMain.style.getPropertyValue("--editor-width")));
       }
       // Remeasure CodeMirror whenever its pane is resized or made visible.
-      requestAnimationFrame(() => editor.refresh());
+      requestAnimationFrame(() => editors.forEach(cm => cm.refresh()));
     }
 
     expandEditorBtn.addEventListener("click", () => {
@@ -2048,8 +2157,8 @@ declare myGlobal: MyClass'></textarea>
       if (editor.getOption("viewportMargin") !== margin) editor.setOption("viewportMargin", margin);
     }
     updateViewportMargin();
-    editor.on("change", updateViewportMargin);
-    editor.on("swapDoc", updateViewportMargin);
+    onEditors("change", updateViewportMargin);
+    onEditors("swapDoc", updateViewportMargin);
     coarsePointer.addEventListener("change", updateViewportMargin);
 
     // On phones CodeMirror reads the browser's selection on a 100ms poll, which it skips while the
@@ -2060,7 +2169,7 @@ declare myGlobal: MyClass'></textarea>
       if (input.composing?.done) input.composing = null;
       input.pollSelection();
     }
-    editor.on("keydown", syncSelectionFromDom);
+    onEditors("keydown", syncSelectionFromDom);
     // A phone keyboard's backspace can arrive only as an input event, which the browser applies to
     // the keyboard's idea of the selection; delete CodeMirror's selection instead.
     const DELETE_INPUT = /^delete(Content|Word|SoftLine|HardLine)/;
@@ -2083,8 +2192,8 @@ declare myGlobal: MyClass'></textarea>
       editor.setExtending(on);
       selectModeBtn.setAttribute("aria-pressed", String(on));
     }
-    editor.on("change", () => { if (selectMode) setSelectMode(false); });
-    editor.on("swapDoc", (cm, oldDoc) => {
+    onEditors("change", () => { if (selectMode) setSelectMode(false); });
+    onEditors("swapDoc", (cm, oldDoc) => {
       oldDoc.setExtending(false);
       setSelectMode(false);
     });
@@ -2263,6 +2372,112 @@ declare myGlobal: MyClass'></textarea>
     let saveTimer = null;
     let runUiReady = false;
     let toolViewsReady = false;
+
+    // Split view (desktop): two panes side by side, each showing a different file with its own Run
+    // button. `editor` and `activeFileIndex` are always the focused pane's; `otherPaneFile` is the
+    // file in the other pane. A CodeMirror.Doc lives in one editor, so a file is never in both.
+    const editorSplit = document.getElementById("editorSplit");
+    const splitEditorBtn = document.getElementById("splitEditorBtn");
+    const editorColumns = Array.from(editorSplit.querySelectorAll(".editor-column"));
+    const paneEditors = [editor, null];
+    const SPLIT_KEY = "luau_split";
+    const splitUnavailable = window.matchMedia("(max-width: 1000px), (pointer: coarse)");
+    let splitOn = false;
+    let focusedPane = 0;
+    let otherPaneFile = null;
+
+    function paneFile(pane) {
+      return pane === focusedPane ? activeFileIndex : otherPaneFile;
+    }
+
+    function updatePaneHeads() {
+      editorColumns.forEach((column, pane) => {
+        const index = paneFile(pane);
+        column.classList.toggle("focused", pane === focusedPane);
+        column.querySelector(".split-pane-name").textContent = index == null ? "" : workspaceFiles[index]?.name ?? "";
+      });
+    }
+
+    // Puts each pane's file in its editor, parking every doc on a blank first so none is ever
+    // attached to two editors at once.
+    function applyPaneDocs() {
+      for (const cm of paneEditors) if (cm) cm.swapDoc(new CodeMirror.Doc("", "luau"));
+      paneEditors[focusedPane].swapDoc(workspaceFiles[activeFileIndex].doc);
+      if (splitOn) paneEditors[1 - focusedPane].swapDoc(workspaceFiles[otherPaneFile].doc);
+      for (const cm of paneEditors) if (cm) cm.refresh();
+    }
+
+    function createSecondEditor() {
+      const cm = CodeMirror.fromTextArea(document.getElementById("code2"), { ...editorOptions, autofocus: false });
+      for (const [event, handler] of editorHooks) cm.on(event, handler);
+      editors.push(cm);
+      paneEditors[1] = cm;
+      cm.on("focus", () => focusPane(1));
+      new ResizeObserver(() => cm.refresh()).observe(document.getElementById("editor-wrapper-2"));
+    }
+    paneEditors[0].on("focus", () => focusPane(0));
+
+    function syncActiveTab() {
+      Array.from(fileTabs.children).forEach((tab, tabIndex) => {
+        tab.classList.toggle("active", tabIndex === activeFileIndex);
+        tab.querySelector(".file-name")?.setAttribute("aria-selected", String(tabIndex === activeFileIndex));
+      });
+      document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[activeFileIndex].name;
+    }
+
+    // Clicking into a pane makes it the focused one: the tabs, tools and Run follow it.
+    function focusPane(pane) {
+      if (!splitOn || pane === focusedPane) return;
+      [activeFileIndex, otherPaneFile] = [otherPaneFile, activeFileIndex];
+      focusedPane = pane;
+      editor = paneEditors[pane];
+      hideHoverTip();
+      syncActiveTab();
+      updatePaneHeads();
+      refreshToolView();
+      if (runUiReady) syncRunLocalUi();
+    }
+
+    function setSplit(on) {
+      on = on && !splitUnavailable.matches;
+      if (on === splitOn) return;
+      if (on) {
+        if (!paneEditors[1]) createSecondEditor();
+        if (workspaceFiles.length < 2) {
+          let number = 1;
+          while (workspaceFiles.some(file => stripLuauExtension(file.name).toLowerCase() === `file${number}`)) number++;
+          workspaceFiles.push({ name: `file${number}`, doc: new CodeMirror.Doc("-- require me from main to run!", "luau") });
+        }
+        otherPaneFile = workspaceFiles.findIndex((_, index) => index !== activeFileIndex);
+      } else {
+        otherPaneFile = null;
+      }
+      // The focused pane's file stays in the left editor either way.
+      splitOn = on;
+      focusedPane = 0;
+      editor = paneEditors[0];
+      editorColumns[1].hidden = !on;
+      editorSplit.classList.toggle("split", on);
+      splitEditorBtn.setAttribute("aria-pressed", String(on));
+      applyPaneDocs();
+      renderFileTabs();
+      saveWorkspace();
+      try { localStorage.setItem(SPLIT_KEY, on ? "1" : "0"); } catch {}
+      if (!coarsePointer.matches) editor.focus();
+    }
+    splitEditorBtn.addEventListener("click", () => setSplit(!splitOn));
+    splitUnavailable.addEventListener("change", () => { if (splitUnavailable.matches) setSplit(false); });
+
+    // After files were added, removed or replaced: keep two different files in the panes.
+    function reconcileSplit() {
+      if (!splitOn) return;
+      if (workspaceFiles.length < 2) { setSplit(false); return; }
+      if (otherPaneFile == null || otherPaneFile === activeFileIndex || otherPaneFile >= workspaceFiles.length) {
+        otherPaneFile = workspaceFiles.findIndex((_, index) => index !== activeFileIndex);
+      }
+      applyPaneDocs();
+      updatePaneHeads();
+    }
 
     function snapshotWorkspace() {
       return {
@@ -2492,6 +2707,7 @@ declare myGlobal: MyClass'></textarea>
       });
       removeAllFilesBtn.hidden = workspaceFiles.length === 1;
       document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[activeFileIndex].name;
+      updatePaneHeads();
       if (runUiReady) syncRunLocalUi();
       syncLspDocuments();
       refreshToolView();
@@ -2499,13 +2715,17 @@ declare myGlobal: MyClass'></textarea>
 
     function selectFile(index) {
       if (index === activeFileIndex) return;
-      activeFileIndex = index;
-      editor.swapDoc(workspaceFiles[index].doc);
-      Array.from(fileTabs.children).forEach((tab, tabIndex) => {
-        tab.classList.toggle("active", tabIndex === index);
-        tab.querySelector(".file-name").setAttribute("aria-selected", String(tabIndex === index));
-      });
-      document.getElementById("editor-wrapper").dataset.activeFile = workspaceFiles[index].name;
+      if (splitOn && index === otherPaneFile) {
+        // The other pane has that file: the two panes swap files.
+        otherPaneFile = activeFileIndex;
+        activeFileIndex = index;
+        applyPaneDocs();
+      } else {
+        activeFileIndex = index;
+        editor.swapDoc(workspaceFiles[index].doc);
+      }
+      syncActiveTab();
+      updatePaneHeads();
       saveWorkspace();
       editor.refresh();
       // On a phone, focusing would pop the keyboard up over half the screen on every tab switch.
@@ -2530,7 +2750,12 @@ declare myGlobal: MyClass'></textarea>
       }
       workspaceFiles = next;
       activeFileIndex = Math.max(0, next.findIndex(file => file.name.toLowerCase() === String(data?.active || MAIN_FILE).toLowerCase()));
-      editor.swapDoc(next[activeFileIndex].doc);
+      if (splitOn) {
+        otherPaneFile = null;
+        reconcileSplit();
+      } else {
+        editor.swapDoc(next[activeFileIndex].doc);
+      }
       renderFileTabs();
       saveWorkspace();
       editor.refresh();
@@ -2584,6 +2809,7 @@ declare myGlobal: MyClass'></textarea>
           close.title = `Remove ${name}`;
           close.setAttribute("aria-label", close.title);
           if (index === activeFileIndex) document.getElementById("editor-wrapper").dataset.activeFile = name;
+          updatePaneHeads();
           saveWorkspace();
         }
         button.hidden = false;
@@ -2609,7 +2835,13 @@ declare myGlobal: MyClass'></textarea>
           !confirm(`Delete ${workspaceFiles[index].name}? Its code can't be recovered.`)) return;
       const wasActive = index === activeFileIndex;
       workspaceFiles.splice(index, 1);
-      if (wasActive) {
+      if (splitOn) {
+        if (otherPaneFile === index) otherPaneFile = null;
+        else if (otherPaneFile > index) otherPaneFile--;
+        if (wasActive) activeFileIndex = otherPaneFile === 0 ? Math.max(0, workspaceFiles.findIndex((_, i) => i !== 0)) : 0;
+        else if (index < activeFileIndex) activeFileIndex--;
+        reconcileSplit();
+      } else if (wasActive) {
         activeFileIndex = 0;
         editor.swapDoc(workspaceFiles[0].doc);
         editor.refresh();
@@ -2707,6 +2939,7 @@ declare myGlobal: MyClass'></textarea>
       if (savedWorkspace) restoreWorkspace(savedWorkspace);
       else renderFileTabs();
     } catch { renderFileTabs(); }
+    try { if (localStorage.getItem(SPLIT_KEY) === "1" && workspaceFiles.length > 1) setSplit(true); } catch {}
     const sourceId = new URLSearchParams(location.search).get("source");
 
     // A URL hash overrides localStorage.
@@ -2725,7 +2958,7 @@ declare myGlobal: MyClass'></textarea>
         } catch { }
       }).catch(() => { /* invalid hash */ });
     }
-    editor.on("change", () => {
+    onEditors("change", () => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(saveWorkspace, 1000);
       refreshToolView();
@@ -3190,7 +3423,7 @@ declare myGlobal: MyClass'></textarea>
       return true;
     }
 
-    editor.on("change", function (cm, change) {
+    onEditors("change", function (cm, change) {
       // Phone keyboards backspace through input events, which the closebrackets keymap never sees:
       // deleting the "(" of an empty "()" also deletes the ")".
       if (change.origin === "+delete" && change.removed.length === 1 && change.text.join("") === "" &&
@@ -3314,31 +3547,31 @@ declare myGlobal: MyClass'></textarea>
         .catch(() => { /* superseded by a newer request */ });
     }
 
-    editor.on("keyup", function (cm, event) {
+    onEditors("keyup", function (cm, event) {
       if (event.key === "Escape") hideSig();
     });
-    editor.on("cursorActivity", cm => {
+    onEditors("cursorActivity", cm => {
       if (sigHelp.style.display === "block" && !findOpenParen(cm)) hideSig();
     });
     // The tips are placed at fixed spots, so they'd float over the wrong code after a scroll.
-    editor.on("scroll", () => {
+    onEditors("scroll", () => {
       hideSig();
       hideHoverTip();
     });
-    editor.on("swapDoc", () => {
+    onEditors("swapDoc", () => {
       hideSig();
       hideHoverTip();
     });
-    editor.on("keydown", () => hideHoverTip());
+    onEditors("keydown", () => hideHoverTip());
 
     function escHtml(s) {
       return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     // Hide sig help when editor loses focus, code runs, or autocomplete opens
-    editor.on("blur", hideSig);
-    editor.on("startCompletion", hideSig);
-    editor.on("endCompletion", () => {
+    onEditors("blur", hideSig);
+    onEditors("startCompletion", hideSig);
+    onEditors("endCompletion", () => {
       completionCache = null;
       hideCompletionDocs();
       // Picking a function leaves the cursor inside "()", so show its signature.
@@ -3351,7 +3584,7 @@ declare myGlobal: MyClass'></textarea>
     let hoverTimer = null;
 
     let hoverToken = null;
-    editor.on("change", () => hideHoverTip());
+    onEditors("change", () => hideHoverTip());
 
     const editorWrapper = editor.getWrapperElement();
     const codeDropZone = document.getElementById("editor-wrapper");
@@ -3431,13 +3664,13 @@ declare myGlobal: MyClass'></textarea>
       else if (!importPopup.contains(e.target)) hideImportPopup();
     });
 
-    editor.on("change", () => {
+    onEditors("change", () => {
       hideImportPopup();
       clearTimeout(importMarkTimer);
       importMarkTimer = setTimeout(() => refreshImportMarks(), 250);
     });
-    editor.on("swapDoc", () => refreshImportMarks());
-    editor.on("scroll", hideImportPopup);
+    onEditors("swapDoc", () => refreshImportMarks());
+    onEditors("scroll", hideImportPopup);
 
     // Color3 swatches, like VS Code's color decorators: a box before each Color3.new / fromRGB /
     // fromHSV / fromHex call with literal arguments. Clicking it opens VS Code's style of picker:
@@ -3647,15 +3880,15 @@ declare myGlobal: MyClass'></textarea>
       if (event.key === "Escape" && colorEdit) closeColorPicker();
     });
 
-    editor.on("change", (cm, change) => {
+    onEditors("change", (cm, change) => {
       clearTimeout(colorMarkTimer);
       // Typing elsewhere closes the picker; its own edits keep it open.
       if (colorEdit && change.origin !== "+colorpick") closeColorPicker();
       // Wait longer while the picker is dragged, so the swatch isn't rebuilt on every step.
       colorMarkTimer = setTimeout(() => refreshColorMarks(), change.origin === "+colorpick" ? 400 : 250);
     });
-    editor.on("scroll", () => { if (colorEdit) placeColorPopup(); });
-    editor.on("swapDoc", () => {
+    onEditors("scroll", () => { if (colorEdit) placeColorPopup(); });
+    onEditors("swapDoc", () => {
       closeColorPicker();
       refreshColorMarks();
     });
@@ -3665,6 +3898,11 @@ declare myGlobal: MyClass'></textarea>
       if (e.pointerType !== "mouse") return;
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
+      // Split view: hover tips are for the focused pane; positions come from its editor.
+      if (splitOn && e.target.closest?.(".CodeMirror") && !editor.getWrapperElement().contains(e.target)) {
+        hideHoverTip();
+        return;
+      }
 
       if (handleImportPointer(e.target)) {
         hoverTip.style.display = "none";
@@ -3673,7 +3911,7 @@ declare myGlobal: MyClass'></textarea>
         return;
       }
 
-      if (!editorWrapper.contains(e.target)) {
+      if (!editor.getWrapperElement().contains(e.target)) {
         hoverTip.style.display = "none";
         clearTimeout(hoverTimer);
         hoverToken = null;
@@ -3987,7 +4225,7 @@ declare myGlobal: MyClass'></textarea>
       }
     }
 
-    editor.on("cursorActivity", () => highlightBytecodeSelection());
+    onEditors("cursorActivity", () => highlightBytecodeSelection());
 
     function refreshToolView() {
       if (!toolViewsReady) return;
@@ -4270,6 +4508,7 @@ declare myGlobal: MyClass'></textarea>
       if (running) outputEl.dataset.ran = "";
       runBtn.style.display = running ? "none" : "inline-flex";
       stopBtn.style.display = running ? "inline-flex" : "none";
+      for (const button of document.querySelectorAll(".split-run")) button.disabled = running;
       // Buttons belong to one run, like a Discord response's components.
       renderScriptButtons([]);
     }
@@ -4918,9 +5157,9 @@ local require = imports.require;
       runLimitTimer = setInterval(tick, 1000);
     }
 
-    runBtn.addEventListener("click", async () => {
+    // Runs one file as the entry, the open one or (split view) either pane's, with the rest as modules.
+    async function runEntry(entryIndex) {
       const runWorkspace = snapshotWorkspace();
-      const entryIndex = activeFileIndex;
       const raw = runWorkspace.files[entryIndex].code;
       if (!raw.trim()) return;
       document.getElementById("consoleTab").click();
@@ -5080,7 +5319,14 @@ local require = imports.require;
         _pendingWorkspace = null;
         _pendingFiles = [];
       });
-    });
+    }
+    runBtn.addEventListener("click", () => runEntry(activeFileIndex));
+    for (const button of document.querySelectorAll(".split-run")) {
+      button.addEventListener("click", () => {
+        if (runBtn.disabled || runBtn.style.display === "none") return;
+        runEntry(paneFile(Number(button.dataset.pane)));
+      });
+    }
 
     const HISTORY_KEY = "luau_history";
     const HISTORY_MAX = 20;

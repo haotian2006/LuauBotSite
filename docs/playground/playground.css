@@ -101,7 +101,7 @@ html[data-playground-theme="light"] {
   --code-type: #267f99;
   --code-indent-guide: rgba(0, 0, 0, .14);
 }
-#editor-wrapper .cm-s-studio.CodeMirror { color: var(--code-text) !important; }
+#editor-wrapper .cm-s-studio.CodeMirror, #editor-wrapper-2 .cm-s-studio.CodeMirror { color: var(--code-text) !important; }
 .cm-s-studio .CodeMirror-linenumber { color: var(--code-gutter-text); }
 /* Indent guides, like VS Code: a thin line at the start of each indenting tab. */
 .cm-s-studio .cm-tab { background: linear-gradient(to right, var(--code-indent-guide) 1px, transparent 1px); }
@@ -229,14 +229,14 @@ html[data-playground-theme="light"] #toolOutput .syntax-keyword { color: #a03d45
 .file-tab .file-close { padding: 2px 5px; font-size: 15px; line-height: 1; }
 .editor-heading .file-action { flex: 0 0 auto; padding: 3px 7px; font-size: 13px; }
 #removeAllFilesBtn[hidden] { display: none; }
-#editor-wrapper { position: relative; border: 0; }
+#editor-wrapper, #editor-wrapper-2 { position: relative; border: 0; }
 #editor-wrapper.file-drag-over::after { content: "↓  Drop file to paste into " attr(data-active-file); position: absolute; z-index: 5; inset: 12px; display: grid; place-items: center; padding: 20px; border: 2px dashed var(--pg-accent); border-radius: var(--pg-radius); background: color-mix(in srgb, var(--pg-bg) 92%, transparent); color: var(--pg-fg); font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; animation: file-drop-enter .18s ease-out, file-drop-pulse 1.2s ease-in-out .18s infinite alternate; }
 html[data-playground-theme="light"] #editor-wrapper.file-drag-over::after { background: rgba(255, 255, 255, .94); }
 @keyframes file-drop-enter { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
 @keyframes file-drop-pulse { from { box-shadow: 0 0 0 0 var(--pg-accent-soft); } to { box-shadow: 0 0 0 7px var(--pg-accent-soft); } }
 @media (prefers-reduced-motion: reduce) { #editor-wrapper.file-drag-over::after { animation: none; } }
-#editor-wrapper .CodeMirror { padding-top: 10px; font-size: 14px; line-height: 1.75; }
-#editor-wrapper .CodeMirror-gutters { background: var(--pg-surface); border: 0; }
+#editor-wrapper .CodeMirror, #editor-wrapper-2 .CodeMirror { padding-top: 10px; font-size: 14px; line-height: 1.75; }
+#editor-wrapper .CodeMirror-gutters, #editor-wrapper-2 .CodeMirror-gutters { background: var(--pg-surface); border: 0; }
 .CodeMirror-linenumber { color: var(--pg-muted-2); }
 .mobile-keys { display: none; }
 @media (pointer: coarse) {
@@ -278,7 +278,7 @@ html[data-playground-theme="light"] .script-button-secondary:hover:not(:disabled
 .input-controls { padding: 12px; }
 #inputBox { min-width: 0; padding: 9px 10px; border-radius: var(--pg-radius-sm); }
 #output { min-height: 0; padding: 18px; font-size: 13px; }
-#editor-wrapper .CodeMirror, #output, #inputBox { font-family: var(--pg-mono); font-variant-ligatures: none; }
+#editor-wrapper .CodeMirror, #output, #inputBox, #editor-wrapper-2 .CodeMirror { font-family: var(--pg-mono); font-variant-ligatures: none; }
 #output:empty:not([data-ran])::before { content: "Press Run to see output."; color: var(--pg-muted); font-family: var(--pg-font); }.file-chip .ui-icon { width: 14px; height: 14px; flex-basis: 14px; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--pg-accent); outline-offset: 3px; }
 .CodeMirror-hints { max-width: min(520px, 92vw); }
