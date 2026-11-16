@@ -3287,27 +3287,69 @@ declare myGlobal: MyClass'></textarea>
       };
     }
 
-    // Share links and history entries replace the files and settings; offer one step back.
+    // Share links and history entries replace the files and settings. That swap is one step on the
+    // undo stack: Ctrl+Z (once the editor has nothing left to undo) brings the previous files back,
+    // and Ctrl+Y or Ctrl+Shift+Z puts the opened ones back. The step only applies while the files
+    // match what the swap left; editing them hands Ctrl+Z back to the editor.
+    let workspaceStep = null; // { before, after, applied, filesNow }
+    const filesKey = () => JSON.stringify(snapshotWorkspace().files);
+    const undoKeyLabel = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘Z" : "Ctrl+Z";
+
+    function applyWorkspaceStep(undoing) {
+      const step = workspaceStep;
+      const target = undoing ? step.before : step.after;
+      restoreWorkspace(target.workspace);
+      applySharedSettings(target, true);
+      step.applied = !undoing;
+      step.filesNow = filesKey();
+      showActionNotice(undoing ? "Restored your previous files" : "Reopened the files");
+    }
+
+    // Returns true when the key press swapped the workspace, so the editor's own undo is skipped.
+    function tryWorkspaceStep(cm, undoing) {
+      const step = workspaceStep;
+      if (!step || step.applied !== undoing) return false;
+      if (cm) {
+        const history = cm.getDoc().historySize();
+        if (undoing ? history.undo : history.redo) return false;
+      }
+      if (filesKey() !== step.filesNow) return false;
+      applyWorkspaceStep(undoing);
+      return true;
+    }
+
+    for (const [command, undoing] of [["undo", true], ["redo", false]]) {
+      const original = CodeMirror.commands[command];
+      CodeMirror.commands[command] = cm => { if (!tryWorkspaceStep(cm, undoing)) original(cm); };
+    }
+    // Outside an editor (nothing focused yet after opening a link), the same keys work on the page.
+    document.addEventListener("keydown", event => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      if (event.target.closest?.(".CodeMirror, input, textarea, select, [contenteditable]")) return;
+      const key = event.key.toLowerCase();
+      const undoing = key === "z" && !event.shiftKey;
+      if (!undoing && !(key === "y" || (key === "z" && event.shiftKey))) return;
+      if (tryWorkspaceStep(null, undoing)) event.preventDefault();
+    });
+
     function offerWorkspaceUndo(message, previous) {
-      const before = JSON.stringify(previous.workspace.files);
-      if (before === JSON.stringify(snapshotWorkspace().files) ||
+      if (JSON.stringify(previous.workspace.files) === filesKey() ||
           !previous.workspace.files.some(file => file.code.trim())) return;
+      workspaceStep = { before: previous, after: captureWorkspaceState(), applied: true, filesNow: filesKey() };
       const notice = document.getElementById("actionNotice");
       const undo = document.createElement("button");
       undo.type = "button";
       undo.textContent = "Undo";
       undo.addEventListener("click", () => {
-        restoreWorkspace(previous.workspace);
-        applySharedSettings(previous, true);
-        showActionNotice("Restored your previous files");
+        if (workspaceStep?.applied) applyWorkspaceStep(true);
       });
       clearTimeout(actionNoticeTimer);
-      notice.replaceChildren(message + " ", undo);
+      notice.replaceChildren(`${message} ${undoKeyLabel} brings back your files. `, undo);
       notice.classList.add("has-action");
       actionNoticeTimer = setTimeout(() => {
         notice.textContent = "";
         notice.classList.remove("has-action");
-      }, 15000);
+      }, 4000);
     }
 
     defsSaveBtn.addEventListener("click", () => {
