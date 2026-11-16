@@ -1561,7 +1561,7 @@ declare myGlobal: MyClass'></textarea>
     // Globals the bot expects scripts to assign, e.g. TIMEOUT = 30
     const BOT_SETTABLE_GLOBALS = new Set(["TIMEOUT", "OUTPUT_LOGS", "TIMESTAMP"]);
 
-    // Type loading shouldn't overwrite run results such as "Local: Stopped".
+    // Type loading shouldn't overwrite run results such as "Local Stopped".
     const TYPE_STATUSES = new Set(["", "Loading types…"]);
     function setTypeStatus(text) {
       const statusEl = document.getElementById("status");
@@ -5325,7 +5325,7 @@ local require = imports.require;
         });
         if (!finished) return; // stopped
         const elapsed = ((performance.now() - t0) / 1000).toFixed(4);
-        setStatus(`Local: ${failed ? "Error" : "Done"} (${elapsed}s)`);
+        setStatus(`Local ${failed ? "Error" : "Done"} (${elapsed}s)`);
         setRunning(false);
         if (histRecordCheck.checked) {
           pushHistory(raw, outputEl.innerHTML, _pendingFiles, null, +elapsed, true, runWorkspace);
@@ -5426,7 +5426,7 @@ local require = imports.require;
       });
       es.addEventListener("done", e => {
         const { runtime } = JSON.parse(e.data);
-        const serverPart = _serverNum != null ? `${runnerLabel(_serverNum, _studio)}: ` : "";
+        const serverPart = _serverNum != null ? `${runnerLabel(_serverNum, _studio)} ` : "";
         setStatus(`${serverPart}Done (${(+runtime).toFixed(4)}s)`);
         setRunning(false);
         es.close();
@@ -5811,7 +5811,7 @@ local require = imports.require;
 
     stopBtn.addEventListener("click", async () => {
       if (stopLocalRun()) {
-        setStatus("Local: Stopped");
+        setStatus("Local Stopped");
         setRunning(false);
         return;
       }
