@@ -1,5 +1,5 @@
 ---
-description: "Write and run Luau in the browser with type checking, autocomplete and multiple files, locally or on Luwa's Roblox server."
+description: "Run Luau in the browser with Roblox APIs."
 ---
 
 <style>
