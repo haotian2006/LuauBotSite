@@ -42,6 +42,9 @@ nav:
   - Privacy Policy: PrivacyPolicy.md
   - Changes: Changes.md
 
+hooks:
+  - hooks/llms.py
+
 markdown_extensions:
   - admonition
   - pymdownx.details

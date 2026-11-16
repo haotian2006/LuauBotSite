@@ -1,3 +1,7 @@
+---
+description: "Input and output in Luwa scripts: io.write, io.read, writing files and images, importing models and reading output."
+---
+
 
 
 ### `write(...any)`

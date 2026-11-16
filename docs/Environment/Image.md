@@ -1,3 +1,7 @@
+---
+description: "The Luwa Image library: create, draw, render Instances, record frames and export PNG or GIF images, similar to Roblox EditableImage."
+---
+
 
 
 A library to create images similar to the [EditableImage](https://create.roblox.com/docs/reference/engine/classes/EditableImage) class in Roblox.

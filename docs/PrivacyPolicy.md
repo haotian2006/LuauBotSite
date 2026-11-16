@@ -1,3 +1,7 @@
+---
+description: "What data Luwa logs when you use the bot or the playground, and how long it is kept."
+---
+
 # Privacy Policy 
 
 This bot collects basic data for analytics.

@@ -1,3 +1,7 @@
+---
+description: "Extra functions Luwa adds on top of the Luau table library, such as getAllocatedArraySize."
+---
+
 
 The default table library has extended functions provided by Akari <3. 
 These just provide a few gimmicky functions on top of the default table library.

@@ -1,3 +1,7 @@
+---
+description: "Luwa is a Discord bot that runs Luau code in a real Roblox server, so you can use the Roblox API straight from Discord or from the web playground."
+---
+
 # Luwa, a Luau runner Discord bot
 
 Luwa is an open-source Discord bot that runs Luau code in Roblox, so you can use Roblox's API straight from Discord.

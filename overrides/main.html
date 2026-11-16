@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 
+{% block htmltitle %}
+    {% if page and page.is_homepage %}
+        <title>Luwa, a Luau runner Discord bot for Roblox</title>
+    {% else %}
+        {{ super() }}
+    {% endif %}
+{% endblock %}
+
 {% block extrahead %}
     {{ super() }}
     <meta property="og:type" content="website">
     <meta property="og:title" content="Luwa, a Luau runner Discord bot">
-    <meta property="og:description" content="A Discord Bot that can compile and execute Luau code in Roblox's environment.">
+    <meta property="og:description" content="{{ page.meta.description if page and page.meta and page.meta.description else config.site_description }}">
     <meta property="og:url" content="https://rluwa.com/">
     <meta property="og:image" content="https://rluwa.com/images/favicon.png">
     <style>

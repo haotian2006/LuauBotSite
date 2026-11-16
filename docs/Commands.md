@@ -1,3 +1,7 @@
+---
+description: "Every Luwa slash command, plus the filtering, runtime limits and cooldowns that apply to runs."
+---
+
 # Slash Commands
 
 Here are the valid slash commands that you can use with the bot:

@@ -1,3 +1,7 @@
+---
+description: "Write and run Luau in the browser with type checking, autocomplete and multiple files, locally or on Luwa's Roblox server."
+---
+
 <style>
 .page-content { padding: 0 !important; }
 .page-content > .wrapper { padding: 0 !important; max-width: 100% !important; width: 100% !important; }

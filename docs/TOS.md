@@ -1,3 +1,7 @@
+---
+description: "The terms for using the Luwa Discord bot and its web playground."
+---
+
 # Terms of Service (TOS)
 
 By using this bot or the play ground, you agree to the following terms:

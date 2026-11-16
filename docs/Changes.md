@@ -1,3 +1,7 @@
+---
+description: "Changelog for Luwa, the Luau runner Discord bot."
+---
+
 # Updates
 
 ## 10/25/26

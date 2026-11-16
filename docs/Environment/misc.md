@@ -1,3 +1,7 @@
+---
+description: "Miscellaneous Luwa helpers: truth tables, memory estimates with inspect, calculate and uwuify."
+---
+
 
 Some random functions.
 
