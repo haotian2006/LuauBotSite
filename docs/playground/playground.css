@@ -441,4 +441,8 @@ button, select, label, .file-tab .file-name, .file-tab .file-name-input, #status
 .snap-preview { flex: 1; min-height: 0; overflow: auto; padding: 16px; background-color: var(--pg-editor);
   background-image: linear-gradient(45deg, rgba(128,128,128,.12) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.12) 75%), linear-gradient(45deg, rgba(128,128,128,.12) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.12) 75%);
   background-size: 16px 16px; background-position: 0 0, 8px 8px; }
-#snapCanvas { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.snap-results { min-width: 0; overflow: hidden; }
+.snap-preview { min-width: 0; }
+/* Sized by fitSnapPreview to fill the pane. */
+.snap-preview { display: flex; align-items: center; justify-content: center; }
+#snapCanvas { display: block; flex: none; height: auto; }

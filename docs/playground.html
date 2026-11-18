@@ -1260,7 +1260,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="playground/playground.css">
+  <link rel="stylesheet" href="playground/playground.css?v=20261118b">
 </head>
 
 <body>
@@ -4778,7 +4778,22 @@ declare myGlobal: MyClass'></textarea>
       else ctx.rect(x, y, w, h);
     }
 
+    // The preview fills the pane, scaled up or down to fit both its width and its height; the
+    // picture itself keeps the size set by the options.
+    const snapPreview = document.querySelector(".snap-preview");
+    function fitSnapPreview() {
+      const aspect = Number(snapCanvas.dataset.aspect);
+      if (!aspect) return;
+      const style = getComputedStyle(snapPreview);
+      const width = snapPreview.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const height = snapPreview.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      if (width <= 0 || height <= 0) return;
+      snapCanvas.style.width = `${Math.floor(Math.min(width, height * aspect))}px`;
+    }
+    new ResizeObserver(fitSnapPreview).observe(snapPreview);
+
     let snapFrame = 0;
+    let snapSizeToken = 0;
     function scheduleSnap() {
       if (activeResultView !== "snap" || snapFrame) return;
       snapFrame = requestAnimationFrame(() => { snapFrame = 0; renderSnap(); });
@@ -4816,7 +4831,8 @@ declare myGlobal: MyClass'></textarea>
 
         snapCanvas.width = Math.round(width * scale);
         snapCanvas.height = Math.round(height * scale);
-        snapCanvas.style.width = `${width}px`;
+        snapCanvas.dataset.aspect = String(width / height);
+        fitSnapPreview();
         ctx.setTransform(scale, 0, 0, scale, 0, 0);
         ctx.clearRect(0, 0, width, height);
         if (gradient) {
@@ -4883,9 +4899,18 @@ declare myGlobal: MyClass'></textarea>
         });
         ctx.restore();
         const count = lines.length;
-        snapStatus.textContent = source.selected
+        const label = source.selected
           ? `${source.name}, ${count === 1 ? `line ${source.from + 1}` : `lines ${source.from + 1} to ${source.to + 1}`}`
           : `${source.name}, ${count} line${count === 1 ? "" : "s"}`;
+        snapStatus.textContent = label;
+        // The PNG's size at the chosen resolution, once encoded; a newer render replaces it.
+        const token = ++snapSizeToken;
+        snapCanvas.toBlob(blob => {
+          if (!blob || token !== snapSizeToken) return;
+          const kb = blob.size / 1024;
+          const size = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`;
+          snapStatus.textContent = `${label}, ${size}`;
+        }, "image/png");
       } finally {
         theme.done();
       }
