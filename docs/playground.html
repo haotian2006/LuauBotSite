@@ -1433,6 +1433,7 @@
             </label>
             <label>Padding
               <select id="snapPadding" aria-label="Snap padding">
+                <option value="0">None</option>
                 <option value="16">Small</option>
                 <option value="40">Medium</option>
                 <option value="72">Large</option>
@@ -4824,7 +4825,9 @@ declare myGlobal: MyClass'></textarea>
         const topGap = titleBar ? Math.round(innerY * 0.35) : innerY;
         const cardHeight = Math.ceil(titleBar + topGap + innerY + lines.length * lineHeight);
         const gradient = SNAP_BACKGROUNDS[opts.background] || null;
-        const margin = gradient ? Number(opts.padding) || 40 : (opts.shadow ? 28 : 0);
+        const padding = Number(opts.padding);
+        // No padding crops the picture to the card, background or not.
+        const margin = !Number.isFinite(padding) ? 40 : padding === 0 ? 0 : gradient ? padding : (opts.shadow ? 28 : 0);
         const width = cardWidth + margin * 2;
         const height = cardHeight + margin * 2;
         const radius = opts.rounded ? Math.round(fontSize * 0.75) : 0;
