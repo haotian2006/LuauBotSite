@@ -71,6 +71,7 @@ Builds a GitHub repository, a gist, a paste, a Wally package or a public Roblox 
 - `github.com/<owner>/<repo>`: builds `default.project.json`, or `src/` if there isn't one.
 - `.../tree/<branch>/<path>` or `.../blob/<branch>/<path>`: builds that folder or file.
 - `.../releases/download/<tag>/<file>.rbxm` or `.../releases/latest/download/<file>.rbxm` (`.rbxmx` works too)
+- `.../releases/download/<tag>/<file>.luau` (or `.lua`): a single-file library released as a script, built into a ModuleScript. For example, Roblox's [LibMP](https://github.com/Roblox/libmp): `require(io.import("https://github.com/Roblox/libmp/releases/latest/download/LibMP.luau"))`
 - `raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>`
 - `gist.github.com/<user>/<gist id>`
 - `pastebin.com/<paste id>` or `pastebin.com/raw/<paste id>`
