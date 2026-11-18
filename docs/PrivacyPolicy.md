@@ -14,6 +14,7 @@ Private messages to the bot will not be logged or read by the bot.
 - **Command invoked**  
 - **Message length** (number of characters)  
 - **Errors**, for example a GitHub link that failed to import.
+- **Website page views**: which page of this site was opened, and the domain of the site that linked to it (for example `discord.com`), counted per day. No cookies, IP addresses or other identifiers are used, and views are never linked to each other or to you. Browsers with Do Not Track or Global Privacy Control turned on are not counted.
 
 ## Data Not Collected
 - The content of your messages is **never stored** or made public, except what is listed under Stored Data.  

@@ -15,6 +15,19 @@
     <meta property="og:description" content="{{ page.meta.description if page and page.meta and page.meta.description else config.site_description }}">
     <meta property="og:url" content="https://rluwa.com/">
     <meta property="og:image" content="https://rluwa.com/images/favicon.png">
+    <script>
+        // Anonymous page view count (see the Privacy Policy): the page's path and the domain of the
+        // site that linked here. No cookies or identifiers. Skipped when the browser asks not to track.
+        (function () {
+            try {
+                if (navigator.globalPrivacyControl || navigator.doNotTrack === "1") return;
+                if (!/(^|\.)rluwa\.com$/.test(location.hostname) || !navigator.sendBeacon) return;
+                var source = "";
+                try { source = document.referrer ? new URL(document.referrer).hostname : ""; } catch (e) { }
+                navigator.sendBeacon("https://api.rluwa.com/hit", JSON.stringify({ page: location.pathname, source: source }));
+            } catch (e) { }
+        })();
+    </script>
     <style>
         .luau-header-stats {
             margin-left: .65rem;
