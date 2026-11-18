@@ -3580,7 +3580,9 @@ declare myGlobal: MyClass'></textarea>
           else if (res.status === 413) fallbackNote = " (too big for a short link, so this is the full link)";
           if (!res.ok || typeof data.id !== "string") return longUrl(encoded);
           shortLink = true;
-          return base.replace(/\/$/, "") + "/?s=" + data.id;
+          // The share host serves the link preview (a picture of the code) and sends people on
+          // to the playground with ?s=<id>.
+          return "https://s.rluwa.com/" + data.id;
         } catch {
           return longUrl(encoded);
         }
