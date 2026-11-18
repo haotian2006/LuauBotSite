@@ -1352,6 +1352,7 @@
           <button class="result-tab active" type="button" role="tab" id="consoleTab" aria-selected="true" aria-controls="consoleResults" data-result-view="console">Console</button>
           <button class="result-tab" type="button" role="tab" id="bytecodeTab" aria-selected="false" aria-controls="toolResults" data-result-view="bytecode">Bytecode</button>
           <button class="result-tab" type="button" role="tab" id="astTab" aria-selected="false" aria-controls="toolResults" data-result-view="ast">AST</button>
+          <button class="result-tab" type="button" role="tab" id="snapTab" aria-selected="false" aria-controls="snapResults" data-result-view="snap" title="Picture of your code to share">Snap</button>
         </div>
         <div class="pane-actions">
           <button id="showEditorBtn" class="pane-view-button" type="button" title="Show editor" aria-label="Show editor" aria-controls="editor-pane"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5-7 7 7 7m8-14 7 7-7 7m-3-17-2 20"/></svg></button>
@@ -1415,6 +1416,64 @@
         </div>
         <pre id="toolOutput"></pre>
         <div id="opcodeTooltip" class="opcode-tooltip" role="tooltip" hidden></div>
+      </div>
+      <div id="snapResults" class="tool-results snap-results" role="tabpanel" aria-labelledby="snapTab" hidden>
+        <details id="snapOptions" class="bytecode-options">
+          <summary><span>Snap options</span></summary>
+          <div class="bytecode-option-grid">
+            <label>Background
+              <select id="snapBackground" aria-label="Snap background">
+                <option value="ocean">Ocean</option>
+                <option value="violet">Violet</option>
+                <option value="sunset">Sunset</option>
+                <option value="mint">Mint</option>
+                <option value="slate">Slate</option>
+                <option value="none">None (transparent)</option>
+              </select>
+            </label>
+            <label>Padding
+              <select id="snapPadding" aria-label="Snap padding">
+                <option value="16">Small</option>
+                <option value="40">Medium</option>
+                <option value="72">Large</option>
+              </select>
+            </label>
+            <label>Font size
+              <select id="snapFontSize" aria-label="Snap font size">
+                <option value="12">12</option>
+                <option value="14">14</option>
+                <option value="16">16</option>
+                <option value="18">18</option>
+              </select>
+            </label>
+            <label>Resolution
+              <select id="snapScale" aria-label="Snap resolution">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+              </select>
+            </label>
+            <label class="bytecode-output-option">Title
+              <input id="snapTitle" type="text" placeholder="File name" aria-label="Snap title" autocomplete="off" spellcheck="false">
+            </label>
+            <div class="snap-checks bytecode-output-option">
+              <label><input id="snapWindow" type="checkbox"> Window controls</label>
+              <label><input id="snapLineNumbers" type="checkbox"> Line numbers</label>
+              <label><input id="snapRealLines" type="checkbox"> Real line numbers</label>
+              <label><input id="snapTrim" type="checkbox"> Trim indentation</label>
+              <label><input id="snapShadow" type="checkbox"> Shadow</label>
+              <label><input id="snapRounded" type="checkbox"> Rounded corners</label>
+            </div>
+          </div>
+        </details>
+        <div class="tool-results-toolbar">
+          <span id="snapStatus" class="tool-state" role="status"></span>
+          <span class="snap-actions">
+            <button id="snapCopyBtn" type="button" title="Copy the picture" aria-label="Copy the picture"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg><span class="button-label">Copy image</span></button>
+            <button id="snapDownloadBtn" type="button" title="Download the picture" aria-label="Download the picture"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg><span class="button-label">Download</span></button>
+          </span>
+        </div>
+        <div class="snap-preview"><canvas id="snapCanvas" aria-label="Preview of the code picture"></canvas></div>
       </div>
       </section>
     </div>
@@ -4455,7 +4514,7 @@ declare myGlobal: MyClass'></textarea>
       if (!toolViewsReady) return;
       const source = selectedToolSource();
       updateBytecodeAutoLabels(source.code);
-      if (activeResultView === "console") return;
+      if (!toolViews[activeResultView]) return;
       const state = toolViews[activeResultView];
       copyToolBtn.textContent = "Copy";
       if (!source.code.trim()) {
@@ -4537,7 +4596,7 @@ declare myGlobal: MyClass'></textarea>
     resultTabs.forEach(tab => tab.addEventListener("click", () => {
       const next = tab.dataset.resultView;
       if (next === activeResultView) return;
-      if (activeResultView !== "console") {
+      if (toolViews[activeResultView]) {
         clearTimeout(toolViews[activeResultView].timer);
         toolViews[activeResultView].timer = null;
       }
@@ -4548,10 +4607,12 @@ declare myGlobal: MyClass'></textarea>
         item.setAttribute("aria-selected", String(selected));
       });
       consoleResults.hidden = next !== "console";
-      toolResults.hidden = next === "console";
+      toolResults.hidden = !toolViews[next];
+      snapResults.hidden = next !== "snap";
       document.querySelector(".input-row").hidden = next !== "console";
       hideOpcodeTooltip();
-      if (next !== "console") {
+      if (next === "snap") renderSnap();
+      else if (next !== "console") {
         bytecodeOptions.hidden = next !== "bytecode";
         toolResults.setAttribute("aria-labelledby", tab.id);
         refreshToolView();
@@ -4567,6 +4628,310 @@ declare myGlobal: MyClass'></textarea>
         copyToolBtn.textContent = "Copied";
       } catch { copyToolBtn.textContent = "Copy failed"; }
     });
+    // Snap: a picture of the selected lines, or the whole open file, to paste anywhere. It is drawn
+    // on a canvas from the editor's own tokens and theme colors, so nothing leaves the browser.
+    const snapResults = document.getElementById("snapResults");
+    const snapCanvas = document.getElementById("snapCanvas");
+    const snapStatus = document.getElementById("snapStatus");
+    const snapCopyBtn = document.getElementById("snapCopyBtn");
+    const snapDownloadBtn = document.getElementById("snapDownloadBtn");
+    const SNAP_BACKGROUNDS = {
+      ocean: ["#4facfe", "#3a5bd9"],
+      violet: ["#a18cd1", "#6a3df0"],
+      sunset: ["#f6d365", "#f0766a"],
+      mint: ["#43e97b", "#1fa2a8"],
+      slate: ["#5b6270", "#22252b"],
+      none: null,
+    };
+    const SNAP_DEFAULTS = {
+      background: "ocean", padding: "40", fontSize: "14", scale: "2", title: "",
+      window: true, lineNumbers: true, realLines: true, trim: true, shadow: true, rounded: true,
+    };
+    const SNAP_MAX_COLUMNS = 160;
+    const snapControls = {
+      background: document.getElementById("snapBackground"),
+      padding: document.getElementById("snapPadding"),
+      fontSize: document.getElementById("snapFontSize"),
+      scale: document.getElementById("snapScale"),
+      title: document.getElementById("snapTitle"),
+      window: document.getElementById("snapWindow"),
+      lineNumbers: document.getElementById("snapLineNumbers"),
+      realLines: document.getElementById("snapRealLines"),
+      trim: document.getElementById("snapTrim"),
+      shadow: document.getElementById("snapShadow"),
+      rounded: document.getElementById("snapRounded"),
+    };
+    // The options fold away like the compiler options; remember whether they were left open.
+    const snapOptions = document.getElementById("snapOptions");
+    snapOptions.open = localStorage.getItem("luau_snap_options_open") === "1";
+    snapOptions.addEventListener("toggle", () => {
+      try { localStorage.setItem("luau_snap_options_open", snapOptions.open ? "1" : "0"); } catch { }
+    });
+    let snapSettings = { ...SNAP_DEFAULTS };
+    try { Object.assign(snapSettings, JSON.parse(localStorage.getItem("luau_snap_options") || "{}")); } catch { }
+    for (const [key, control] of Object.entries(snapControls)) {
+      if (control.type === "checkbox") control.checked = Boolean(snapSettings[key]);
+      else if (control.tagName === "SELECT" && ![...control.options].some(o => o.value === String(snapSettings[key]))) control.value = SNAP_DEFAULTS[key];
+      else control.value = String(snapSettings[key]);
+      control.addEventListener(control.type === "text" ? "input" : "change", () => {
+        snapSettings[key] = control.type === "checkbox" ? control.checked : control.value;
+        try { localStorage.setItem("luau_snap_options", JSON.stringify(snapSettings)); } catch { }
+        renderSnap();
+      });
+    }
+
+    // The lines to draw: the selection's whole lines, or the file without blank lines at its ends.
+    function snapSource() {
+      const doc = editor.getDoc();
+      const file = workspaceFiles.find(f => f.doc === doc) || workspaceFiles[activeFileIndex];
+      let from = doc.firstLine();
+      let to = doc.lastLine();
+      const selected = doc.somethingSelected();
+      if (selected) {
+        from = Infinity;
+        to = -Infinity;
+        for (const range of doc.listSelections()) {
+          const [start, end] = CodeMirror.cmpPos(range.anchor, range.head) <= 0 ? [range.anchor, range.head] : [range.head, range.anchor];
+          from = Math.min(from, start.line);
+          // A selection that ends at the start of a line doesn't include that line.
+          to = Math.max(to, end.ch === 0 && end.line > start.line ? end.line - 1 : end.line);
+        }
+      } else {
+        while (from < to && !doc.getLine(from).trim()) from++;
+        while (to > from && !doc.getLine(to).trim()) to--;
+      }
+      return { name: file ? file.name : "main.luau", from, to, selected };
+    }
+
+    // Editor colors and fonts for each token type, read from the page's own theme rules.
+    function snapTheme() {
+      const wrapper = editor.getWrapperElement();
+      const probe = document.createElement("span");
+      probe.style.cssText = "position:absolute;visibility:hidden;pointer-events:none";
+      wrapper.appendChild(probe);
+      const styles = new Map();
+      const styleOf = type => {
+        const key = type || "";
+        if (!styles.has(key)) {
+          probe.className = key ? key.split(/\s+/).map(t => "cm-" + t).join(" ") : "";
+          const s = getComputedStyle(probe);
+          styles.set(key, { color: s.color, style: s.fontStyle === "italic" ? "italic " : "", weight: Number(s.fontWeight) >= 600 ? "bold " : "" });
+        }
+        return styles.get(key);
+      };
+      probe.className = "CodeMirror-linenumber";
+      const gutter = getComputedStyle(probe).color;
+      const wrapperStyle = getComputedStyle(wrapper);
+      let background = wrapperStyle.backgroundColor;
+      if (!background || background === "transparent" || /rgba\(.*,\s*0\)$/.test(background)) {
+        background = getComputedStyle(document.documentElement).getPropertyValue("--pg-editor").trim() || "#1e1e1e";
+      }
+      return { styleOf, gutter, background, fontFamily: wrapperStyle.fontFamily, done: () => probe.remove() };
+    }
+
+    function snapLines(source) {
+      const tabSize = editor.getOption("tabSize") || 4;
+      const lines = [];
+      for (let line = source.from; line <= source.to; line++) {
+        const tokens = [];
+        let column = 0;
+        const push = (text, type) => {
+          let out = "";
+          for (const ch of text) {
+            const add = ch === "\t" ? " ".repeat(tabSize - (column % tabSize)) : ch;
+            out += add;
+            column += add.length;
+          }
+          if (out) tokens.push({ text: out, type });
+        };
+        const text = editor.getLine(line);
+        let end = 0;
+        for (const token of editor.getLineTokens(line, true)) {
+          if (token.start > end) push(text.slice(end, token.start), null);
+          push(token.string, token.type);
+          end = token.end;
+        }
+        if (end < text.length) push(text.slice(end), null);
+        lines.push({ number: line + 1, tokens, length: column, blank: !text.trim() });
+      }
+      if (snapSettings.trim) {
+        const indent = Math.min(...lines.filter(l => !l.blank).map(l => l.tokens.map(t => t.text).join("").match(/^ */)[0].length));
+        if (indent > 0 && Number.isFinite(indent)) {
+          for (const line of lines) {
+            let drop = indent;
+            line.tokens = line.tokens.map(t => {
+              if (drop <= 0) return t;
+              const lead = Math.min(drop, t.text.match(/^ */)[0].length);
+              drop = lead < t.text.length ? 0 : drop - lead;
+              return { ...t, text: t.text.slice(lead) };
+            }).filter(t => t.text);
+            line.length = Math.max(0, line.length - indent);
+          }
+        }
+      }
+      return lines;
+    }
+
+    function snapRoundedRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+      else ctx.rect(x, y, w, h);
+    }
+
+    let snapFrame = 0;
+    function scheduleSnap() {
+      if (activeResultView !== "snap" || snapFrame) return;
+      snapFrame = requestAnimationFrame(() => { snapFrame = 0; renderSnap(); });
+    }
+
+    function renderSnap() {
+      if (activeResultView !== "snap") return;
+      const opts = snapSettings;
+      const source = snapSource();
+      const lines = snapLines(source);
+      const theme = snapTheme();
+      try {
+        const scale = Number(opts.scale) || 2;
+        const fontSize = Number(opts.fontSize) || 14;
+        const ctx = snapCanvas.getContext("2d");
+        const codeFont = `${fontSize}px ${theme.fontFamily}`;
+        ctx.font = codeFont;
+        const charWidth = ctx.measureText("M").width;
+        const lineHeight = Math.round(fontSize * 1.6);
+        const numberOf = (line, index) => opts.realLines ? line.number : index + 1;
+        const digits = opts.lineNumbers ? String(numberOf(lines[lines.length - 1], lines.length - 1)).length : 0;
+        const gutterWidth = digits ? (digits + 2) * charWidth : 0;
+        const columns = Math.min(SNAP_MAX_COLUMNS, Math.max(24, ...lines.map(l => l.length)));
+        const innerX = Math.round(fontSize * 1.4);
+        const innerY = Math.round(fontSize * 1.2);
+        const titleBar = opts.window ? Math.round(fontSize * 2.6) : 0;
+        const cardWidth = Math.ceil(innerX * 2 + gutterWidth + columns * charWidth);
+        const topGap = titleBar ? Math.round(innerY * 0.35) : innerY;
+        const cardHeight = Math.ceil(titleBar + topGap + innerY + lines.length * lineHeight);
+        const gradient = SNAP_BACKGROUNDS[opts.background] || null;
+        const margin = gradient ? Number(opts.padding) || 40 : (opts.shadow ? 28 : 0);
+        const width = cardWidth + margin * 2;
+        const height = cardHeight + margin * 2;
+        const radius = opts.rounded ? Math.round(fontSize * 0.75) : 0;
+
+        snapCanvas.width = Math.round(width * scale);
+        snapCanvas.height = Math.round(height * scale);
+        snapCanvas.style.width = `${width}px`;
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        if (gradient) {
+          const fill = ctx.createLinearGradient(0, 0, width, height);
+          fill.addColorStop(0, gradient[0]);
+          fill.addColorStop(1, gradient[1]);
+          ctx.fillStyle = fill;
+          ctx.fillRect(0, 0, width, height);
+        }
+        ctx.save();
+        if (opts.shadow) {
+          ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+          ctx.shadowBlur = Math.round(fontSize * 2);
+          ctx.shadowOffsetY = Math.round(fontSize * 0.8);
+        }
+        snapRoundedRect(ctx, margin, margin, cardWidth, cardHeight, radius);
+        ctx.fillStyle = theme.background;
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        snapRoundedRect(ctx, margin, margin, cardWidth, cardHeight, radius);
+        ctx.clip();
+
+        if (titleBar) {
+          const dotY = margin + titleBar / 2;
+          ["#ff5f57", "#febc2e", "#28c840"].forEach((color, i) => {
+            ctx.beginPath();
+            ctx.arc(margin + innerX + i * fontSize * 1.35, dotY, fontSize * 0.42, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+          });
+          const title = opts.title.trim() || source.name;
+          ctx.font = `${Math.round(fontSize * 0.95)}px ${getComputedStyle(document.body).fontFamily}`;
+          ctx.fillStyle = theme.gutter;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(title, margin + cardWidth / 2, dotY, cardWidth - innerX * 2 - fontSize * 8);
+          ctx.textAlign = "left";
+        }
+
+        ctx.textBaseline = "alphabetic";
+        const top = margin + titleBar + topGap;
+        const left = margin + innerX + gutterWidth;
+        lines.forEach((line, index) => {
+          const y = top + index * lineHeight + Math.round(lineHeight * 0.7);
+          if (digits) {
+            ctx.font = codeFont;
+            ctx.fillStyle = theme.gutter;
+            ctx.textAlign = "right";
+            ctx.fillText(String(numberOf(line, index)), margin + innerX + digits * charWidth, y);
+            ctx.textAlign = "left";
+          }
+          let column = 0;
+          for (const token of line.tokens) {
+            if (column >= columns) break;
+            let text = token.text;
+            if (column + text.length > columns) text = text.slice(0, Math.max(0, columns - column - 1)) + "…";
+            const style = theme.styleOf(token.type);
+            ctx.font = `${style.style}${style.weight}${codeFont}`;
+            ctx.fillStyle = style.color;
+            ctx.fillText(text, left + column * charWidth, y);
+            column += text.length;
+          }
+        });
+        ctx.restore();
+        const count = lines.length;
+        snapStatus.textContent = source.selected
+          ? `${source.name}, ${count === 1 ? `line ${source.from + 1}` : `lines ${source.from + 1} to ${source.to + 1}`}`
+          : `${source.name}, ${count} line${count === 1 ? "" : "s"}`;
+      } finally {
+        theme.done();
+      }
+    }
+
+    onEditors("cursorActivity", scheduleSnap);
+    onEditors("changes", scheduleSnap);
+    onEditors("focus", scheduleSnap);
+    new MutationObserver(scheduleSnap).observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-playground-theme"] });
+
+    function snapFileName() {
+      const base = (snapSettings.title.trim() || snapSource().name).replace(/\.luau$/i, "").replace(/[^\w.-]+/g, "_") || "code";
+      return `${base}.png`;
+    }
+
+    snapCopyBtn.addEventListener("click", async () => {
+      renderSnap();
+      // Safari only allows a clipboard write started during the click, so hand it the pending blob.
+      const blob = new Promise(resolve => snapCanvas.toBlob(resolve, "image/png"));
+      try {
+        if (!window.ClipboardItem || !navigator.clipboard?.write) throw new Error("no image clipboard");
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        snapCopyBtn.querySelector(".button-label").textContent = "Copied";
+        showActionNotice("Code picture copied");
+      } catch {
+        snapCopyBtn.querySelector(".button-label").textContent = "Copy failed";
+        showActionNotice("Could not copy the picture. Use Download instead.");
+      }
+      setTimeout(() => { snapCopyBtn.querySelector(".button-label").textContent = "Copy image"; }, 2000);
+    });
+
+    snapDownloadBtn.addEventListener("click", () => {
+      renderSnap();
+      snapCanvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = snapFileName();
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }, "image/png");
+    });
+
     toolViewsReady = true;
     // Inside the docs page the site header already links home.
     document.getElementById("homeLink").hidden = window.parent !== window;
