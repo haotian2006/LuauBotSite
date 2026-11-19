@@ -1405,6 +1405,8 @@
               <option value="remarks">Compiler remarks</option>
               <option value="native-x64">x64 native (verbose)</option>
               <option value="native-a64">ARM64 native (verbose)</option>
+              <option value="ir-x64">x64 IR</option>
+              <option value="ir-a64">ARM64 IR</option>
               <option value="binary">Binary</option>
             </select>
           </label>
@@ -4356,6 +4358,8 @@ declare myGlobal: MyClass'></textarea>
       const arm = architecture === "a64" || architecture === "arm64";
       const output = code.includes("--!asm")
         ? (arm ? "asm-a64" : "asm-x64")
+        : code.includes("--!ir")
+        ? (arm ? "ir-a64" : "ir-x64")
         : code.includes("--!native")
         ? (architecture === "a64" || architecture === "arm64" ? "native-a64" : "native-x64")
         : code.includes("--!remarks") ? "remarks"
@@ -4372,6 +4376,7 @@ declare myGlobal: MyClass'></textarea>
       vm: "VM bytecode", constants: "VM + constants", remarks: "Compiler remarks",
       binary: "Binary", "asm-x64": "x64 ASM (interleaved)", "asm-a64": "ARM64 ASM (interleaved)",
       "native-x64": "x64 native (verbose)", "native-a64": "ARM64 native (verbose)",
+      "ir-x64": "x64 IR", "ir-a64": "ARM64 IR",
     };
 
     function updateBytecodeAutoLabels(code) {
@@ -4501,11 +4506,12 @@ declare myGlobal: MyClass'></textarea>
         }
       }
       // Scroll only the bytecode pane; scrollIntoView would also scroll the page around the editor.
+      // A line out of view is brought to near the top, so the rows after it (machine code gives
+      // dozens per line) show too, not just the first one at the bottom edge.
       if (scroll && firstMatch) {
         const view = toolOutput.getBoundingClientRect();
         const row = firstMatch.getBoundingClientRect();
-        if (row.top < view.top) toolOutput.scrollTop += row.top - view.top - 8;
-        else if (row.bottom > view.bottom) toolOutput.scrollTop += row.bottom - view.bottom + 8;
+        if (row.top < view.top || row.bottom > view.bottom) toolOutput.scrollTop += row.top - view.top - 24;
       }
     }
 
