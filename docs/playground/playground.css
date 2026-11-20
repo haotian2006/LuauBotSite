@@ -449,3 +449,15 @@ button, select, label, .file-tab .file-name, .file-tab .file-name-input, #status
 #snapCanvas { display: block; flex: none; height: auto; }
 /* Double tap selects a word on touch screens instead of zooming the page. */
 @media (pointer: coarse) { .CodeMirror { touch-action: manipulation; } }
+/* Compact layout (phones): a toggle in the toolbar shrinks its buttons; the docs page's blue header
+   shrinks with it (playground.md). Off everywhere else, so the toggle can't strand a desktop. */
+#compactBtn { display: none; }
+#compactBtn .compact-expand, html.pg-compact #compactBtn .compact-collapse { display: none; }
+html.pg-compact #compactBtn .compact-expand { display: inline; }
+@media (max-width: 600px), (pointer: coarse) {
+  #compactBtn { display: inline-flex; }
+  html.pg-compact .toolbar { gap: 2px; padding-block: 2px; }
+  html.pg-compact .toolbar button { flex-basis: 34px; width: 34px; height: 30px; min-height: 30px; min-width: 30px; }
+  html.pg-compact .toolbar .ui-icon { width: 16px; height: 16px; flex-basis: 16px; }
+  html.pg-compact .home-link { min-height: 30px; }
+}

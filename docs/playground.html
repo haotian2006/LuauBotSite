@@ -1260,7 +1260,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="playground/playground.css?v=20261119a">
+  <link rel="stylesheet" href="playground/playground.css?v=20261120a">
 </head>
 
 <body>
@@ -1279,6 +1279,7 @@
       <button id="hist-popover-btn" title="Run history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg>History</button>
     </div>
     <button id="hist-sheet-btn" title="Run history" aria-label="Run history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg></button>
+    <button id="compactBtn" type="button" title="Compact header and buttons" aria-label="Compact header and buttons" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="compact-collapse" d="m6 13 6-6 6 6M6 19l6-6 6 6"/><path class="compact-expand" d="m6 5 6 6 6-6M6 11l6 6 6-6"/></svg></button>
     <span id="status" role="status"></span>
     <span id="actionNotice" role="status"></span>
     <span id="sourceNotice" role="alert"></span>
@@ -2290,6 +2291,27 @@ declare myGlobal: MyClass'></textarea>
       if (tapAnchor && event.defaultPrevented) editor.setSelection(tapAnchor, editor.getCursor("head"), { scroll: false });
       tapAnchor = null;
     });
+    // Compact layout on phones: shorter toolbar buttons here, and (inside the docs page) the site's
+    // blue header shrinks to a thin bar, so the editor gets that room. Saved per browser; the docs
+    // page reads the same setting and listens for changes.
+    const compactBtn = document.getElementById("compactBtn");
+    function setCompact(on, save = true) {
+      document.documentElement.classList.toggle("pg-compact", on);
+      compactBtn.setAttribute("aria-pressed", String(on));
+      const label = on ? "Show the full header" : "Compact header and buttons";
+      compactBtn.title = label;
+      compactBtn.setAttribute("aria-label", label);
+      if (save) try { localStorage.setItem("luau_compact_header", on ? "1" : "0"); } catch { }
+      try { if (window.parent !== window) window.parent.postMessage({ type: "luwa-compact", on }, location.origin); } catch { }
+      requestAnimationFrame(() => { for (const cm of editors) cm.refresh(); });
+    }
+    setCompact((() => { try { return localStorage.getItem("luau_compact_header") === "1"; } catch { return false; } })(), false);
+    compactBtn.addEventListener("click", () => setCompact(!document.documentElement.classList.contains("pg-compact")));
+    // The docs page asks for the full layout back when its thin header bar is tapped.
+    window.addEventListener("message", event => {
+      if (event.origin === location.origin && event.source === window.parent && event.data?.type === "luwa-expand") setCompact(false);
+    });
+
     // A double tap goes to the browser on touch screens: CodeMirror's own word select is a script
     // selection, and phones only show their selection handles and copy menu for native ones (which
     // is why dragging showed them and a double tap didn't). The browser selects the word itself and

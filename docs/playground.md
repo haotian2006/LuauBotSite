@@ -16,6 +16,13 @@ description: "Run Luau in the browser with Roblox APIs."
 .md-content__inner::before { display: none; }
 .md-footer { display: none; }
 h1.post-title, h1 { display: none !important; }
+/* Compact layout (the playground's toolbar toggle, phones only): the header becomes a thin blue
+   bar, tapped to bring it back, and the playground takes the room. */
+@media (max-width: 600px), (pointer: coarse) {
+  html.pg-compact .md-header { height: .4rem; min-height: 0; overflow: hidden; box-shadow: none; cursor: pointer; }
+  html.pg-compact .md-header__inner { visibility: hidden; }
+  html.pg-compact #playground-frame { height: calc(100dvh - .4rem) !important; }
+}
 </style>
 <iframe id="playground-frame" title="Luau playground" style="width:100%;height:calc(100dvh - 2.4rem);border:none;display:block;"></iframe>
 <script>
@@ -24,4 +31,17 @@ h1.post-title, h1 { display: none !important; }
   if (viewport && !viewport.content.includes("interactive-widget")) viewport.content += ", interactive-widget=resizes-content";
   const frame = document.getElementById("playground-frame");
   frame.src = "../playground.html" + location.search;
+  // The playground's compact toggle: applied before it loads (same saved setting), then on change.
+  const setCompact = on => document.documentElement.classList.toggle("pg-compact", on);
+  try { setCompact(localStorage.getItem("luau_compact_header") === "1"); } catch (e) { }
+  window.addEventListener("message", event => {
+    if (event.origin === location.origin && event.source === frame.contentWindow && event.data && event.data.type === "luwa-compact") setCompact(event.data.on === true);
+  });
+  // Tapping the thin bar brings the full header and buttons back.
+  document.querySelector(".md-header")?.addEventListener("click", event => {
+    if (!document.documentElement.classList.contains("pg-compact")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    frame.contentWindow.postMessage({ type: "luwa-expand" }, location.origin);
+  }, true);
 </script>
