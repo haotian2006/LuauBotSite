@@ -4462,7 +4462,9 @@ declare myGlobal: MyClass'></textarea>
       let sourceLine = null;
       for (const line of output.split("\n")) {
         if (!line || /^Function \d+ \(/.test(line)) sourceLine = null;
-        const marker = line.match(/^\s{4}(\d+):(?:\s|$)/);
+        // Source markers are right-aligned ("    3:", "   12:", "  120:"), so the indent shrinks as
+        // line numbers grow.
+        const marker = line.match(/^ {1,5}(\d+):(?:\s|$)/);
         if (marker) sourceLine = Number(marker[1]);
         const row = document.createElement("span");
         row.className = "bytecode-line";
