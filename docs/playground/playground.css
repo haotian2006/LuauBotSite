@@ -461,3 +461,6 @@ html.pg-compact #compactBtn .compact-expand { display: inline; }
   html.pg-compact .toolbar .ui-icon { width: 16px; height: 16px; flex-basis: 16px; }
   html.pg-compact .home-link { min-height: 30px; }
 }
+/* The toolbar's button rules set display, which would beat the hidden attribute (the theme button
+   is hidden inside the docs page, where the site header has the theme toggle). */
+.toolbar [hidden] { display: none !important; }
