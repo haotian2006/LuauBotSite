@@ -447,3 +447,5 @@ button, select, label, .file-tab .file-name, .file-tab .file-name-input, #status
 /* Sized by fitSnapPreview to fill the pane. */
 .snap-preview { display: flex; align-items: center; justify-content: center; }
 #snapCanvas { display: block; flex: none; height: auto; }
+/* Double tap selects a word on touch screens instead of zooming the page. */
+@media (pointer: coarse) { .CodeMirror { touch-action: manipulation; } }

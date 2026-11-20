@@ -1260,7 +1260,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="playground/playground.css?v=20261118c">
+  <link rel="stylesheet" href="playground/playground.css?v=20261119a">
 </head>
 
 <body>
@@ -2290,6 +2290,23 @@ declare myGlobal: MyClass'></textarea>
       if (tapAnchor && event.defaultPrevented) editor.setSelection(tapAnchor, editor.getCursor("head"), { scroll: false });
       tapAnchor = null;
     });
+    // A double tap goes to the browser on touch screens: CodeMirror's own word select is a script
+    // selection, and phones only show their selection handles and copy menu for native ones (which
+    // is why dragging showed them and a double tap didn't). The browser selects the word itself and
+    // CodeMirror picks the selection up from the page.
+    let lastTap = null;
+    const tapTarget = editor.getWrapperElement();
+    tapTarget.addEventListener("touchmove", () => { lastTap = null; }, { capture: true, passive: true });
+    tapTarget.addEventListener("touchend", event => {
+      if (!coarsePointer.matches || selectMode || event.changedTouches.length !== 1) return;
+      const touch = event.changedTouches[0];
+      const now = Date.now();
+      const second = lastTap && now - lastTap.time < 350 &&
+        Math.hypot(touch.clientX - lastTap.x, touch.clientY - lastTap.y) < 24;
+      lastTap = second ? null : { time: now, x: touch.clientX, y: touch.clientY };
+      // CodeMirror's touch handler is below the wrapper, so stopping here leaves the default.
+      if (second) event.stopPropagation();
+    }, true);
     async function copySelection(cm) {
       const text = cm.getSelection();
       if (!text) return false;
