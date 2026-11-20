@@ -30,10 +30,17 @@
       function pickTheme() {
         try {
           const scheme = window.parent !== window
-            ? window.parent.document.documentElement.getAttribute("data-md-color-scheme")
+            ? (window.parent.document.body?.getAttribute("data-md-color-scheme") || window.parent.document.documentElement.getAttribute("data-md-color-scheme"))
             : null;
           if (scheme === "default") return "light";
           if (scheme === "slate") return "dark";
+          // Opened on its own: the docs site's saved choice (Material keeps it under "/.__palette").
+          if (window.parent === window) {
+            const saved = JSON.parse(localStorage.getItem("/.__palette") || "null");
+            const savedScheme = saved && saved.color && saved.color.scheme;
+            if (savedScheme === "default") return "light";
+            if (savedScheme === "slate") return "dark";
+          }
         } catch { }
         return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
       }
@@ -1279,6 +1286,7 @@
       <button id="hist-popover-btn" title="Run history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg>History</button>
     </div>
     <button id="hist-sheet-btn" title="Run history" aria-label="Run history"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2"/></svg></button>
+    <button id="themeBtn" type="button" title="Switch light and dark theme" aria-label="Switch light and dark theme" hidden><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg></button>
     <button id="compactBtn" type="button" title="Compact header and buttons" aria-label="Compact header and buttons" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="compact-collapse" d="m6 13 6-6 6 6M6 19l6-6 6 6"/><path class="compact-expand" d="m6 5 6 6 6-6M6 11l6 6 6-6"/></svg></button>
     <span id="status" role="status"></span>
     <span id="actionNotice" role="status"></span>
@@ -2106,15 +2114,34 @@ declare myGlobal: MyClass'></textarea>
       });
     }
 
+    const SITE_PALETTE_KEY = "/.__palette";
     function readParentTheme() {
       try {
         const scheme = window.parent !== window
-          ? window.parent.document.documentElement.getAttribute("data-md-color-scheme")
+          ? (window.parent.document.body?.getAttribute("data-md-color-scheme") || window.parent.document.documentElement.getAttribute("data-md-color-scheme"))
           : null;
         if (scheme === "default") return "light";
         if (scheme === "slate") return "dark";
+        if (window.parent === window) {
+          const saved = JSON.parse(localStorage.getItem(SITE_PALETTE_KEY) || "null");
+          const savedScheme = saved && saved.color && saved.color.scheme;
+          if (savedScheme === "default") return "light";
+          if (savedScheme === "slate") return "dark";
+        }
       } catch { }
       return null;
+    }
+
+    // Opened on its own, the playground has no site header, so it gets its own theme button. It
+    // saves the choice where the docs site's Material theme does, so either one sets both.
+    function saveSiteTheme(theme) {
+      const dark = theme === "dark";
+      try {
+        localStorage.setItem(SITE_PALETTE_KEY, JSON.stringify({
+          index: dark ? 0 : 1,
+          color: { media: "", scheme: dark ? "slate" : "default", primary: "indigo", accent: "indigo" },
+        }));
+      } catch { }
     }
 
     function pickPlaygroundTheme() {
@@ -2434,11 +2461,14 @@ declare myGlobal: MyClass'></textarea>
     });
 
     try {
-      const parentRoot = window.parent.document.documentElement;
-      new MutationObserver(syncPlaygroundTheme).observe(parentRoot, {
-        attributes: true,
-        attributeFilter: ["data-md-color-scheme"],
-      });
+      // Material sets the scheme on <body> (older builds used <html>), so watch both.
+      const parentDoc = window.parent.document;
+      for (const target of [parentDoc.documentElement, parentDoc.body]) {
+        if (target) new MutationObserver(syncPlaygroundTheme).observe(target, {
+          attributes: true,
+          attributeFilter: ["data-md-color-scheme"],
+        });
+      }
     } catch { }
 
     window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
@@ -5010,6 +5040,13 @@ declare myGlobal: MyClass'></textarea>
     toolViewsReady = true;
     // Inside the docs page the site header already links home.
     document.getElementById("homeLink").hidden = window.parent !== window;
+    const themeBtn = document.getElementById("themeBtn");
+    themeBtn.hidden = window.parent !== window;
+    themeBtn.addEventListener("click", () => {
+      const next = document.documentElement.getAttribute("data-playground-theme") === "light" ? "dark" : "light";
+      saveSiteTheme(next);
+      applyPlaygroundTheme(next);
+    });
     const runBtn = document.getElementById("runBtn");
     const stopBtn = document.getElementById("stopBtn");
     const inputBox = document.getElementById("inputBox");
