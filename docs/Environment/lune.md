@@ -7,7 +7,7 @@ description: "Which Lune libraries Luwa scripts can require, such as @lune/fs, a
 
 Code can `require` some [Lune](https://lune-org.github.io/docs) libraries. They are mocked on top of Roblox, so code written for Lune can run here.
 
-```lua
+```luau
 local fs = require("@lune/fs")
 fs.writeFile("hello.txt", "hi")
 print(fs.readFile("hello.txt")) --> hi
@@ -26,7 +26,7 @@ print(fs.readFile("hello.txt")) --> hi
 
 `stdio.prompt` asks the person who ran the code. A `text` prompt waits for their next input. `confirm`, `select` and `multiselect` show buttons that only they can click, and return `true`/`false`, the option's index, or a list of indexes. With more than 25 options, or where buttons can't be shown, they type the answer instead.
 
-```lua
+```luau
 local stdio = require("@lune/stdio")
 local name = stdio.prompt("text", "Name?", "Guest")
 if stdio.prompt("confirm", `Hi {name}, pick a color?`, true) then

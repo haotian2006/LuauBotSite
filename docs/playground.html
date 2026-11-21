@@ -4318,7 +4318,9 @@ declare myGlobal: MyClass'></textarea>
     }, true);
     let lastMouseX = 0, lastMouseY = 0;
 
-    const badTokenTypes = new Set(["keyword", "operator", "punctuation", "bracket", "comment", "number"]);
+    const badTokenTypes = new Set(["keyword", "operator", "punctuation", "bracket", "comment"]);
+    // Literals get their type from luau-lsp too: number, string (n bytes), boolean, nil.
+    const literalTokenTypes = new Set(["number", "string", "luau-bool"]);
 
     function getHoverToken(x, y) {
       const pos = editor.coordsChar({ left: x, top: y }, "window");
@@ -4327,8 +4329,10 @@ declare myGlobal: MyClass'></textarea>
       for (const ch of [pos.ch, pos.ch + 1]) {
         const p = { line: pos.line, ch };
         const token = editor.getTokenAt(p);
-        if (!token || !token.string.trim() || !/^\w/.test(token.string)) continue;
-        if (token.type && token.type.split(" ").some(type => badTokenTypes.has(type))) continue;
+        if (!token || !token.string.trim()) continue;
+        const types = token.type ? token.type.split(" ") : [];
+        const literal = types.some(type => literalTokenTypes.has(type));
+        if (!literal && (!/^\w/.test(token.string) || types.some(type => badTokenTypes.has(type)))) continue;
         // coordsChar snaps blank space past a line's end (or below the last line) onto the
         // nearest word, which kept its tip open while the mouse was nowhere near it.
         const start = editor.charCoords({ line: pos.line, ch: token.start }, "window");

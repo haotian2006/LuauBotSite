@@ -11,7 +11,7 @@ Does not add spaces between args and does not output tables expanded.If `TIMESTA
 yields the thread until `/input` is given. Unlike lua this does not have any args.
 
 You can also provide inputs in the code using `--@<input>` comments.
-```lua
+```luau
 --@Hello, World!
 local input = io.read()
 print(input) --> Hello, World!
@@ -61,7 +61,7 @@ The extension is added if `filename` doesn't have one; the default name is `imag
 
 In the playground, an image named `screen` (or `screen2`, `screen3`, ...) opens in a live window over the editor that updates each time it's written. Drag any image from the output files onto the editor to open it.
 
-```lua
+```luau
 io.writeimage(workspace, "scene", { Size = Vector2.new(320, 180) })
 ```
 
@@ -82,24 +82,24 @@ Only public repositories work, and a build is cached for 10 minutes. A repositor
 
 !!!warning
     Scripts don't run when imported
-```lua
+```luau
 local Chrono = io.import("https://github.com/Parihsz/Chrono")
 local api = require(Chrono)
 ```
 
 Wally example:
-```lua
+```luau
 local Knit = require(io.import("wally:sleitnick/knit@1.7"))
 local Signal = require(io.import("https://wally.run/package/sleitnick/signal?version=2.0.1"))
 ```
 
 Roblox example:
-```lua
+```luau
 local Packet = require(io.import(104116977416770))
 ```
 
 Gist and Pastebin example:
-```lua
+```luau
 local observers = require(io.import("https://gist.github.com/Sleitnick/c14be94ae7503b82e87f40eb53734965"))
 print(io.import("https://pastebin.com/raw/0C343n0d").Source)
 ```
@@ -111,7 +111,7 @@ reads a loaded file with write file and returns the content and the file type. I
 ### `getoutput(): string`
 returns the current output log as a string
 
-```lua
+```luau
 print("Hello, World!")
 local output = io.getoutput()
 print(output) --> "Hello, World!\n"

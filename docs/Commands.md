@@ -40,13 +40,13 @@ Here are the valid application commands that you can use with the bot:
 
     Use a `{CODE}` placeholder to control where the original code lands instead, and repeat it to chain multiple blocks together:
 
-    ```lua
+    ```luau
     print('before')
     {CODE}
     print('after')
     ```
 
-    ```lua
+    ```luau
     -- Original: print('hi')
     print('before')
     print('hi')
@@ -62,7 +62,7 @@ Here are the valid application commands that you can use with the bot:
 
     ```
     Example:
-    ```lua
+    ```luau
     --!optimize 2
     print(1+1) -- would optimize to print(2)
     ```

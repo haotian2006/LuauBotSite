@@ -11,7 +11,7 @@ creates a truth table for the given variables
 ### `inspect(value:any):{}`
 Estimates how much memory a value takes. Start with `summary`, a sentence that says it plainly:
 
-```lua
+```luau
 print(misc.inspect(buffer.create(0)).summary)
 --> buffer: 16 bytes. Each place that stores it also uses a 16 byte slot.
 
@@ -54,7 +54,7 @@ So 1,000 empty buffers in an array take about 1,000 × (16 + 16) bytes: each buf
 calculates the given boolean expression with the given variables and outputs it.
 
 example:
-```lua
+```luau
 misc.calculate("pq", "~p v q", "p ^ q", "p -> q", "p <-> q")
 ```
 

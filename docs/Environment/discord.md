@@ -13,7 +13,7 @@ Sends the next output as a follow-up response instead of editing the original re
 
 In a Discord guild, the follow-up is ephemeral. Outside a guild, it is sent as a DM.
 
-```lua
+```luau
 discord.followUpNext()
 print("This appears as a separate follow-up message")
 ```
@@ -24,13 +24,13 @@ Creates a Discord button attached to the current response.
 
 #### String argument form
 
-```lua
+```luau
 local button = discord.button("Click me")
 ```
 
 #### Options-table form
 
-```lua
+```luau
 local button = discord.button({
     Label = "Run",
     Style = "Success",
@@ -56,7 +56,7 @@ A response can contain a maximum of 25 buttons.
 
 Fires when the button is clicked. The callback receives `userId: string` and `username: string`.
 
-```lua
+```luau
 local button = discord.button("Click me")
 
 button.Clicked:Connect(function(userId, username)
@@ -68,7 +68,7 @@ end)
 
 Alias of `button.Clicked`.
 
-```lua
+```luau
 button.Event:Connect(function(userId, username)
     print(userId, username)
 end)
@@ -78,7 +78,7 @@ end)
 
 Updates the button in the existing Discord response.
 
-```lua
+```luau
 local button = discord.button({
     Label = "Loading...",
     Style = "Primary",
@@ -92,7 +92,7 @@ button:Update({
 
 Accepted update fields:
 
-```lua
+```luau
 button:Update({
     Label = "New label",
     Style = "Secondary",
@@ -103,7 +103,7 @@ button:Update({
 
 Returns the same button object, so chaining is possible:
 
-```lua
+```luau
 button:Update({
     Label = "Done",
     Disabled = true,
@@ -116,7 +116,7 @@ Calling `Update` after `Destroy` raises an error.
 
 Removes the button from the Discord response and disconnects its internal callback.
 
-```lua
+```luau
 local button = discord.button("Temporary")
 
 task.delay(10, function()

@@ -25,7 +25,7 @@ Renders Roblox instances into an Image.
 
 `options`: `Size: Vector2`, `Camera: Camera | CFrame`, `FieldOfView: number`, `Background: Color3 | false`, `LightDirection: Vector3`, `AntiAliasing: boolean` (default `true`), `Materials: boolean` (`false` draws plain colors instead of material textures).
 
-```lua
+```luau
 local part = Instance.new("Part")
 part.Anchored = true
 part.Parent = workspace
@@ -40,7 +40,7 @@ Records `root` with `fromInstance` into a gif. It returns right away and records
 
 The recorder has `Status` (`"recording"`, `"done"` or `"failed"`), `FrameCount`, `Reason`, `Stop()` and `Wait(timeout?)`, which returns the gif (or `nil` and why).
 
-```lua
+```luau
 local rec = Image.record(workspace, { Duration = 2 })
 local gif = rec:Wait()
 io.writefile(gif, "spin.gif")
@@ -50,7 +50,7 @@ io.writefile(gif, "spin.gif")
 ### `toPng(image:Image,outputLogs:boolean?): string`
 Encodes the Image object as a raw string encoded as a png. If `outputLogs` is true, logs will be printed during the encoding process.
 
-```lua
+```luau
 local img = Image.new(Vector2.new(400, 300))
 img:Fill(Color3.new(1, 1, 1), 0)
 
@@ -173,7 +173,7 @@ Renders anti-aliased text and returns its size.
 
 Example:
 
-```lua
+```luau
 local img = Image.new(Vector2.new(300, 120))
 img:Fill(Color3.new(1, 1, 1), 0)
 img:DrawText("Scale 2", Vector2.new(10, 10), Color3.new(0, 0, 0), 0, 2)

@@ -15,7 +15,7 @@ You can get a typefile containing all the types [here](https://rluwa.com/playgro
 ### `TIMEOUT: number`
 The maximum time (in seconds) that a code execution is allowed to run before terminated. Defaults to 25 seconds. 
 
-```lua
+```luau
 TIMEOUT = 3 -- make sure it's not a local
 while task.wait(.5) do
     print('hello') -- will stop after 3 seconds
@@ -47,7 +47,7 @@ A table containing information about the user who sent the code to be executed.
 - Data that isn't used for 30 days is deleted. MemoryStore entries are deleted when they expire.
 - Code run in the play ground doesn't save anything.
 
-```lua
+```luau
 local store = game:GetService("DataStoreService"):GetDataStore("scores")
 print(store:GetAsync("best")) -- nil the first time
 store:SetAsync("best", 42)

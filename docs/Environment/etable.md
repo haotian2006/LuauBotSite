@@ -7,7 +7,7 @@ The default table library has extended functions provided by Akari <3.
 These just provide a few gimmicky functions on top of the default table library.
 
 
-```lua
+```luau
 local t = {1,2,3,4,5,6,7,8,9}
 print(etable.getAllocatedArraySize(t)) --> 9
 t[10] = 10
