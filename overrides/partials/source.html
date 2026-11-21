@@ -1,5 +1,5 @@
-{#- Material's repository link in the header. The playground page shows a link to the
-    environment's API reference there instead, since that's what people need while coding. -#}
+{#- Material's repository link in the header, replaced with what readers need next: the
+    playground page links to the environment's API reference, every other page to the playground. -#}
 {% if page and page.file and page.file.src_uri == "playground.md" %}
 <a href="{{ 'Environment/' | url }}" title="Environment API reference" class="md-source">
   <div class="md-source__icon md-icon">
@@ -10,13 +10,12 @@
   </div>
 </a>
 {% else %}
-<a href="{{ config.repo_url }}" title="{{ lang.t('source') }}" class="md-source" data-md-component="source">
+<a href="{{ 'playground/' | url }}" title="Open the Luau playground" class="md-source">
   <div class="md-source__icon md-icon">
-    {% set icon = config.theme.icon.repo or "fontawesome/brands/git-alt" %}
-    {% include ".icons/" ~ icon ~ ".svg" %}
+    {% include ".icons/material/console.svg" %}
   </div>
   <div class="md-source__repository">
-    {{ config.repo_name }}
+    Go to playground
   </div>
 </a>
 {% endif %}
