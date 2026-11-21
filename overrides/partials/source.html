@@ -1,0 +1,22 @@
+{#- Material's repository link in the header. The playground page shows a link to the
+    environment's API reference there instead, since that's what people need while coding. -#}
+{% if page and page.file and page.file.src_uri == "playground.md" %}
+<a href="{{ 'Environment/' | url }}" title="Environment API reference" class="md-source">
+  <div class="md-source__icon md-icon">
+    {% include ".icons/material/book-open-page-variant.svg" %}
+  </div>
+  <div class="md-source__repository">
+    See API reference
+  </div>
+</a>
+{% else %}
+<a href="{{ config.repo_url }}" title="{{ lang.t('source') }}" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    {% set icon = config.theme.icon.repo or "fontawesome/brands/git-alt" %}
+    {% include ".icons/" ~ icon ~ ".svg" %}
+  </div>
+  <div class="md-source__repository">
+    {{ config.repo_name }}
+  </div>
+</a>
+{% endif %}
