@@ -1,0 +1,16 @@
+/* Header, links and accents use the logo's blue instead of Material's default indigo. */
+:root, [data-md-color-scheme="default"], [data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #0277bd;
+  --md-primary-fg-color--light: #0288d1;
+  --md-primary-fg-color--dark: #01579b;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, .7);
+}
+[data-md-color-scheme="default"] {
+  --md-accent-fg-color: #01579b;
+  --md-typeset-a-color: #0277bd;
+}
+[data-md-color-scheme="slate"] {
+  --md-accent-fg-color: #80d7ff;
+  --md-typeset-a-color: #4fc3f7;
+}

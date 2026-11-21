@@ -1,0 +1,1098 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Miscellaneous Luwa helpers: truth tables, memory estimates with inspect, calculate and uwuify.">
+      
+      
+      
+        <link rel="canonical" href="https://rluwa.com/Environment/misc/">
+      
+      
+        <link rel="prev" href="../io/">
+      
+      
+        <link rel="next" href="../Image/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+    
+        
+      
+        <title>misc - Luwa</title>
+      
+    
+    
+
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/brand.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Luwa, a Luau runner Discord bot">
+    <meta property="og:description" content="Miscellaneous Luwa helpers: truth tables, memory estimates with inspect, calculate and uwuify.">
+    <meta property="og:url" content="https://rluwa.com/">
+    <meta property="og:image" content="https://rluwa.com/images/favicon.png">
+    <script>
+        // Anonymous page view count (see the Privacy Policy): the page's path and the domain of the
+        // site that linked here. No cookies or identifiers. Skipped when the browser asks not to track.
+        (function () {
+            try {
+                if (navigator.globalPrivacyControl || navigator.doNotTrack === "1") return;
+                if (!/(^|\.)rluwa\.com$/.test(location.hostname) || !navigator.sendBeacon) return;
+                var source = "";
+                try { source = document.referrer ? new URL(document.referrer).hostname : ""; } catch (e) { }
+                navigator.sendBeacon("https://api.rluwa.com/hit", JSON.stringify({ page: location.pathname, source: source }));
+            } catch (e) { }
+        })();
+    </script>
+    <style>
+        .luau-header-stats {
+            margin-left: .65rem;
+            font-size: .72rem;
+            font-weight: 400;
+            opacity: .78;
+            white-space: nowrap;
+        }
+
+        @media screen and (max-width: 600px) {
+            .luau-header-stats { display: none; }
+        }
+
+        body[data-md-color-scheme="slate"] .md-typeset table {
+            color: var(--md-default-fg-color);
+        }
+
+        body[data-md-color-scheme="slate"] .md-typeset table code {
+            color: var(--md-default-fg-color);
+        }
+
+        .luwa-home-link {
+            display: block;
+            height: 100%;
+            color: inherit;
+        }
+
+        .luwa-home-link:hover,
+        .luwa-home-link:focus {
+            color: inherit;
+        }
+
+        .md-header__source { order: 1; }
+        .md-header__option[data-md-component="palette"] { order: 2; }
+        .md-header__button[for="__search"],
+        .md-header .md-search { order: 3; }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // The title (site name, or the page name once scrolled) also goes home, like the logo.
+            const title = document.querySelector('.md-header__title .md-header__ellipsis');
+            const logo = document.querySelector('.md-header__button.md-logo');
+            if (title && logo) {
+                const homeLink = document.createElement('a');
+                homeLink.className = 'luwa-home-link';
+                homeLink.href = logo.href;
+                homeLink.title = 'Luwa home';
+                title.parentNode.insertBefore(homeLink, title);
+                homeLink.appendChild(title);
+            }
+
+            const topic = document.querySelector('.md-header__topic');
+            if (!topic) return;
+
+            fetch('https://api.rluwa.com/stats')
+                .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                .then(stats => {
+                    if (!Number.isFinite(stats.guilds) || !Number.isFinite(stats.memberReach)) return;
+                    const statsLabel = document.createElement('span');
+                    statsLabel.className = 'luau-header-stats';
+                    statsLabel.textContent = `${stats.guilds.toLocaleString()} servers ${stats.memberReach.toLocaleString()} members`;
+                    topic.appendChild(statsLabel);
+                })
+                .catch(() => {});
+        });
+    </script>
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#truthvarsany" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Luwa" class="md-header__button md-logo" aria-label="Luwa" data-md-component="logo">
+      
+  <img src="../../images/favicon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Luwa
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              misc
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        
+<a href="../../playground/" title="Open the Luau playground" class="md-source">
+  <div class="md-source__icon md-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 19V7H4v12zm0-16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-7 14v-2h5v2zm-3.42-4L5.57 9H8.4l3.3 3.3c.39.39.39 1.03 0 1.42L8.42 17H5.59z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Go to playground
+  </div>
+</a>
+
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Luwa" class="md-nav__button md-logo" aria-label="Luwa" data-md-component="logo">
+      
+  <img src="../../images/favicon.png" alt="logo">
+
+    </a>
+    Luwa
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="../../playground/" title="Open the Luau playground" class="md-source">
+  <div class="md-source__icon md-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 19V7H4v12zm0-16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-7 14v-2h5v2zm-3.42-4L5.57 9H8.4l3.3 3.3c.39.39.39 1.03 0 1.42L8.42 17H5.59z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Go to playground
+  </div>
+</a>
+
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Environment
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../discord/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    discord
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../etable/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    etable
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    io
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    misc
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    misc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#truthvarsany" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        truth(vars:{any}):{}
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspectvalueany" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inspect(value:any):{}
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calculatevarsstringstring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        calculate(vars:string,...string})
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uwuifytextstringstring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        uwuify(text:string):string
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Image/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Image
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lune/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lune
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../playground/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Playground
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../TOS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terms of Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../PrivacyPolicy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Privacy Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Changes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#truthvarsany" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        truth(vars:{any}):{}
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspectvalueany" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inspect(value:any):{}
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calculatevarsstringstring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        calculate(vars:string,...string})
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uwuifytextstringstring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        uwuify(text:string):string
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>misc</h1>
+
+<p>Some random functions.</p>
+<h3 id="truthvarsany"><code>truth(vars:{any}):{}</code></h3>
+<p>creates a truth table for the given variables</p>
+<h3 id="inspectvalueany"><code>inspect(value:any):{}</code></h3>
+<p>Estimates how much memory a value takes. Start with <code>summary</code>, a sentence that says it plainly:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">print</span><span class="p">(</span><span class="nv">misc</span><span class="p">.</span><span class="nf">inspect</span><span class="p">(</span><span class="nb">buffer</span><span class="p">.</span><span class="nf">create</span><span class="p">(</span><span class="mf">0</span><span class="p">)).</span><span class="nv">summary</span><span class="p">)</span>
+<span class="c1">--&gt; buffer: 16 bytes. Each place that stores it also uses a 16 byte slot.</span>
+
+<span class="kd">local</span><span class="w"> </span><span class="nv">part</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">Instance</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"Part"</span><span class="p">)</span>
+<span class="nv">Instance</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"Attachment"</span><span class="p">).</span><span class="nv">Parent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">part</span>
+<span class="nf">print</span><span class="p">(</span><span class="nv">misc</span><span class="p">.</span><span class="nf">inspect</span><span class="p">(</span><span class="nv">part</span><span class="p">).</span><span class="nv">summary</span><span class="p">)</span>
+<span class="c1">--&gt; Part and its 1 descendant: at least 448 bytes. Each Instance counts only its Luau handle</span>
+<span class="c1">--&gt; and base Instance data (224 bytes); Part properties and engine memory are not known.</span>
+</code></pre></div>
+<p>The numbers behind it:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>shallowBytes</code></td>
+<td>Bytes the value itself asks Luau for. This is what <code>gcinfo()</code> counts.</td>
+</tr>
+<tr>
+<td><code>allocatedBytes</code></td>
+<td>Bytes the allocator really uses for it, after rounding up to its size class.</td>
+</tr>
+<tr>
+<td><code>estimatedTotalBytes</code></td>
+<td><code>shallowBytes</code> plus every table key and value and visible Instance descendant it reaches. Shared objects count once, and cycles are fine.</td>
+</tr>
+<tr>
+<td><code>estimatePartial</code></td>
+<td>True when some of it can't be measured, so the numbers are a minimum.</td>
+</tr>
+<tr>
+<td><code>tvalue.size</code></td>
+<td>The 16 byte slot the value takes wherever it is stored (a local, a table slot, an upvalue). It is never added to the other numbers.</td>
+</tr>
+</tbody>
+</table>
+<p>Examples:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th><code>shallowBytes</code></th>
+<th><code>allocatedBytes</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nil</code>, <code>true</code>, <code>42</code>, <code>Vector3.one</code></td>
+<td>0 (stored in the slot)</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>buffer.create(0)</code> up to <code>buffer.create(8)</code></td>
+<td>16</td>
+<td>16</td>
+</tr>
+<tr>
+<td><code>buffer.create(9)</code></td>
+<td>17</td>
+<td>24</td>
+</tr>
+<tr>
+<td><code>newproxy(false)</code></td>
+<td>16</td>
+<td>16</td>
+</tr>
+<tr>
+<td><code>{}</code></td>
+<td>48</td>
+<td>48</td>
+</tr>
+<tr>
+<td><code>{1, 2, 3}</code></td>
+<td>96</td>
+<td>104</td>
+</tr>
+</tbody>
+</table>
+<p>So 1,000 empty buffers in an array take about 1,000 × (16 + 16) bytes: each buffer plus its array slot.</p>
+<ul>
+<li>For Instances, only the Luau handle and the base Instance object are known. A Part's own properties and its physics and rendering data are not counted, so the real size is larger.</li>
+<li>Traversal stops after 10,000 references and sets <code>truncated</code> to true.</li>
+<li>Totals leave out metatables, shared prototypes, class member graphs and function captures.</li>
+<li>The result also has the TValue layout, table capacities, closure, class, object and Instance layouts, and summaries of metatables that aren't protected. For tables, <code>entries</code> holds up to 64 key/value summaries.</li>
+</ul>
+<h3 id="calculatevarsstringstring"><code>calculate(vars:string,...string})</code></h3>
+<p>calculates the given boolean expression with the given variables and outputs it.</p>
+<p>example:
+<div class="highlight"><pre><span></span><code><span class="nv">misc</span><span class="p">.</span><span class="nf">calculate</span><span class="p">(</span><span class="s2">"pq"</span><span class="p">,</span><span class="w"> </span><span class="s2">"~p v q"</span><span class="p">,</span><span class="w"> </span><span class="s2">"p ^ q"</span><span class="p">,</span><span class="w"> </span><span class="s2">"p -&gt; q"</span><span class="p">,</span><span class="w"> </span><span class="s2">"p &lt;-&gt; q"</span><span class="p">)</span>
+</code></pre></div></p>
+<h3 id="uwuifytextstringstring"><code>uwuify(text:string):string</code></h3>
+<p>Hi</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Luau is a trademark of Roblox Corporation. Independent project; not affiliated with or endorsed by Roblox.
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

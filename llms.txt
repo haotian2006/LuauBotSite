@@ -1,0 +1,23 @@
+# Luwa
+
+> Luwa, a Luau runner Discord bot. Run Luau in a real Roblox server straight from Discord.
+
+## Docs
+
+* [Home](https://rluwa.com/): Luwa is a Discord bot that runs Luau code in a real Roblox server, so you can use the Roblox API straight from Discord or from the web playground.
+* [Commands](https://rluwa.com/Commands/): Every Luwa slash command, plus the filtering, runtime limits and cooldowns that apply to runs.
+* [Overview](https://rluwa.com/Environment/): How Luwa runs your Luau code and the custom globals it adds: TIMEOUT, limits, DataStores, ask, bench, println and more.
+* [discord](https://rluwa.com/Environment/discord/): Discord APIs for Luwa scripts: follow up messages and buttons with Clicked events, updates and removal.
+* [etable](https://rluwa.com/Environment/etable/): Extra functions Luwa adds on top of the Luau table library, such as getAllocatedArraySize.
+* [io](https://rluwa.com/Environment/io/): Input and output in Luwa scripts: io.write, io.read, writing files and images, importing models and reading output.
+* [misc](https://rluwa.com/Environment/misc/): Miscellaneous Luwa helpers: truth tables, memory estimates with inspect, calculate and uwuify.
+* [Image](https://rluwa.com/Environment/Image/): The Luwa Image library: create, draw, render Instances, record frames and export PNG or GIF images, similar to Roblox EditableImage.
+* [lune](https://rluwa.com/Environment/lune/): Which Lune libraries Luwa scripts can require, such as @lune/fs, and how they behave on Roblox.
+* [Playground](https://rluwa.com/playground/): Run Luau in the browser with Roblox APIs.
+* [Terms of Service](https://rluwa.com/TOS/): The terms for using the Luwa Discord bot and its web playground.
+* [Privacy Policy](https://rluwa.com/PrivacyPolicy/): What data Luwa logs when you use the bot or the playground, and how long it is kept.
+* [Changes](https://rluwa.com/Changes/): Changelog for Luwa, the Luau runner Discord bot.
+
+## Full text
+
+* [All doc pages in one file](https://rluwa.com/llms-full.txt)
