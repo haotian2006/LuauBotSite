@@ -81,6 +81,8 @@ body { font-family: var(--pg-font); }
   --code-property: #61a1f1;
   --code-self: #f86d7c;
   --code-type: #4ec9b0;
+  --code-interp: #569cd6;
+  --code-attr: #c586c0;
   --code-indent-guide: rgba(255, 255, 255, .12);
 }
 html[data-playground-theme="light"] {
@@ -99,6 +101,8 @@ html[data-playground-theme="light"] {
   --code-property: #485c8e;
   --code-self: #00007f;
   --code-type: #267f99;
+  --code-interp: #0000ff;
+  --code-attr: #af00db;
   --code-indent-guide: rgba(0, 0, 0, .14);
 }
 #editor-wrapper .cm-s-studio.CodeMirror, #editor-wrapper-2 .cm-s-studio.CodeMirror { color: var(--code-text) !important; }
@@ -119,6 +123,9 @@ html[data-playground-theme="light"] {
 .cm-s-studio span.cm-luau-type { color: var(--code-type); }
 .cm-s-studio span.cm-number { color: var(--code-number); }
 .cm-s-studio span.cm-string { color: var(--code-string); }
+/* The { } around an interpolated string expression. */
+.cm-s-studio span.cm-luau-interp { color: var(--code-interp); }
+.cm-s-studio span.cm-luau-attr { color: var(--code-attr); }
 .cm-s-studio span.cm-comment { color: var(--code-comment); }
 body { height: 100dvh; }
 .toolbar { padding: 7px 16px; gap: 10px; }
@@ -464,3 +471,34 @@ html.pg-compact #compactBtn .compact-expand { display: inline; }
 /* The toolbar's button rules set display, which would beat the hidden attribute (the theme button
    is hidden inside the docs page, where the site header has the theme toggle). */
 .toolbar [hidden] { display: none !important; }
+/* Find and replace (Ctrl+F, Ctrl+H), over the top right of the editor like VS Code's. */
+.find-bar { position: absolute; top: 6px; right: 16px; z-index: 6; display: flex; align-items: flex-start; gap: 4px; width: min(430px, calc(100% - 32px)); padding: 5px 6px 5px 4px; background: var(--pg-surface); color: var(--pg-fg); border: 1px solid var(--pg-border); border-radius: var(--pg-radius-sm); box-shadow: 0 4px 14px var(--pg-shadow); font: 13px var(--pg-font); }
+.find-bar[hidden], .find-row[hidden] { display: none !important; }
+.find-rows { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.find-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.find-field { display: flex; align-items: center; flex: 1; min-width: 0; height: 26px; padding-right: 2px; background: var(--pg-input); border: 1px solid var(--pg-border); border-radius: var(--pg-radius-sm); }
+.find-field:focus-within { border-color: var(--pg-accent); }
+.find-field input { flex: 1; min-width: 0; height: 100%; padding: 0 6px; background: transparent; color: inherit; border: 0; outline: 0; font: 13px var(--pg-mono); }
+.find-field input.invalid { color: var(--pg-warn); }
+.find-bar button { display: inline-grid; place-items: center; flex: 0 0 auto; min-width: 22px; height: 22px; padding: 0 3px; background: transparent; color: var(--pg-muted); border: 1px solid transparent; border-radius: var(--pg-radius-sm); font: 12px var(--pg-mono); cursor: pointer; }
+.find-bar button:hover { background: var(--pg-surface-2); color: var(--pg-fg); }
+.find-bar .find-expand { align-self: stretch; height: auto; }
+.find-bar .find-expand .ui-icon { transition: transform .12s; }
+.find-bar .find-expand[aria-expanded="true"] .ui-icon { transform: rotate(90deg); }
+.find-bar .find-toggle[aria-pressed="true"] { color: var(--pg-fg); background: var(--pg-accent-soft); border-color: var(--pg-accent); }
+.find-toggle-word { text-decoration: underline; text-underline-offset: 2px; }
+.find-bar .find-text-button { padding: 0 7px; font: 12px var(--pg-font); }
+.find-count { flex: 0 0 auto; min-width: 64px; padding: 0 4px; color: var(--pg-muted); font-size: 12px; white-space: nowrap; }
+.find-count.empty { color: var(--pg-warn); }
+.find-bar .ui-icon { width: 15px; height: 15px; flex-basis: 15px; }
+.cm-s-studio .cm-search-match { background: rgba(234, 92, 0, .28); border-radius: 2px; }
+.cm-s-studio .cm-search-current, .cm-s-studio .cm-search-current .cm-search-match { background: rgba(255, 176, 0, .55); outline: 1px solid rgba(255, 176, 0, .9); border-radius: 2px; }
+@media (pointer: coarse) {
+  .find-field { height: 34px; }
+  .find-field input { font-size: 16px; }
+  .find-bar button { min-width: 32px; height: 32px; }
+}
+@media (max-width: 600px) {
+  .find-bar { right: 6px; width: calc(100% - 12px); }
+  .find-count { min-width: 0; }
+}
